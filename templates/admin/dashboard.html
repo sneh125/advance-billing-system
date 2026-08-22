@@ -1,0 +1,68 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Admin Dashboard | Advance Billing System</title>
+
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+
+<body>
+
+    <div class="dashboard-container">
+
+        <header class="dashboard-header">
+            <div>
+                <h1>Admin Dashboard</h1>
+                <p>Advance Billing System</p>
+            </div>
+
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        </header>
+
+        <main class="dashboard-content">
+
+            <div class="welcome-card">
+                <h2>Welcome, Admin 👋</h2>
+                <p>
+                    Manage users, distributors, billing and system activities
+                    from your administration panel.
+                </p>
+            </div>
+
+            <div class="cards">
+
+                <div class="card">
+                    <h3>👥 Users</h3>
+                    <p>Manage system users</p>
+                </div>
+
+                <div class="card">
+                    <h3>🏢 Distributors</h3>
+                    <p>Manage distributors</p>
+                </div>
+
+                <div class="card">
+                    <h3>🧾 Billing</h3>
+                    <p>Monitor billing activities</p>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Reports</h3>
+                    <p>View system reports</p>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>
