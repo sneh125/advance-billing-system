@@ -53,5 +53,10 @@ urlpatterns = [
         name="distributor_dashboard"
     ),
 
-    
+    path(
+        "distributor/profile/",
+        views.distributor_profile,
+        name="distributor_profile"
+    ),
+
 ]

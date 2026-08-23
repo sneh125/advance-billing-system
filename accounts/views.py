@@ -536,3 +536,20 @@ def distributor_dashboard(request):
         request,
         "distributor/dashboard.html"
     )
+
+
+@login_required
+def distributor_profile(request):
+
+    if request.user.is_staff:
+        return redirect("admin_dashboard")
+
+    profile = request.user.distributor_profile
+
+    return render(
+        request,
+        "distributor/profile.html",
+        {
+            "profile": profile
+        }
+    )

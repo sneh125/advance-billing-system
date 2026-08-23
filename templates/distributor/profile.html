@@ -1,0 +1,53 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Profile | Advance Billing System</title>
+
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+
+<body>
+
+    <div class="dashboard-container">
+
+        <header class="dashboard-header">
+
+            <div>
+                <h1>My Profile</h1>
+                <p>Advance Billing System</p>
+            </div>
+
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+
+        </header>
+
+        <main class="dashboard-content">
+
+            <div class="welcome-card">
+
+                <h2>Profile Details</h2>
+
+                <p><strong>Name:</strong> {{ profile.user.first_name }}</p>
+                <p><strong>Email:</strong> {{ profile.user.email }}</p>
+                <p><strong>Phone:</strong> {{ profile.phone }}</p>
+                <p><strong>Username:</strong> {{ profile.user.username }}</p>
+
+            </div>
+
+            <div style="margin-top: 20px;">
+                <a href="{% url 'distributor_dashboard' %}" class="logout-btn">Back to Dashboard</a>
+            </div>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>
