@@ -1,56 +1,41 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Distributor Registration | Advance Billing System</title>
-
     <link rel="stylesheet" href="{% static 'css/register.css' %}">
 </head>
-
 <body>
-
 <main class="register-shell">
-
     <!-- LEFT BRAND PANEL -->
     <section class="brand-panel">
-
         <div class="brand">
             <div class="brand-mark">
                 AB
             </div>
-
             <div>
                 <span class="brand-name">Advance</span>
                 <span class="brand-subtitle">Billing System</span>
             </div>
         </div>
-
         <div class="brand-content">
-
             <span class="eyebrow">
                 DISTRIBUTOR PORTAL
             </span>
-
             <h1>
                 Manage your
                 <span>business smarter.</span>
             </h1>
-
             <p>
                 Create your distributor account and get access
                 to a streamlined billing experience designed
                 for modern business operations.
             </p>
-
             <div class="benefits">
-
                 <div class="benefit">
                     <div class="benefit-icon">✓</div>
-
                     <div>
                         <strong>Smart Billing</strong>
                         <small>
@@ -59,10 +44,8 @@
                     </div>
                 </div>
 
-
                 <div class="benefit">
                     <div class="benefit-icon">✓</div>
-
                     <div>
                         <strong>Secure Access</strong>
                         <small>
@@ -71,10 +54,8 @@
                     </div>
                 </div>
 
-
                 <div class="benefit">
                     <div class="benefit-icon">✓</div>
-
                     <div>
                         <strong>Easy Management</strong>
                         <small>
@@ -82,17 +63,14 @@
                         </small>
                     </div>
                 </div>
-
             </div>
 
         </div>
-
 
         <div class="brand-footer">
             <span>
                 © 2026 Advance Billing System
             </span>
-
             <span>
                 Secure • Simple • Reliable
             </span>
@@ -100,12 +78,10 @@
 
     </section>
 
-
     <!-- FORM PANEL -->
     <section class="form-panel">
 
         <div class="form-container">
-
 
             <!-- MOBILE BRAND -->
             <div class="mobile-brand">
@@ -113,13 +89,11 @@
                 <div class="brand-mark">
                     AB
                 </div>
-
                 <strong>
                     Advance Billing
                 </strong>
 
             </div>
-
 
             <!-- FORM HEADING -->
             <div class="form-heading">
@@ -139,7 +113,6 @@
 
             </div>
 
-
             <!-- ERROR MESSAGE -->
             {% if error %}
 
@@ -153,7 +126,6 @@
 
             {% endif %}
 
-
             <!-- REGISTRATION FORM -->
             <form
                 method="POST"
@@ -161,11 +133,6 @@
             >
 
                 {% csrf_token %}
-
-
-                <!-- =========================
-                     FULL NAME
-                ========================== -->
 
                 <div class="field full-field">
 
@@ -188,21 +155,12 @@
                             autocomplete="name"
                             required
                         >
-
                     </div>
-
                 </div>
-
-
-                <!-- =========================
-                     EMAIL + PHONE
-                ========================== -->
 
                 <div class="field-grid">
 
-
                     <!-- EMAIL -->
-
                     <div class="field">
 
                         <label for="email">
@@ -224,26 +182,18 @@
                                 autocomplete="email"
                                 required
                             >
-
                         </div>
-
                     </div>
 
-
                     <!-- PHONE -->
-
                     <div class="field">
-
                         <label for="phone">
                             Phone Number
                         </label>
-
                         <div class="input-wrap">
-
                             <span class="input-icon">
                                 #
                             </span>
-
                             <input
                                 type="tel"
                                 id="phone"
@@ -255,30 +205,19 @@
                                 autocomplete="tel"
                                 required
                             >
-
                         </div>
-
                     </div>
-
                 </div>
-
-
-                <!-- =========================
-                     PASSWORD
-                ========================== -->
 
                 <div class="field">
 
                     <label for="password">
                         Password
                     </label>
-
                     <div class="input-wrap">
-
                         <span class="input-icon">
                             ◆
                         </span>
-
                         <input
                             type="password"
                             id="password"
@@ -288,7 +227,6 @@
                             required
                         >
 
-
                         <button
                             type="button"
                             class="password-toggle"
@@ -297,32 +235,18 @@
                         >
                             Show
                         </button>
-
                     </div>
 
-
                     <!-- PASSWORD STRENGTH -->
-
                     <div class="password-strength">
-
                         <div class="strength-track">
-
                             <span id="strength-bar"></span>
-
                         </div>
-
                         <small id="strength-text">
                             Use 8+ characters
                         </small>
-
                     </div>
-
                 </div>
-
-
-                <!-- =========================
-                     CONFIRM PASSWORD
-                ========================== -->
 
                 <div class="field">
 
@@ -345,7 +269,6 @@
                             required
                         >
 
-
                         <button
                             type="button"
                             class="password-toggle"
@@ -354,9 +277,7 @@
                         >
                             Show
                         </button>
-
                     </div>
-
 
                     <small
                         id="match-text"
@@ -365,16 +286,10 @@
 
                 </div>
 
-
-                <!-- =========================
-                     CREATE ACCOUNT BUTTON
-                ========================== -->
-
                 <button
                     type="submit"
                     class="create-btn"
                 >
-
                     <span>
                         Create Distributor Account
                     </span>
@@ -387,7 +302,6 @@
 
             </form>
 
-
             <!-- LOGIN LINK -->
 
             <div class="login-link">
@@ -395,30 +309,15 @@
                 <span>
                     Already have an account?
                 </span>
-
                 <a href="{% url 'login' %}">
                     Sign in
                 </a>
-
             </div>
-
         </div>
-
     </section>
-
 </main>
 
-
-<!-- =========================
-     JAVASCRIPT
-========================== -->
-
 <script>
-
-
-/* =================================
-   SHOW / HIDE PASSWORD
-================================= */
 
 function togglePassword(id, button) {
 
@@ -451,10 +350,7 @@ function togglePassword(id, button) {
 
 }
 
-
-/* =================================
-   PASSWORD STRENGTH
-================================= */
+/*    PASSWORD STRENGTH */
 
 const password =
     document.getElementById("password");
@@ -471,29 +367,20 @@ password.addEventListener(
     function () {
 
         const value = password.value;
-
         let score = 0;
-
 
         if (value.length >= 8) {
             score++;
         }
-
-
         if (/[A-Z]/.test(value)) {
             score++;
         }
-
-
         if (/[0-9]/.test(value)) {
             score++;
         }
-
-
         if (/[^A-Za-z0-9]/.test(value)) {
             score++;
         }
-
 
         const widths = [
             "0%",
@@ -503,25 +390,16 @@ password.addEventListener(
             "100%"
         ];
 
-
         strengthBar.style.width =
             widths[score];
 
-
         const messages = [
-
             "Use 8+ characters",
-
             "Weak password",
-
             "Fair password",
-
             "Good password",
-
             "Strong password"
-
         ];
-
 
         strengthText.textContent =
             messages[score];
@@ -529,10 +407,8 @@ password.addEventListener(
     }
 );
 
-
-/* =================================
-   CONFIRM PASSWORD
-================================= */
+/* 
+   CONFIRM PASSWORD */
 
 const confirmPassword =
     document.getElementById(
@@ -544,39 +420,28 @@ const matchText =
         "match-text"
     );
 
-
 confirmPassword.addEventListener(
     "input",
     function () {
 
-
         if (!confirmPassword.value) {
-
             matchText.textContent = "";
-
             matchText.className =
                 "match-text";
-
             return;
         }
-
 
         if (
             password.value ===
             confirmPassword.value
         ) {
-
             matchText.textContent =
                 "Passwords match";
-
             matchText.className =
                 "match-text success";
-
         } else {
-
             matchText.textContent =
                 "Passwords do not match";
-
             matchText.className =
                 "match-text error";
 
@@ -586,9 +451,7 @@ confirmPassword.addEventListener(
 );
 
 
-/* =================================
-   PHONE NUMBER
-================================= */
+/*   PHONE NUMBER */
 
 const phone =
     document.getElementById("phone");
@@ -605,33 +468,24 @@ phone.addEventListener(
 );
 
 
-/* =================================
-   PREVENT INVALID PHONE LENGTH
-================================= */
+/*  PREVENT INVALID PHONE LENGTH */
 
 phone.addEventListener(
     "blur",
     function () {
-
         if (
             this.value.length > 0 &&
             this.value.length !== 10
         ) {
-
             this.setCustomValidity(
                 "Phone number must contain exactly 10 digits."
             );
-
         } else {
-
             this.setCustomValidity("");
-
         }
 
     }
 );
-
-
 </script>
 
 </body>

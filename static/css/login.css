@@ -29,16 +29,12 @@ body {
 }
 
 
-/* =========================
-   MAIN LOGIN CONTAINER
-========================= */
+/* MAIN LOGIN CONTAINER */
 
 .login-container {
-
     width: 100%;
     max-width: 1050px;
     min-height: 620px;
-
     display: grid;
     grid-template-columns: 1fr 1fr;
 
@@ -57,9 +53,7 @@ body {
 }
 
 
-/* =========================
-   LEFT BRAND SECTION
-========================= */
+/*  LEFT BRAND SECTION */
 
 .brand-section {
 
@@ -180,316 +174,204 @@ body {
 /* FEATURES */
 
 .features {
-
     position: relative;
     z-index: 1;
-
     margin-top: 35px;
-
     display: grid;
-
     gap: 15px;
 }
 
 
 .feature {
-
     display: flex;
     align-items: center;
-
     gap: 12px;
-
     color: #e2e8f0;
-
     font-size: 14px;
 }
 
 
 .feature-icon {
-
     width: 34px;
     height: 34px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     border-radius: 10px;
-
     background: rgba(94, 234, 212, 0.12);
-
     color: #5eead4;
 }
 
 
-/* =========================
-   RIGHT FORM SECTION
-========================= */
+/*    RIGHT FORM SECTION */
 
 .form-section {
-
     background: rgba(255, 255, 255, 0.96);
-
     padding: 55px;
-
     display: flex;
-
     align-items: center;
-
     justify-content: center;
 }
 
 
 .login-card {
-
     width: 100%;
-
     max-width: 390px;
 }
 
 
 /* TITLE */
-
 .login-card h2 {
-
     color: #0f172a;
-
     font-size: 30px;
-
     margin-bottom: 8px;
 }
 
 
 .subtitle {
-
     color: #64748b;
-
     font-size: 14px;
-
     margin-bottom: 35px;
 }
 
 
-/* =========================
-   INPUT
-========================= */
+/*    INPUT */
 
 .input-group {
-
     margin-bottom: 22px;
 }
 
-
 .input-group label {
-
     display: block;
-
     margin-bottom: 8px;
-
     color: #334155;
-
     font-size: 14px;
-
     font-weight: 600;
 }
 
 
 .input-wrapper {
-
     position: relative;
 }
 
-
 .input-wrapper .icon {
-
     position: absolute;
-
     left: 15px;
     top: 50%;
-
     transform: translateY(-50%);
-
     color: #94a3b8;
-
     font-size: 17px;
 }
 
-
 .input-wrapper input {
-
     width: 100%;
-
     height: 52px;
-
     padding: 0 45px;
-
     border: 1px solid #e2e8f0;
-
     border-radius: 13px;
-
     outline: none;
-
     background: #f8fafc;
-
     color: #0f172a;
-
     font-size: 14px;
-
     transition: 0.3s;
 }
 
 
 .input-wrapper input:focus {
-
     border-color: #14b8a6;
-
     background: white;
-
     box-shadow:
         0 0 0 4px rgba(20, 184, 166, 0.10);
 }
 
-
 /* PASSWORD TOGGLE */
 
 .password-toggle {
-
     position: absolute;
-
     right: 15px;
     top: 50%;
-
     transform: translateY(-50%);
-
     border: none;
-
     background: transparent;
-
     cursor: pointer;
-
     color: #64748b;
-
     font-size: 15px;
 }
 
 
-/* =========================
-   LOGIN OPTIONS
-========================= */
+/*    LOGIN OPTIONS */
 
 .login-options {
-
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     margin: 5px 0 25px;
-
     font-size: 13px;
 }
 
 
 .remember {
-
     display: flex;
-
     align-items: center;
-
     gap: 7px;
-
     color: #64748b;
 }
 
 
 .remember input {
-
     accent-color: #14b8a6;
 }
 
 
 .forgot {
-
     color: #0f766e;
-
     text-decoration: none;
-
     font-weight: 600;
 }
 
-
 .forgot:hover {
-
     text-decoration: underline;
 }
 
 
-/* =========================
-   LOGIN BUTTON
-========================= */
+/*    LOGIN BUTTON */
 
 .login-btn {
-
     width: 100%;
-
     height: 54px;
-
     border: none;
-
     border-radius: 14px;
-
     cursor: pointer;
-
     background:
         linear-gradient(
             135deg,
             #0f766e,
             #14b8a6
         );
-
     color: white;
-
     font-size: 15px;
-
     font-weight: 700;
-
     letter-spacing: 0.3px;
-
     box-shadow:
         0 10px 25px rgba(20, 184, 166, 0.25);
 
-    transition: 0.3s;
+    transition 0.3s;
 }
-
-
 .login-btn:hover {
-
     transform: translateY(-2px);
-
     box-shadow:
         0 15px 30px rgba(20, 184, 166, 0.35);
 }
 
-
-/* =========================
-   SECURITY MESSAGE
-========================= */
+/*    SECURITY MESSAGE */
 
 .security-note {
-
     margin-top: 25px;
-
     padding: 12px;
-
     border-radius: 11px;
-
     background: #f0fdfa;
-
     color: #0f766e;
-
     text-align: center;
-
     font-size: 12px;
 }
 
@@ -497,54 +379,35 @@ body {
 /* FOOTER */
 
 .footer {
-
     text-align: center;
-
     margin-top: 25px;
-
     color: #94a3b8;
-
     font-size: 12px;
 }
 
 
-/* =========================
-   RESPONSIVE
-========================= */
+/*    RESPONSIVE */
 
 @media (max-width: 800px) {
-
     .login-container {
-
         grid-template-columns: 1fr;
     }
-
     .brand-section {
-
         display: none;
     }
-
     .form-section {
-
         padding: 40px 25px;
     }
 }
 
-
 @media (max-width: 450px) {
-
     body {
-
         padding: 10px;
     }
-
     .form-section {
-
         padding: 30px 20px;
     }
-
     .login-card h2 {
-
         font-size: 26px;
     }
 }
@@ -552,13 +415,26 @@ body {
 .login-error {
     margin-bottom: 20px;
     padding: 12px 15px;
-
     border-radius: 10px;
-
     background: #fef2f2;
     color: #b91c1c;
-
     border: 1px solid #fecaca;
-
     font-size: 13px;
+}
+
+.messages {
+    margin-bottom: 20px;
+}
+
+.message {
+    padding: 12px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-align: center;
+}
+
+.message.success {
+    background: #e8f8ee;
+    color: #167a3d;
+    border: 1px solid #a9dfbc;
 }

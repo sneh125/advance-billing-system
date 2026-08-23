@@ -5,15 +5,16 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.utils import timezone
+from django.contrib import messages
 
 from .models import PasswordResetOTP, DistributorProfile
 
 
-# =========================================================
 # DISTRIBUTOR REGISTRATION
-# =========================================================
 
 def register_view(request):
 
@@ -57,6 +58,19 @@ def register_view(request):
                 }
             )
 
+        # Name character validation
+        if not all(char.isalpha() or char.isspace() for char in name):
+            return render(
+                request,
+                "accounts/register.html",
+                {
+                    "error": "Name can contain only letters and spaces.",
+                    "name": name,
+                    "email": email,
+                    "phone": phone,
+                }
+            )
+
         # Phone validation
         if not phone.isdigit() or len(phone) != 10:
             return render(
@@ -90,6 +104,24 @@ def register_view(request):
                 "accounts/register.html",
                 {
                     "error": "Password must contain at least 8 characters.",
+                    "name": name,
+                    "email": email,
+                    "phone": phone,
+                }
+            )
+
+        # -----------------------------
+        # Email format validation
+        # -----------------------------
+
+        try:
+            validate_email(email)
+        except ValidationError:
+            return render(
+                request,
+                "accounts/register.html",
+                {
+                    "error": "Please enter a valid email address.",
                     "name": name,
                     "email": email,
                     "phone": phone,
@@ -139,10 +171,12 @@ def register_view(request):
                 phone=phone
             )
 
-            # Automatically login
-            login(request, user)
-
-            return redirect("distributor_dashboard")
+            # Registration success message
+            messages.success(
+                request,
+                "Distributor account created successfully. Please login."
+            )
+            return redirect("login")
 
         except IntegrityError:
 
@@ -163,9 +197,7 @@ def register_view(request):
     )
 
 
-# =========================================================
 # LOGIN
-# =========================================================
 
 def login_view(request):
 
@@ -214,16 +246,12 @@ def login_view(request):
                 "error": "Invalid username or password."
             }
         )
-
     return render(
         request,
         "accounts/login.html"
     )
 
-
-# =========================================================
 # LOGOUT
-# =========================================================
 
 @login_required
 def logout_view(request):
@@ -232,10 +260,7 @@ def logout_view(request):
 
     return redirect("login")
 
-
-# =========================================================
 # OTP GENERATOR
-# =========================================================
 
 def generate_otp():
 
@@ -243,10 +268,7 @@ def generate_otp():
         secrets.randbelow(900000) + 100000
     )
 
-
-# =========================================================
 # FORGOT PASSWORD - SEND OTP
-# =========================================================
 
 def forgot_password(request):
 
@@ -268,45 +290,35 @@ def forgot_password(request):
                 }
             )
 
-        # -------------------------------------------------
-        # Delete all previous unverified OTPs
-        # -------------------------------------------------
-
+            # Delete all previous unverified OTPs
+    
         PasswordResetOTP.objects.filter(
             email=email,
             is_verified=False
         ).delete()
 
-        # -------------------------------------------------
-        # Generate new OTP
-        # -------------------------------------------------
-
+            # Generate new OTP
+    
         otp = generate_otp()
 
-        # -------------------------------------------------
-        # OTP expires after 5 minutes
-        # -------------------------------------------------
-
+            # OTP expires after 5 minutes
+    
         expires_at = (
             timezone.now()
             + timedelta(minutes=5)
         )
 
-        # -------------------------------------------------
-        # Save OTP
-        # -------------------------------------------------
-
+            # Save OTP
+    
         PasswordResetOTP.objects.create(
             email=email,
             otp=otp,
             expires_at=expires_at
         )
 
-        # -------------------------------------------------
-        # Temporary testing
+            # Temporary testing
         # Later replace with email service
-        # -------------------------------------------------
-
+    
         print(
             f"OTP for {email}: {otp}"
         )
@@ -327,9 +339,7 @@ def forgot_password(request):
     )
 
 
-# =========================================================
 # VERIFY OTP
-# =========================================================
 
 def verify_otp(request):
 
@@ -360,9 +370,7 @@ def verify_otp(request):
             }
         )
 
-    # -------------------------------------------------
     # Find latest OTP for this email
-    # -------------------------------------------------
 
     otp_record = PasswordResetOTP.objects.filter(
         email=email,
@@ -384,9 +392,7 @@ def verify_otp(request):
             }
         )
 
-    # -------------------------------------------------
     # Check OTP value
-    # -------------------------------------------------
 
     if otp_record.otp != otp:
 
@@ -400,9 +406,7 @@ def verify_otp(request):
             }
         )
 
-    # -------------------------------------------------
     # Check expiry
-    # -------------------------------------------------
 
     if not otp_record.is_valid():
 
@@ -416,9 +420,7 @@ def verify_otp(request):
             }
         )
 
-    # -------------------------------------------------
     # Mark OTP as verified
-    # -------------------------------------------------
 
     otp_record.is_verified = True
     otp_record.save(
@@ -436,9 +438,7 @@ def verify_otp(request):
     )
 
 
-# =========================================================
 # RESEND OTP
-# =========================================================
 
 def resend_otp(request):
 
@@ -462,33 +462,25 @@ def resend_otp(request):
             }
         )
 
-    # -------------------------------------------------
     # Remove old OTPs
-    # -------------------------------------------------
 
     PasswordResetOTP.objects.filter(
         email=email,
         is_verified=False
     ).delete()
 
-    # -------------------------------------------------
     # Generate new OTP
-    # -------------------------------------------------
 
     otp = generate_otp()
 
-    # -------------------------------------------------
     # New expiry time
-    # -------------------------------------------------
 
     expires_at = (
         timezone.now()
         + timedelta(minutes=5)
     )
 
-    # -------------------------------------------------
     # Save new OTP
-    # -------------------------------------------------
 
     PasswordResetOTP.objects.create(
         email=email,
@@ -512,9 +504,7 @@ def resend_otp(request):
     )
 
 
-# =========================================================
 # ADMIN DASHBOARD
-# =========================================================
 
 @login_required
 def admin_dashboard(request):
@@ -531,9 +521,7 @@ def admin_dashboard(request):
     )
 
 
-# =========================================================
 # DISTRIBUTOR DASHBOARD
-# =========================================================
 
 @login_required
 def distributor_dashboard(request):

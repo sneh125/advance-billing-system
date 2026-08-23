@@ -1,100 +1,82 @@
 l{% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Login | Advance Billing System</title>
-
     <link rel="stylesheet" href="{% static 'css/login.css' %}">
 </head>
-
 <body>
-
     <div class="login-container">
 
         <!-- LEFT BRANDING SECTION -->
-
         <div class="brand-section">
-
             <div class="logo">
                 ₹
             </div>
-
             <h1>
                 Advance<br>
                 <span>Billing System</span>
             </h1>
-
             <p>
                 Manage billing, invoices, payments and QR-based
                 transactions from one secure and powerful platform.
             </p>
-
             <div class="features">
-
                 <div class="feature">
                     <div class="feature-icon">✓</div>
                     <span>Secure Authentication</span>
                 </div>
-
                 <div class="feature">
                     <div class="feature-icon">✓</div>
                     <span>Smart Invoice Management</span>
                 </div>
-
                 <div class="feature">
                     <div class="feature-icon">✓</div>
                     <span>QR Based Payments</span>
                 </div>
-
                 <div class="feature">
                     <div class="feature-icon">✓</div>
                     <span>Admin & Distributor Management</span>
                 </div>
-
             </div>
-
         </div>
 
-
         <!-- LOGIN SECTION -->
-
         <div class="form-section">
-
             <div class="login-card">
-
                 <h2>Welcome Back 👋</h2>
-
                 <p class="subtitle">
                     Sign in to continue to your dashboard
                 </p>
-
                 {% if error %}
                 <div class="login-error">
                     {{ error }}
                 </div>
                 {% endif %}
+                
+                {% if messages %}
+                <div class="messages">
 
-                <form method="POST">
-
+                    {% for message in messages %}
+                    <div class="message {{ message.tags }}">
+                        {{ message }}
+                        </div>
+                        {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                    <form method="POST">
                     {% csrf_token %}
 
-                    <!-- USERNAME -->
-
+    <!-- USERNAME -->
                     <div class="input-group">
-
                         <label for="username">
                             Username
                         </label>
-
                         <div class="input-wrapper">
-
                             <span class="icon">👤</span>
-
                             <input
                                 type="text"
                                 id="username"
@@ -102,24 +84,16 @@ l{% load static %}
                                 placeholder="Enter your username"
                                 required
                             >
-
                         </div>
-
                     </div>
 
-
                     <!-- PASSWORD -->
-
                     <div class="input-group">
-
                         <label for="password">
                             Password
                         </label>
-
                         <div class="input-wrapper">
-
                             <span class="icon">🔒</span>
-
                             <input
                                 type="password"
                                 id="password"
@@ -127,23 +101,17 @@ l{% load static %}
                                 placeholder="Enter your password"
                                 required
                             >
-
                             <button
                                 type="button"
                                 class="password-toggle"
                                 onclick="togglePassword()">
                                 👁
                             </button>
-
                         </div>
-
                     </div>
 
-
                     <!-- OPTIONS -->
-
                     <div class="login-options">
-
                         <label class="remember">
                             <input
                                 type="checkbox"
@@ -151,56 +119,39 @@ l{% load static %}
                             >
                             <span>Remember me</span>
                         </label>
-
                         <a href="{% url 'forgot_password' %}">
                             Forgot Password?
                         </a>
-                        
+                      
                     </div>
 
-
                     <!-- LOGIN BUTTON -->
-
                     <button
                         type="submit"
                         class="login-btn">
                         Sign In →
                     </button>
-
                 </form>
-
 
                 <div class="security-note">
                     🔐 Your login is protected by secure authentication
                 </div>
-
                 <div class="footer">
                     © 2026 Advance Billing System
                 </div>
-
             </div>
-
         </div>
-
     </div>
 
-
     <script>
-
         function togglePassword() {
-
             const password = document.getElementById("password");
-
             if (password.type === "password") {
                 password.type = "text";
             } else {
                 password.type = "password";
             }
-
         }
-
     </script>
-
 </body>
-
 </html>
