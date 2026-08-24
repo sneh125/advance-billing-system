@@ -39,13 +39,16 @@ python manage.py runserver
 ## Project Structure
 ```
 Advance Billing System/
-├── accounts/       # Login, Logout, Dashboard views
-├── billing/        # Billing app (coming soon)
+├── accounts/       # Authentication, Registration, OTP, Profile
+├── billing/        # Customer Management, Invoices (coming next)
 ├── config/         # Project settings & URLs
 ├── templates/      # HTML templates
-│   ├── accounts/   # Login page
+│   ├── accounts/   # Login, Register, Forgot Password
 │   ├── admin/      # Admin dashboard
-│   └── distributor/ # Distributor dashboard
-├── static/         # CSS, JS, Images
+│   ├── distributor/# Distributor dashboard, Profile
+│   └── billing/    # Customer List, Add/Edit Customer Forms
+├── static/         # CSS stylesheets (Zero inline styles)
+│   └── css/
 └── manage.py
 ```
+

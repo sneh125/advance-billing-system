@@ -527,14 +527,17 @@ def admin_dashboard(request):
 def distributor_dashboard(request):
 
     if request.user.is_staff:
+        return redirect("admin_dashboard")
 
-        return redirect(
-            "admin_dashboard"
-        )
+    from billing.models import Customer
+    total_customers = Customer.objects.filter(distributor=request.user).count()
 
     return render(
         request,
-        "distributor/dashboard.html"
+        "distributor/dashboard.html",
+        {
+            "total_customers": total_customers
+        }
     )
 
 
@@ -544,12 +547,165 @@ def distributor_profile(request):
     if request.user.is_staff:
         return redirect("admin_dashboard")
 
-    profile = request.user.distributor_profile
+    # get_or_create: manually created users jinka profile nahi hai unke liye auto create karo
+    profile, _ = DistributorProfile.objects.get_or_create(
+        user=request.user,
+        defaults={"phone": ""}
+    )
+
+    if request.method == "POST":
+
+        action = request.POST.get("action", "")
+
+        if action == "update_profile":
+
+            name  = request.POST.get("name", "").strip()
+            email = request.POST.get("email", "").strip().lower()
+            phone = request.POST.get("phone", "").strip()
+
+            # Validate name
+            if not name or len(name) < 3:
+                return render(request, "distributor/profile.html", {
+                    "profile": profile,
+                    "error": "Name must be at least 3 characters."
+                })
+
+            # Validate phone
+            if not phone.isdigit() or len(phone) != 10:
+                return render(request, "distributor/profile.html", {
+                    "profile": profile,
+                    "error": "Please enter a valid 10-digit phone number."
+                })
+
+            # Validate email
+            if not email:
+                return render(request, "distributor/profile.html", {
+                    "profile": profile,
+                    "error": "Please enter a valid email address."
+                })
+
+            # Check email duplicate (exclude current user)
+            if User.objects.filter(
+                email=email
+            ).exclude(pk=request.user.pk).exists():
+                return render(request, "distributor/profile.html", {
+                    "profile": profile,
+                    "error": "This email is already used by another account."
+                })
+
+            # Save changes
+            request.user.first_name = name
+            request.user.email = email
+            request.user.save()
+
+            profile.phone = phone
+            profile.save()
+
+            # Refresh profile
+            profile.refresh_from_db()
+
+            return render(request, "distributor/profile.html", {
+                "profile": profile,
+                "success": "Profile updated successfully!"
+            })
 
     return render(
         request,
         "distributor/profile.html",
         {
             "profile": profile
+        }
+    )
+
+@login_required
+def update_profile(request):
+
+    user = request.user
+    profile = user.distributor_profile
+
+    if request.method == "POST":
+
+        name = request.POST.get("name", "").strip()
+        email = request.POST.get("email", "").strip().lower()
+        phone = request.POST.get("phone", "").strip()
+
+        # Required fields
+        if not name or not email or not phone:
+            return render(
+                request,
+                "distributor/update_profile.html",
+                {
+                    "error": "All fields are required.",
+                    "name": name,
+                    "email": email,
+                    "phone": phone,
+                }
+            )
+
+        # Name validation
+        if len(name) < 3:
+            return render(
+                request,
+                "distributor/update_profile.html",
+                {
+                    "error": "Name must contain at least 3 characters.",
+                    "name": name,
+                    "email": email,
+                    "phone": phone,
+                }
+            )
+
+        # Phone validation
+        if not phone.isdigit() or len(phone) != 10:
+            return render(
+                request,
+                "distributor/update_profile.html",
+                {
+                    "error": "Please enter a valid 10-digit phone number.",
+                    "name": name,
+                    "email": email,
+                    "phone": phone,
+                }
+            )
+
+        # Email duplicate check
+        if User.objects.filter(
+            email=email
+        ).exclude(id=user.id).exists():
+
+            return render(
+                request,
+                "distributor/update_profile.html",
+                {
+                    "error": "This email is already registered.",
+                    "name": name,
+                    "email": email,
+                    "phone": phone,
+                }
+            )
+
+        # Update User
+        user.first_name = name
+        user.email = email
+        user.save()
+
+        # Update Distributor Profile
+        profile.phone = phone
+        profile.save()
+
+        messages.success(
+            request,
+            "Profile updated successfully."
+        )
+
+        return redirect("distributor_profile")
+
+    return render(
+        request,
+        "distributor/update_profile.html",
+        {
+            "name": user.first_name,
+            "email": user.email,
+            "phone": profile.phone,
         }
     )

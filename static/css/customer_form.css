@@ -1,0 +1,456 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ==========================================================================
+   RESET & BASE
+   ========================================================================== */
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f1f5f9;
+    color: #0f172a;
+    line-height: 1.5;
+}
+
+.dashboard-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ==========================================================================
+   TOP HEADER
+   ========================================================================== */
+
+.dashboard-header {
+    min-height: 72px;
+    padding: 0 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0f172a;
+    color: white;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.25);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.header-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #14b8a6, #0891b2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.35);
+    text-decoration: none;
+}
+
+.header-title-group h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: white;
+}
+
+.header-title-group .subtitle {
+    margin-top: 1px;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px 6px;
+    border-radius: 40px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 13px;
+    color: #e2e8f0;
+    font-weight: 500;
+}
+
+.user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #14b8a6, #0891b2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+}
+
+.nav-link-btn {
+    padding: 8px 16px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.25s ease;
+}
+
+.nav-link-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.logout-btn {
+    padding: 8px 16px;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.22);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.25s ease;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #fee2e2;
+    transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   CONTENT WRAPPER & BREADCRUMBS
+   ========================================================================== */
+
+.form-page-container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 36px 24px 60px;
+    flex: 1;
+    width: 100%;
+}
+
+.breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.breadcrumbs a {
+    color: #0f766e;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.breadcrumbs a:hover {
+    color: #14b8a6;
+    text-decoration: underline;
+}
+
+.breadcrumbs .separator {
+    color: #cbd5e1;
+}
+
+.breadcrumbs .current {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   FORM CARD
+   ========================================================================== */
+
+.customer-form-card {
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.07);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.form-card-header {
+    padding: 32px 36px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+}
+
+.form-card-header h2 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.4px;
+    margin-bottom: 6px;
+}
+
+.form-card-header p {
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.form-card-body {
+    padding: 36px;
+}
+
+/* ==========================================================================
+   FORM GRID & FIELD STYLES
+   ========================================================================== */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.form-group label .required-star {
+    color: #ef4444;
+    font-size: 14px;
+    margin-left: 3px;
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 16px;
+    font-size: 16px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.form-control {
+    width: 100%;
+    height: 50px;
+    padding: 0 16px 0 46px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #0f172a;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: all 0.25s ease;
+}
+
+.form-control::placeholder {
+    color: #94a3b8;
+}
+
+.form-control:focus {
+    background: white;
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
+}
+
+.form-control.has-error {
+    border-color: #f87171;
+    background: #fffcfc;
+}
+
+.form-control.has-error:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+textarea.form-control {
+    height: auto;
+    min-height: 90px;
+    padding: 14px 16px 14px 46px;
+    resize: vertical;
+}
+
+/* ERROR MESSAGE TEXT */
+
+.field-error-text {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* TOGGLE CHECKBOX */
+
+.checkbox-group {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #0f766e;
+    cursor: pointer;
+}
+
+.checkbox-label-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.checkbox-label-text strong {
+    font-size: 14px;
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.checkbox-label-text small {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* ==========================================================================
+   FORM ACTIONS & BUTTONS
+   ========================================================================== */
+
+.form-actions {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+}
+
+.btn-cancel {
+    padding: 12px 24px;
+    border-radius: 12px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-cancel:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.btn-submit-primary {
+    padding: 12px 28px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0f766e, #14b8a6);
+    color: white;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(20, 184, 166, 0.3);
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-submit-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(20, 184, 166, 0.4);
+    background: linear-gradient(135deg, #115e59, #0d9488);
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        padding: 0 20px;
+    }
+    .form-page-container {
+        padding: 24px 16px 40px;
+    }
+    .form-card-header {
+        padding: 24px 20px;
+    }
+    .form-card-body {
+        padding: 24px 20px;
+    }
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 10px;
+    }
+    .btn-cancel, .btn-submit-primary {
+        width: 100%;
+    }
+    .user-badge {
+        display: none;
+    }
+}

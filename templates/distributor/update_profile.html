@@ -1,0 +1,191 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Update Profile | Advance Billing System</title>
+
+    <link rel="stylesheet"
+          href="{% static 'css/update_profile.css' %}">
+</head>
+
+<body>
+
+<div class="profile-page">
+
+    <div class="profile-card">
+
+        <!-- HEADER -->
+
+        <div class="profile-header">
+
+            <div class="avatar">
+                {{ name|first|upper }}
+            </div>
+
+            <div>
+                <span class="eyebrow">
+                    DISTRIBUTOR ACCOUNT
+                </span>
+
+                <h1>Update Profile</h1>
+
+                <p>
+                    Keep your account information up to date.
+                </p>
+            </div>
+
+        </div>
+
+
+        <!-- SUCCESS MESSAGE -->
+
+        {% if messages %}
+
+            {% for message in messages %}
+
+                <div class="success-message">
+                    {{ message }}
+                </div>
+
+            {% endfor %}
+
+        {% endif %}
+
+
+        <!-- ERROR -->
+
+        {% if error %}
+
+            <div class="error-message">
+                {{ error }}
+            </div>
+
+        {% endif %}
+
+
+        <!-- FORM -->
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+
+            <!-- NAME -->
+
+            <div class="form-group">
+
+                <label for="name">
+                    Full Name
+                </label>
+
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value="{{ name }}"
+                    minlength="3"
+                    maxlength="100"
+                    placeholder="Enter your full name"
+                    required
+                >
+
+            </div>
+
+
+            <!-- EMAIL -->
+
+            <div class="form-group">
+
+                <label for="email">
+                    Email Address
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value="{{ email }}"
+                    maxlength="254"
+                    placeholder="Enter your email"
+                    required
+                >
+
+            </div>
+
+
+            <!-- PHONE -->
+
+            <div class="form-group">
+
+                <label for="phone">
+                    Phone Number
+                </label>
+
+                <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value="{{ phone }}"
+                    minlength="10"
+                    maxlength="10"
+                    pattern="[0-9]{10}"
+                    inputmode="numeric"
+                    placeholder="Enter 10 digit phone number"
+                    required
+                >
+
+            </div>
+
+
+            <!-- BUTTONS -->
+
+            <div class="form-actions">
+
+                <a
+                    href="{% url 'distributor_profile' %}"
+                    class="cancel-btn"
+                >
+                    Cancel
+                </a>
+
+                <button
+                    type="submit"
+                    class="save-btn"
+                >
+                    Save Changes
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const phoneInput =
+    document.getElementById("phone");
+
+phoneInput.addEventListener(
+    "input",
+    function () {
+
+        this.value =
+            this.value.replace(/\D/g, "");
+
+    }
+);
+
+</script>
+
+</body>
+
+</html>

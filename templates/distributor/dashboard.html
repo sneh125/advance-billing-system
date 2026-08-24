@@ -1,20 +1,16 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distributor Dashboard | Advance Billing System</title>
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 </head>
-
 <body>
 
 <div class="dashboard-container">
 
-    <!-- HEADER -->
     <header class="dashboard-header">
         <div class="header-left">
             <div class="header-logo">AB</div>
@@ -30,28 +26,28 @@
                 </div>
                 {{ request.user.first_name|default:request.user.username }}
             </div>
-            <a href="{% url 'distributor_profile' %}" class="logout-btn" style="background:rgba(20,184,166,0.15); color:#5eead4; border-color:rgba(20,184,166,0.3);">My Profile</a>
-            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            <a href="{% url 'customer_list' %}" class="logout-btn" style="background: rgba(255,255,255,0.08); color: #cbd5e1; border-color: rgba(255,255,255,0.12);">Customers</a>
+            <a href="{% url 'distributor_profile' %}" class="logout-btn">My Profile</a>
+            <a href="{% url 'logout' %}" class="logout-btn danger">Logout</a>
         </div>
     </header>
 
-    <!-- CONTENT -->
     <main class="dashboard-content">
 
-        <!-- WELCOME BANNER -->
         <div class="welcome-banner">
             <h2>Welcome, {{ request.user.first_name|default:request.user.username }} 👋</h2>
             <p>Manage your customers, create invoices and track billing activity from your distributor panel.</p>
             <span class="badge">✅ Distributor Access</span>
         </div>
 
-        <!-- STATS -->
         <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-icon teal">👤</div>
-                <div class="stat-label">Customers</div>
-                <div class="stat-value">—</div>
-            </div>
+            <a href="{% url 'customer_list' %}" style="text-decoration: none; color: inherit; display: block;">
+                <div class="stat-card">
+                    <div class="stat-icon teal">👤</div>
+                    <div class="stat-label">Customers</div>
+                    <div class="stat-value">{{ total_customers|default:"0" }}</div>
+                </div>
+            </a>
             <div class="stat-card">
                 <div class="stat-icon blue">🧾</div>
                 <div class="stat-label">My Bills</div>
@@ -69,36 +65,34 @@
             </div>
         </div>
 
-        <!-- QUICK ACCESS CARDS -->
         <div class="cards">
-            <div class="card">
+            <a href="{% url 'customer_list' %}" class="card">
                 <div class="card-icon">👤</div>
                 <h3>Customers</h3>
                 <p>Add and manage your customers</p>
-                <div class="card-arrow">→</div>
-            </div>
+                <span class="card-arrow">→</span>
+            </a>
             <div class="card">
                 <div class="card-icon">🧾</div>
                 <h3>Invoices</h3>
                 <p>Create and manage invoices</p>
-                <div class="card-arrow">→</div>
+                <span class="card-arrow">→</span>
             </div>
             <div class="card">
                 <div class="card-icon">📦</div>
                 <h3>Products</h3>
                 <p>Browse available products</p>
-                <div class="card-arrow">→</div>
+                <span class="card-arrow">→</span>
             </div>
             <div class="card">
                 <div class="card-icon">💰</div>
                 <h3>Payments</h3>
                 <p>Track your payment records</p>
-                <div class="card-arrow">→</div>
+                <span class="card-arrow">→</span>
             </div>
         </div>
 
     </main>
-
 </div>
 
 </body>

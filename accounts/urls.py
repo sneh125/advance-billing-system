@@ -59,4 +59,10 @@ urlpatterns = [
         name="distributor_profile"
     ),
 
+    path(
+    "distributor/profile/update/",
+    views.update_profile,
+    name="update_profile"
+    ),
+
 ]

@@ -8,6 +8,165 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile | Advance Billing System</title>
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <style>
+
+        .edit-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 20px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0f766e, #14b8a6);
+            color: white;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-decoration: none;
+        }
+
+        .edit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(20, 184, 166, 0.35);
+        }
+
+        /* EDIT FORM */
+
+        .edit-form-wrap {
+            display: none;
+            margin-top: 24px;
+            padding: 24px;
+            background: #f8fafc;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .edit-form-wrap.open {
+            display: block;
+        }
+
+        .edit-form-wrap h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-field label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-field input {
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #0f172a;
+            background: white;
+            outline: none;
+            transition: border-color 0.25s;
+        }
+
+        .form-field input:focus {
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .save-btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0f766e, #14b8a6);
+            color: white;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(20, 184, 166, 0.3);
+        }
+
+        .cancel-btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .cancel-btn:hover {
+            background: #e2e8f0;
+        }
+
+        /* SUCCESS / ERROR ALERT */
+
+        .alert {
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-success {
+            background: #f0fdfa;
+            color: #0f766e;
+            border: 1px solid #99f6e4;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+    </style>
 </head>
 
 <body>
@@ -24,6 +183,12 @@
             </div>
         </div>
         <div class="header-right">
+            <div class="user-badge">
+                <div class="user-avatar">
+                    {{ profile.user.first_name|first|upper|default:"D" }}
+                </div>
+                {{ profile.user.first_name|default:profile.user.username }}
+            </div>
             <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
         </div>
     </header>
@@ -34,7 +199,7 @@
         <div class="profile-wrapper">
             <div class="profile-card">
 
-                <!-- PROFILE BANNER -->
+                <!-- BANNER -->
                 <div class="profile-header-banner">
                     <div class="profile-avatar-wrap">
                         <div class="profile-avatar">
@@ -43,16 +208,27 @@
                     </div>
                 </div>
 
-                <!-- PROFILE BODY -->
+                <!-- BODY -->
                 <div class="profile-body">
+
+                    <!-- SUCCESS / ERROR MESSAGES -->
+                    {% if success %}
+                        <div class="alert alert-success">
+                            ✅ {{ success }}
+                        </div>
+                    {% endif %}
+
+                    {% if error %}
+                        <div class="alert alert-error">
+                            ⚠️ {{ error }}
+                        </div>
+                    {% endif %}
 
                     <div class="profile-name">
                         {{ profile.user.first_name|default:profile.user.username }}
                     </div>
 
-                    <span class="profile-role">
-                        ✅ Distributor
-                    </span>
+                    <span class="profile-role">✅ Distributor</span>
 
                     <!-- DETAIL ROWS -->
                     <div class="profile-details">
@@ -109,7 +285,70 @@
 
                     </div>
 
-                    <!-- BACK BUTTON -->
+                    <!-- EDIT FORM TOGGLE BUTTON -->
+                    <div style="margin-top: 24px;">
+                        <button class="edit-btn" onclick="toggleEdit()">
+                            ✏️ Edit Profile
+                        </button>
+                    </div>
+
+                    <!-- EDIT FORM -->
+                    <div class="edit-form-wrap" id="editForm">
+                        <h3>✏️ Update Profile</h3>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_profile">
+
+                            <div class="form-row">
+                                <div class="form-field">
+                                    <label>Full Name</label>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value="{{ profile.user.first_name }}"
+                                        placeholder="Enter full name"
+                                        required
+                                    >
+                                </div>
+                                <div class="form-field">
+                                    <label>Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        name="phone"
+                                        value="{{ profile.phone }}"
+                                        placeholder="10 digit number"
+                                        maxlength="10"
+                                        inputmode="numeric"
+                                        required
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-field full">
+                                    <label>Email Address</label>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        value="{{ profile.user.email }}"
+                                        placeholder="you@example.com"
+                                        required
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="save-btn">
+                                    💾 Save Changes
+                                </button>
+                                <button type="button" class="cancel-btn" onclick="toggleEdit()">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- FOOTER -->
                     <div class="profile-footer">
                         <a href="{% url 'distributor_dashboard' %}" class="btn-back">
                             ← Back to Dashboard
@@ -123,6 +362,28 @@
     </main>
 
 </div>
+
+<script>
+    function toggleEdit() {
+        const form = document.getElementById("editForm");
+        form.classList.toggle("open");
+    }
+
+    // Auto open form if there was an error
+    {% if error %}
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("editForm").classList.add("open");
+        });
+    {% endif %}
+
+    // Phone number only digits
+    const phoneInput = document.querySelector("input[name='phone']");
+    if (phoneInput) {
+        phoneInput.addEventListener("input", function() {
+            this.value = this.value.replace(/\D/g, "");
+        });
+    }
+</script>
 
 </body>
 </html>
