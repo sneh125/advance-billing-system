@@ -6,63 +6,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Admin Dashboard | Advance Billing System</title>
-
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 </head>
 
 <body>
 
-    <div class="dashboard-container">
+<div class="dashboard-container">
 
-        <header class="dashboard-header">
+    <!-- HEADER -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <div class="header-logo">AB</div>
             <div>
                 <h1>Admin Dashboard</h1>
-                <p>Advance Billing System</p>
+                <p class="subtitle">Advance Billing System</p>
             </div>
-
+        </div>
+        <div class="header-right">
+            <div class="user-badge">
+                <div class="user-avatar">A</div>
+                {{ request.user.username }}
+            </div>
             <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
-        </header>
+        </div>
+    </header>
 
-        <main class="dashboard-content">
+    <!-- CONTENT -->
+    <main class="dashboard-content">
 
-            <div class="welcome-card">
-                <h2>Welcome, Admin 👋</h2>
-                <p>
-                    Manage users, distributors, billing and system activities
-                    from your administration panel.
-                </p>
+        <!-- WELCOME BANNER -->
+        <div class="welcome-banner">
+            <h2>Welcome back, {{ request.user.first_name|default:request.user.username }} 👋</h2>
+            <p>Manage distributors, monitor billing activity and track all system operations from your admin panel.</p>
+            <span class="badge">🔴 Admin Access</span>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon teal">👥</div>
+                <div class="stat-label">Distributors</div>
+                <div class="stat-value">—</div>
             </div>
-
-            <div class="cards">
-
-                <div class="card">
-                    <h3>👥 Users</h3>
-                    <p>Manage system users</p>
-                </div>
-
-                <div class="card">
-                    <h3>🏢 Distributors</h3>
-                    <p>Manage distributors</p>
-                </div>
-
-                <div class="card">
-                    <h3>🧾 Billing</h3>
-                    <p>Monitor billing activities</p>
-                </div>
-
-                <div class="card">
-                    <h3>📊 Reports</h3>
-                    <p>View system reports</p>
-                </div>
-
+            <div class="stat-card">
+                <div class="stat-icon blue">🧾</div>
+                <div class="stat-label">Total Bills</div>
+                <div class="stat-value">—</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-icon purple">📦</div>
+                <div class="stat-label">Products</div>
+                <div class="stat-value">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange">💰</div>
+                <div class="stat-label">Revenue</div>
+                <div class="stat-value">—</div>
+            </div>
+        </div>
 
-        </main>
+        <!-- QUICK ACCESS CARDS -->
+        <div class="cards">
+            <div class="card">
+                <div class="card-icon">👥</div>
+                <h3>Distributors</h3>
+                <p>View and manage all registered distributors</p>
+                <div class="card-arrow">→</div>
+            </div>
+            <div class="card">
+                <div class="card-icon">🧾</div>
+                <h3>Bills</h3>
+                <p>Monitor and manage all invoices</p>
+                <div class="card-arrow">→</div>
+            </div>
+            <div class="card">
+                <div class="card-icon">📦</div>
+                <h3>Products</h3>
+                <p>Add, edit and manage products</p>
+                <div class="card-arrow">→</div>
+            </div>
+            <div class="card">
+                <div class="card-icon">📊</div>
+                <h3>Reports</h3>
+                <p>View analytics and system reports</p>
+                <div class="card-arrow">→</div>
+            </div>
+        </div>
 
-    </div>
+    </main>
+
+</div>
 
 </body>
-
 </html>

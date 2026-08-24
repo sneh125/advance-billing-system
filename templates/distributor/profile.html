@@ -6,48 +6,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>My Profile | Advance Billing System</title>
-
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 </head>
 
 <body>
 
-    <div class="dashboard-container">
+<div class="dashboard-container">
 
-        <header class="dashboard-header">
-
+    <!-- HEADER -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <div class="header-logo">AB</div>
             <div>
                 <h1>My Profile</h1>
-                <p>Advance Billing System</p>
+                <p class="subtitle">Advance Billing System</p>
             </div>
-
+        </div>
+        <div class="header-right">
             <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        </div>
+    </header>
 
-        </header>
+    <!-- CONTENT -->
+    <main class="dashboard-content">
 
-        <main class="dashboard-content">
+        <div class="profile-wrapper">
+            <div class="profile-card">
 
-            <div class="welcome-card">
+                <!-- PROFILE BANNER -->
+                <div class="profile-header-banner">
+                    <div class="profile-avatar-wrap">
+                        <div class="profile-avatar">
+                            {{ profile.user.first_name|first|upper|default:"D" }}
+                        </div>
+                    </div>
+                </div>
 
-                <h2>Profile Details</h2>
+                <!-- PROFILE BODY -->
+                <div class="profile-body">
 
-                <p><strong>Name:</strong> {{ profile.user.first_name }}</p>
-                <p><strong>Email:</strong> {{ profile.user.email }}</p>
-                <p><strong>Phone:</strong> {{ profile.phone }}</p>
-                <p><strong>Username:</strong> {{ profile.user.username }}</p>
+                    <div class="profile-name">
+                        {{ profile.user.first_name|default:profile.user.username }}
+                    </div>
 
+                    <span class="profile-role">
+                        ✅ Distributor
+                    </span>
+
+                    <!-- DETAIL ROWS -->
+                    <div class="profile-details">
+
+                        <div class="profile-row">
+                            <div class="profile-row-icon">👤</div>
+                            <div>
+                                <div class="profile-row-label">Full Name</div>
+                                <div class="profile-row-value">
+                                    {{ profile.user.first_name|default:"—" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-row">
+                            <div class="profile-row-icon">📧</div>
+                            <div>
+                                <div class="profile-row-label">Email Address</div>
+                                <div class="profile-row-value">
+                                    {{ profile.user.email|default:"—" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-row">
+                            <div class="profile-row-icon">📱</div>
+                            <div>
+                                <div class="profile-row-label">Phone Number</div>
+                                <div class="profile-row-value">
+                                    {{ profile.phone|default:"—" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-row">
+                            <div class="profile-row-icon">🔑</div>
+                            <div>
+                                <div class="profile-row-label">Username</div>
+                                <div class="profile-row-value">
+                                    {{ profile.user.username }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-row">
+                            <div class="profile-row-icon">📅</div>
+                            <div>
+                                <div class="profile-row-label">Member Since</div>
+                                <div class="profile-row-value">
+                                    {{ profile.created_at|date:"d M Y" }}
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- BACK BUTTON -->
+                    <div class="profile-footer">
+                        <a href="{% url 'distributor_dashboard' %}" class="btn-back">
+                            ← Back to Dashboard
+                        </a>
+                    </div>
+
+                </div>
             </div>
+        </div>
 
-            <div style="margin-top: 20px;">
-                <a href="{% url 'distributor_dashboard' %}" class="logout-btn">Back to Dashboard</a>
-            </div>
+    </main>
 
-        </main>
-
-    </div>
+</div>
 
 </body>
-
 </html>
