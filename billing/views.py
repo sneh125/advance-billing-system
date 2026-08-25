@@ -8,9 +8,11 @@ from django.utils import timezone
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db import models
+from django.db import models, transaction
+import uuid
 
-from .models import Customer, Product
+from .models import Customer, Product, Invoice, InvoiceItem
+from .forms import InvoiceCreateForm
 
 
 @login_required
@@ -543,3 +545,174 @@ def product_delete(request, pk):
     )
 
     return redirect("product_list")
+
+
+def generate_invoice_number(user):
+    """
+    Generate a clean sequential invoice number: INV-YYYYMMDD-0001
+    """
+    today_str = timezone.now().strftime("%Y%m%d")
+    count_today = Invoice.objects.filter(
+        distributor=user,
+        invoice_date__date=timezone.now().date()
+    ).count() + 1
+    return f"INV-{today_str}-{count_today:04d}"
+
+
+@login_required
+def invoice_create(request):
+    """
+    25 Aug Task: Create Invoice with dynamic customer & product dropdowns,
+    JavaScript real-time calculations (Qty, GST, Discount), and dynamic rows.
+    """
+    distributor = request.user
+    form = InvoiceCreateForm(distributor=distributor)
+    products = Product.objects.filter(distributor=distributor).order_by("name")
+
+    if request.method == "POST":
+        form = InvoiceCreateForm(request.POST, distributor=distributor)
+        product_ids = request.POST.getlist("product[]")
+        quantities = request.POST.getlist("quantity[]")
+        unit_prices = request.POST.getlist("unit_price[]")
+        gst_rates = request.POST.getlist("gst_rate[]")
+        discounts = request.POST.getlist("discount[]")
+
+        if form.is_valid():
+            customer = form.cleaned_data["customer"]
+
+            # Filter valid row entries
+            valid_rows = [i for i in range(len(product_ids)) if product_ids[i].strip()]
+
+            if not valid_rows:
+                messages.error(request, "Please add at least one product to the invoice.")
+                return render(request, "billing/invoice_create.html", {
+                    "form": form,
+                    "products": products,
+                })
+
+            try:
+                with transaction.atomic():
+                    total_subtotal = Decimal("0.00")
+                    total_gst = Decimal("0.00")
+                    items_to_create = []
+
+                    for idx in valid_rows:
+                        p_id = int(product_ids[idx])
+                        product = get_object_or_404(Product, pk=p_id, distributor=distributor)
+
+                        qty = int(quantities[idx]) if idx < len(quantities) and quantities[idx] else 1
+                        if qty <= 0:
+                            raise ValueError(f"Quantity for product '{product.name}' must be at least 1.")
+
+                        price = Decimal(str(unit_prices[idx])) if idx < len(unit_prices) and unit_prices[idx] else product.price
+                        gst_rate = Decimal(str(gst_rates[idx])) if idx < len(gst_rates) and gst_rates[idx] else product.gst_rate
+                        disc_pct = Decimal(str(discounts[idx])) if idx < len(discounts) and discounts[idx] else Decimal("0.00")
+
+                        # Line Calculations:
+                        # 1. Base Price = qty * unit_price
+                        # 2. Discount Amount = Base * (Discount% / 100)
+                        # 3. Subtotal (taxable) = Base - Discount
+                        # 4. GST Amount = Subtotal * (GST% / 100)
+                        # 5. Line Total = Subtotal + GST
+                        line_base = (Decimal(qty) * price).quantize(Decimal("0.01"))
+                        disc_amount = (line_base * (disc_pct / Decimal("100"))).quantize(Decimal("0.01"))
+                        line_subtotal = (line_base - disc_amount).quantize(Decimal("0.01"))
+                        line_gst = (line_subtotal * (gst_rate / Decimal("100"))).quantize(Decimal("0.01"))
+                        line_total = (line_subtotal + line_gst).quantize(Decimal("0.01"))
+
+                        total_subtotal += line_subtotal
+                        total_gst += line_gst
+
+                        items_to_create.append({
+                            "product": product,
+                            "quantity": qty,
+                            "unit_price": price,
+                            "gst_rate": gst_rate,
+                            "subtotal": line_subtotal,
+                            "total": line_total,
+                        })
+
+                    inv_number = generate_invoice_number(distributor)
+                    grand_total = (total_subtotal + total_gst).quantize(Decimal("0.01"))
+
+                    invoice = Invoice.objects.create(
+                        invoice_number=inv_number,
+                        customer=customer,
+                        distributor=distributor,
+                        subtotal=total_subtotal,
+                        gst_amount=total_gst,
+                        total_amount=grand_total,
+                        status="Pending"
+                    )
+
+                    for item_data in items_to_create:
+                        InvoiceItem.objects.create(
+                            invoice=invoice,
+                            product=item_data["product"],
+                            quantity=item_data["quantity"],
+                            unit_price=item_data["unit_price"],
+                            gst_rate=item_data["gst_rate"],
+                            subtotal=item_data["subtotal"],
+                            total=item_data["total"]
+                        )
+
+                    messages.success(request, f"Invoice {inv_number} generated successfully.")
+                    return redirect("invoice_detail", pk=invoice.pk)
+
+            except (ValueError, InvalidOperation) as e:
+                messages.error(request, str(e))
+                return render(request, "billing/invoice_create.html", {
+                    "form": form,
+                    "products": products,
+                })
+        else:
+            messages.error(request, "Please select a valid customer.")
+
+    return render(request, "billing/invoice_create.html", {
+        "form": form,
+        "products": products,
+    })
+
+
+@login_required
+def invoice_list(request):
+    """
+    Invoice directory listing with distributor ownership isolation and search.
+    """
+    search_query = request.GET.get("q", "").strip()
+    invoices_qs = Invoice.objects.filter(distributor=request.user).select_related("customer").order_by("-created_at")
+
+    if search_query:
+        invoices_qs = invoices_qs.filter(
+            Q(invoice_number__icontains=search_query) |
+            Q(customer__name__icontains=search_query) |
+            Q(customer__phone__icontains=search_query)
+        )
+
+    total_invoices = invoices_qs.count()
+    total_billed = sum(inv.total_amount for inv in invoices_qs)
+
+    return render(request, "billing/invoice_list.html", {
+        "invoices": invoices_qs,
+        "search_query": search_query,
+        "total_invoices": total_invoices,
+        "total_billed": total_billed,
+    })
+
+
+@login_required
+def invoice_detail(request, pk):
+    """
+    Detailed view and printable invoice view.
+    """
+    invoice = get_object_or_404(
+        Invoice.objects.select_related("customer", "distributor"),
+        pk=pk,
+        distributor=request.user
+    )
+    items = invoice.items.select_related("product").all()
+
+    return render(request, "billing/invoice_detail.html", {
+        "invoice": invoice,
+        "items": items,
+    })

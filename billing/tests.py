@@ -1,7 +1,8 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
-from .models import Customer, Product
+from decimal import Decimal
+from .models import Customer, Product, Invoice, InvoiceItem
 
 
 class CustomerManagementTests(TestCase):
@@ -260,5 +261,181 @@ class CustomerManagementTests(TestCase):
         response = self.client.post(reverse('product_delete', kwargs={'pk': product.pk}))
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Product.objects.filter(pk=product.pk).exists())
+
+
+class InvoiceSystemTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        # Distributor 1
+        self.distributor1 = User.objects.create_user(
+            username="distributor1",
+            email="dist1@example.com",
+            password="Password@123",
+            first_name="Distributor One"
+        )
+
+        # Distributor 2
+        self.distributor2 = User.objects.create_user(
+            username="distributor2",
+            email="dist2@example.com",
+            password="Password@123",
+            first_name="Distributor Two"
+        )
+
+        # Customer for Distributor 1
+        self.customer1 = Customer.objects.create(
+            distributor=self.distributor1,
+            name="Rahul Sharma",
+            phone="9876543210",
+            city="Ahmedabad",
+            state="Gujarat",
+            pincode="380001",
+            is_active=True
+        )
+
+        # Customer for Distributor 2
+        self.customer2 = Customer.objects.create(
+            distributor=self.distributor2,
+            name="Vikram Verma",
+            phone="9123456780",
+            city="Surat",
+            state="Gujarat",
+            pincode="395001",
+            is_active=True
+        )
+
+        # Products for Distributor 1
+        self.product1 = Product.objects.create(
+            distributor=self.distributor1,
+            name="Wireless Mouse",
+            category="Electronics",
+            price=Decimal("500.00"),
+            stock=50,
+            gst_rate=Decimal("18.00")
+        )
+
+        self.product2 = Product.objects.create(
+            distributor=self.distributor1,
+            name="USB Keyboard",
+            category="Electronics",
+            price=Decimal("1000.00"),
+            stock=30,
+            gst_rate=Decimal("18.00")
+        )
+
+    def test_invoice_create_get_dropdowns_and_isolation(self):
+        """Test GET invoice_create renders customer and product dropdowns for logged-in distributor only"""
+        self.client.login(username="distributor1", password="Password@123")
+        response = self.client.get(reverse('invoice_create'))
+        self.assertEqual(response.status_code, 200)
+
+        # Should contain customer1 and product1/product2
+        self.assertContains(response, "Rahul Sharma")
+        self.assertContains(response, "Wireless Mouse")
+        self.assertContains(response, "USB Keyboard")
+
+        # Should NOT contain distributor 2's customer
+        self.assertNotContains(response, "Vikram Verma")
+
+    def test_invoice_create_post_multiple_items_and_calculations(self):
+        """
+        25 Aug Tasks 1, 2 & 3:
+        Test invoice creation with 2 products, custom quantities, GST, and discount calculations.
+        Item 1: Wireless Mouse (Qty: 2, Price: 500.00, Disc: 10%, GST: 18%)
+                Base = 1000.00, Discount = 100.00, Taxable = 900.00, GST = 162.00, Total = 1062.00
+        Item 2: USB Keyboard (Qty: 1, Price: 1000.00, Disc: 0%, GST: 18%)
+                Base = 1000.00, Discount = 0.00, Taxable = 1000.00, GST = 180.00, Total = 1180.00
+        Invoice Subtotal = 1900.00, GST = 342.00, Grand Total = 2242.00
+        """
+        self.client.login(username="distributor1", password="Password@123")
+
+        response = self.client.post(reverse('invoice_create'), {
+            'customer': self.customer1.id,
+            'product[]': [str(self.product1.id), str(self.product2.id)],
+            'quantity[]': ['2', '1'],
+            'unit_price[]': ['500.00', '1000.00'],
+            'gst_rate[]': ['18.00', '18.00'],
+            'discount[]': ['10.00', '0.00'],
+        })
+
+        # Should redirect to invoice_detail
+        self.assertEqual(response.status_code, 302)
+
+        # Verify Invoice in DB
+        invoice = Invoice.objects.filter(distributor=self.distributor1).first()
+        self.assertIsNotNone(invoice)
+        self.assertEqual(invoice.customer, self.customer1)
+        self.assertEqual(invoice.subtotal, Decimal("1900.00"))
+        self.assertEqual(invoice.gst_amount, Decimal("342.00"))
+        self.assertEqual(invoice.total_amount, Decimal("2242.00"))
+
+        # Verify InvoiceItems in DB
+        items = invoice.items.all()
+        self.assertEqual(items.count(), 2)
+
+        item1 = items.get(product=self.product1)
+        self.assertEqual(item1.quantity, 2)
+        self.assertEqual(item1.subtotal, Decimal("900.00"))
+        self.assertEqual(item1.total, Decimal("1062.00"))
+
+        item2 = items.get(product=self.product2)
+        self.assertEqual(item2.quantity, 1)
+        self.assertEqual(item2.subtotal, Decimal("1000.00"))
+        self.assertEqual(item2.total, Decimal("1180.00"))
+
+    def test_invoice_multi_tenant_isolation(self):
+        """Distributor 1 cannot bill Distributor 2's customer"""
+        self.client.login(username="distributor1", password="Password@123")
+
+        response = self.client.post(reverse('invoice_create'), {
+            'customer': self.customer2.id,
+            'product[]': [str(self.product1.id)],
+            'quantity[]': ['1'],
+            'unit_price[]': ['500.00'],
+            'gst_rate[]': ['18.00'],
+            'discount[]': ['0.00'],
+        })
+
+        # Should fail validation since customer2 belongs to distributor2
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Invoice.objects.count(), 0)
+
+    def test_invoice_list_and_detail_views(self):
+        """Test invoice list and detail pages render accurately"""
+        invoice = Invoice.objects.create(
+            invoice_number="INV-20260825-0001",
+            customer=self.customer1,
+            distributor=self.distributor1,
+            subtotal=Decimal("900.00"),
+            gst_amount=Decimal("162.00"),
+            total_amount=Decimal("1062.00"),
+            status="Pending"
+        )
+        InvoiceItem.objects.create(
+            invoice=invoice,
+            product=self.product1,
+            quantity=2,
+            unit_price=Decimal("500.00"),
+            gst_rate=Decimal("18.00"),
+            subtotal=Decimal("900.00"),
+            total=Decimal("1062.00")
+        )
+
+        self.client.login(username="distributor1", password="Password@123")
+
+        # List view
+        response = self.client.get(reverse('invoice_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "INV-20260825-0001")
+        self.assertContains(response, "Rahul Sharma")
+
+        # Detail view
+        response = self.client.get(reverse('invoice_detail', kwargs={'pk': invoice.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "INV-20260825-0001")
+        self.assertContains(response, "Wireless Mouse")
+        self.assertContains(response, "1062.00")
+
 
 

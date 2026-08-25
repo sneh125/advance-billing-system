@@ -10,4 +10,7 @@ urlpatterns = [
     path("products/",views.product_list,name="product_list"),
     path("products/<int:pk>/edit/",views.product_edit,name="product_edit"),
     path("products/<int:pk>/delete/",views.product_delete,name="product_delete"),
+    path("invoices/", views.invoice_list, name="invoice_list"),
+    path("invoices/create/", views.invoice_create, name="invoice_create"),
+    path("invoices/<int:pk>/", views.invoice_detail, name="invoice_detail"),
 ]
