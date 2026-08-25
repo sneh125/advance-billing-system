@@ -1,291 +1,171 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Edit Product | Advance Billing System</title>
-
-    <link
-        rel="stylesheet"
-        href="{% static 'css/product_edit.css' %}"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Product | {{ product.name }} | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/product_edit.css' %}">
 </head>
-
 <body>
 
-<div class="page">
+<div class="product-page-layout">
 
-    <!-- HEADER -->
-
-    <header class="topbar">
-
-        <div class="brand">
-
-            <div class="brand-logo">
-                AB
+    <!-- TOP HEADER -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="header-logo">AB</a>
+            <div class="header-title-group">
+                <h1>Inventory & Products</h1>
+                <p class="subtitle">Advance Billing System</p>
             </div>
-
-            <div>
-                <h1>Advance Billing</h1>
-                <span>Distributor Portal</span>
-            </div>
-
         </div>
-
-        <a
-            href="{% url 'product_list' %}"
-            class="back-link"
-        >
-            ← Back to Products
-        </a>
-
+        <div class="header-right">
+            <div class="user-badge">
+                <div class="user-avatar">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                </div>
+                <span>{{ request.user.first_name|default:request.user.username }}</span>
+            </div>
+            <a href="{% url 'distributor_dashboard' %}" class="nav-link-btn">Dashboard</a>
+            <a href="{% url 'product_list' %}" class="nav-link-btn">Products</a>
+            <a href="{% url 'distributor_profile' %}" class="nav-link-btn">My Profile</a>
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        </div>
     </header>
 
+    <main class="product-page-content">
 
-    <!-- MAIN -->
+        <!-- BREADCRUMBS -->
+        <nav class="breadcrumbs" aria-label="breadcrumb">
+            <a href="{% url 'distributor_dashboard' %}">Dashboard</a>
+            <span class="separator">/</span>
+            <a href="{% url 'product_list' %}">Products</a>
+            <span class="separator">/</span>
+            <span class="current">Edit Product</span>
+        </nav>
 
-    <main class="content">
+        <div class="product-card">
 
-        <div class="heading">
-
-            <div>
-
-                <span class="eyebrow">
-                    PRODUCT MANAGEMENT
-                </span>
-
-                <h2>Edit Product</h2>
-
-                <p>
-                    Update your product information and save
-                    the latest details.
-                </p>
-
-            </div>
-
-        </div>
-
-
-        {% if error %}
-
-        <div class="alert error">
-
-            <span>!</span>
-
-            <div>
-                {{ error }}
-            </div>
-
-        </div>
-
-        {% endif %}
-
-
-        <section class="form-card">
-
-            <div class="card-header">
-
-                <div>
-
-                    <h3>Product Information</h3>
-
-                    <p>
-                        Update the details of your product.
-                    </p>
-
+            <div class="page-header">
+                <div class="header-title-row">
+                    <div>
+                        <span class="eyebrow">EDIT MODE</span>
+                        <h1>Edit Product: {{ product.name }}</h1>
+                        <p>Modify pricing, stock levels, GST tax percentage, or product details.</p>
+                    </div>
+                    <span class="sku-badge">SKU #{{ product.id }}</span>
                 </div>
-
-                <span class="edit-badge">
-                    EDIT MODE
-                </span>
-
             </div>
 
+            {% if error %}
+            <div class="alert-error">
+                ⚠️ {{ error }}
+            </div>
+            {% endif %}
 
-            <form
-                method="POST"
-                class="product-form"
-            >
-
+            <form method="POST">
                 {% csrf_token %}
 
+                <div class="form-grid">
 
-                <!-- PRODUCT NAME -->
-
-                <div class="field">
-
-                    <label for="name">
-                        Product Name
-                        <span>*</span>
-                    </label>
-
-                    <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        value="{{ product.name }}"
-                        placeholder="Enter product name"
-                        required
-                    >
-
-                </div>
-
-
-                <!-- CATEGORY -->
-
-                <div class="field">
-
-                    <label for="category">
-                        Category
-                        <span>*</span>
-                    </label>
-
-                    <input
-                        type="text"
-                        id="category"
-                        name="category"
-                        value="{{ product.category }}"
-                        placeholder="e.g. Electronics"
-                        required
-                    >
-
-                </div>
-
-
-                <!-- PRICE -->
-
-                <div class="field">
-
-                    <label for="price">
-                        Price
-                        <span>*</span>
-                    </label>
-
-                    <div class="input-prefix">
-
-                        <span>₹</span>
-
+                    <div class="field">
+                        <label for="name">Product Name <span class="required-star">*</span></label>
                         <input
-                            type="number"
-                            id="price"
-                            name="price"
-                            value="{{ product.price }}"
-                            min="0.01"
-                            step="0.01"
-                            placeholder="0.00"
+                            type="text"
+                            id="name"
+                            name="name"
+                            value="{{ product.name }}"
+                            placeholder="Enter product name"
                             required
                         >
-
                     </div>
 
-                </div>
+                    <div class="field">
+                        <label for="category">Category <span class="required-star">*</span></label>
+                        <input
+                            type="text"
+                            id="category"
+                            name="category"
+                            value="{{ product.category }}"
+                            placeholder="e.g. Electronics"
+                            required
+                        >
+                    </div>
 
+                    <div class="field">
+                        <label for="price">Unit Price (₹) <span class="required-star">*</span></label>
+                        <div class="input-with-prefix">
+                            <span class="prefix">₹</span>
+                            <input
+                                type="number"
+                                id="price"
+                                name="price"
+                                value="{{ product.price }}"
+                                min="0.01"
+                                step="0.01"
+                                placeholder="0.00"
+                                required
+                            >
+                        </div>
+                    </div>
 
-                <!-- STOCK -->
-
-                <div class="field">
-
-                    <label for="stock">
-                        Stock Quantity
-                        <span>*</span>
-                    </label>
-
-                    <input
-                        type="number"
-                        id="stock"
-                        name="stock"
-                        value="{{ product.stock }}"
-                        min="0"
-                        step="1"
-                        placeholder="0"
-                        required
-                    >
-
-                </div>
-
-
-                <!-- GST -->
-
-                <div class="field">
-
-                    <label for="gst_rate">
-                        GST Rate
-                        <span>*</span>
-                    </label>
-
-                    <div class="input-suffix">
-
+                    <div class="field">
+                        <label for="stock">Stock Quantity <span class="required-star">*</span></label>
                         <input
                             type="number"
-                            id="gst_rate"
-                            name="gst_rate"
-                            value="{{ product.gst_rate }}"
+                            id="stock"
+                            name="stock"
+                            value="{{ product.stock }}"
                             min="0"
-                            max="100"
-                            step="0.01"
-                            placeholder="18"
+                            step="1"
+                            placeholder="0"
                             required
                         >
+                    </div>
 
-                        <span>%</span>
+                    <div class="field">
+                        <label for="gst_rate">GST Rate (%) <span class="required-star">*</span></label>
+                        <div class="input-with-suffix">
+                            <input
+                                type="number"
+                                id="gst_rate"
+                                name="gst_rate"
+                                value="{{ product.gst_rate }}"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                placeholder="18"
+                                required
+                            >
+                            <span class="suffix">%</span>
+                        </div>
+                    </div>
 
+                    <div class="field full-width">
+                        <label for="description">Product Description (Optional)</label>
+                        <textarea
+                            id="description"
+                            name="description"
+                            rows="4"
+                            placeholder="Enter product description..."
+                        >{{ product.description }}</textarea>
                     </div>
 
                 </div>
-
-
-                <!-- DESCRIPTION -->
-
-                <div class="field full">
-
-                    <label for="description">
-                        Description
-                    </label>
-
-                    <textarea
-                        id="description"
-                        name="description"
-                        rows="5"
-                        placeholder="Enter product description..."
-                    >{{ product.description }}</textarea>
-
-                </div>
-
-
-                <!-- BUTTONS -->
 
                 <div class="form-actions">
-
-                    <a
-                        href="{% url 'product_list' %}"
-                        class="cancel-btn"
-                    >
+                    <a href="{% url 'product_list' %}" class="cancel-btn">
                         Cancel
                     </a>
-
-                    <button
-                        type="submit"
-                        class="save-btn"
-                    >
-                        <span>✓</span>
-                        Update Product
+                    <button type="submit" class="save-btn">
+                        💾 Save Changes
                     </button>
-
                 </div>
 
             </form>
 
-        </section>
+        </div>
 
     </main>
 

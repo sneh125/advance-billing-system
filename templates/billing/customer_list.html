@@ -4,16 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Management | Advance Billing System</title>
+    <title>Customers | Advance Billing System</title>
     <link rel="stylesheet" href="{% static 'css/customers.css' %}">
 </head>
 <body>
 
 <div class="dashboard-container">
 
-    <!-- 
-         TOP BRAND HEADER
-          -->
+    <!-- TOP HEADER -->
     <header class="dashboard-header">
         <div class="header-left">
             <a href="{% url 'distributor_dashboard' %}" class="header-logo">AB</a>
@@ -30,78 +28,77 @@
                 <span>{{ request.user.first_name|default:request.user.username }}</span>
             </div>
             <a href="{% url 'distributor_dashboard' %}" class="nav-link-btn">Dashboard</a>
+            <a href="{% url 'product_list' %}" class="nav-link-btn">Products</a>
             <a href="{% url 'distributor_profile' %}" class="nav-link-btn">My Profile</a>
             <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
         </div>
     </header>
 
-    <!-- 
-         MAIN CONTENT
-          -->
+    <!-- MAIN CONTENT -->
     <main class="dashboard-content">
 
-        <!-- DJANGO MESSAGES / ALERTS -->
+        <!-- MESSAGES -->
         {% if messages %}
         <div class="messages-container">
             {% for message in messages %}
-            <div class="alert-message {{ message.tags }}" id="alert-{{ forloop.counter }}">
+            <div class="alert-message {{ message.tags }}">
                 <span>
-                    {% if message.tags == 'success' %}✓ {% elif message.tags == 'error' %}⚠️ {% else %}ℹ️ {% endif %}
+                    {% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}⚠️{% else %}ℹ{% endif %}
                     {{ message }}
                 </span>
-                <button type="button" class="alert-close" onclick="dismissAlert('alert-{{ forloop.counter }}')">&times;</button>
+                <button type="button" class="alert-close" onclick="this.parentElement.remove()">×</button>
             </div>
             {% endfor %}
         </div>
         {% endif %}
 
-        <!-- PAGE HEADER & PRIMARY ACTION -->
+        <!-- PAGE HEADER -->
         <div class="page-header-row">
             <div class="page-title-wrap">
-                <h2>Customers</h2>
-                <p>Manage your customer database, addresses, and contact details.</p>
+                <h2>Customer Directory</h2>
+                <p>Manage your registered customer profiles, phone numbers, and addresses.</p>
             </div>
             <a href="{% url 'customer_add' %}" class="btn-primary-cta">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                + Add Customer
+                <span>+</span> Add Customer
             </a>
         </div>
 
-        <!-- DATABASE STATISTICS ROW -->
+        <!-- STATS GRID -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-icon-wrap teal">👥</div>
                 <div class="stat-info">
                     <span class="stat-label">Total Customers</span>
-                    <span class="stat-value">{{ total_customers }}</span>
+                    <strong class="stat-value">{{ total_customers|default:"0" }}</strong>
                 </div>
             </div>
+
             <div class="stat-card">
                 <div class="stat-icon-wrap blue">✅</div>
                 <div class="stat-info">
                     <span class="stat-label">Active Customers</span>
-                    <span class="stat-value">{{ active_customers }}</span>
+                    <strong class="stat-value">{{ active_customers|default:"0" }}</strong>
                 </div>
             </div>
+
             <div class="stat-card">
                 <div class="stat-icon-wrap purple">⚡</div>
                 <div class="stat-info">
                     <span class="stat-label">Recently Added</span>
-                    <span class="stat-value">{{ recently_added }}</span>
+                    <strong class="stat-value">{{ recently_added|default:"0" }}</strong>
                 </div>
             </div>
+
             <div class="stat-card">
                 <div class="stat-icon-wrap orange">📅</div>
                 <div class="stat-info">
                     <span class="stat-label">This Month</span>
-                    <span class="stat-value">{{ this_month }}</span>
+                    <strong class="stat-value">{{ this_month|default:"0" }}</strong>
                 </div>
             </div>
         </div>
 
-        <!-- SEARCH BAR SECTION -->
+        <!-- SEARCH BAR -->
         <div class="search-section">
             <form method="GET" action="{% url 'customer_list' %}" class="search-form">
                 <div class="search-input-wrapper">
@@ -110,31 +107,30 @@
                         type="text"
                         name="q"
                         class="search-input"
-                        placeholder="Search customers by name, email, phone or city..."
                         value="{{ search_query }}"
+                        placeholder="Search customers by name, email, phone or city..."
                     >
                 </div>
                 <button type="submit" class="btn-search">Search</button>
                 {% if search_query %}
-                <a href="{% url 'customer_list' %}" class="btn-clear-search">Clear Search</a>
+                <a href="{% url 'customer_list' %}" class="btn-clear-search">Clear</a>
                 {% endif %}
             </form>
         </div>
 
-        <!-- CUSTOMER TABLE OR EMPTY STATE -->
+        <!-- CUSTOMER TABLE -->
         <div class="table-card">
             {% if customers %}
             <div class="table-responsive">
                 <table class="customer-table">
                     <thead>
                         <tr>
-                            <th>Customer</th>
-                            <th>Email</th>
-                            <th>Phone</th>
+                            <th>Customer Name</th>
+                            <th>Contact Info</th>
                             <th>Location</th>
                             <th>Status</th>
-                            <th>Created</th>
-                            <th>Actions</th>
+                            <th>Registered</th>
+                            <th style="text-align: right;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -147,39 +143,36 @@
                                     </div>
                                     <div class="customer-name-group">
                                         <strong>{{ customer.name }}</strong>
-                                        <small>ID: #{{ customer.id }}</small>
+                                        <small>ID #{{ customer.id }}</small>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                {% if customer.email %}
-                                    <a href="mailto:{{ customer.email }}" style="color: #0f766e; text-decoration: none; font-weight: 500;">
-                                        {{ customer.email }}
-                                    </a>
-                                {% else %}
-                                    <span style="color: #94a3b8;">—</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span style="font-weight: 600; color: #1e293b;">{{ customer.phone }}</span>
+                                <div>
+                                    <strong style="color: var(--text-main); font-size: 13.5px;">{{ customer.phone }}</strong>
+                                    {% if customer.email %}
+                                    <div style="font-size: 12px; color: var(--text-muted);">{{ customer.email }}</div>
+                                    {% endif %}
+                                </div>
                             </td>
                             <td>
                                 <span class="location-badge">
                                     📍 {{ customer.city }}, {{ customer.state }}
+                                    {% if customer.pincode %}<small style="color: var(--text-subtle);">({{ customer.pincode }})</small>{% endif %}
                                 </span>
                             </td>
                             <td>
                                 {% if customer.is_active %}
-                                <span class="status-badge active">Active</span>
+                                <span class="status-badge active">● Active</span>
                                 {% else %}
-                                <span class="status-badge inactive">Inactive</span>
+                                <span class="status-badge inactive">○ Inactive</span>
                                 {% endif %}
                             </td>
                             <td>
                                 <span class="date-text">{{ customer.created_at|date:"d M Y" }}</span>
                             </td>
                             <td>
-                                <div class="actions-cell">
+                                <div class="actions-cell" style="justify-content: flex-end;">
                                     <a href="{% url 'customer_edit' customer.pk %}" class="btn-action-edit">
                                         ✏️ Edit
                                     </a>
@@ -200,17 +193,15 @@
             {% else %}
             <!-- EMPTY STATE -->
             <div class="empty-state-card">
-                <div class="empty-icon-circle">👤</div>
+                <div class="empty-icon-circle">👥</div>
                 {% if search_query %}
                 <h3>No Matching Customers Found</h3>
-                <p>No customers match your search query "<strong>{{ search_query }}</strong>". Try searching with different keywords.</p>
-                <a href="{% url 'customer_list' %}" class="btn-clear-search">View All Customers</a>
+                <p>No customer records match your query "<strong>{{ search_query }}</strong>".</p>
+                <a href="{% url 'customer_list' %}" class="btn-clear-search">Clear Search Filter</a>
                 {% else %}
-                <h3>No customers yet</h3>
-                <p>Start building your customer database by adding your first customer record with complete billing details.</p>
-                <a href="{% url 'customer_add' %}" class="btn-primary-cta">
-                    + Add Your First Customer
-                </a>
+                <h3>No Customers Yet</h3>
+                <p>Start building your customer directory by registering your first customer profile.</p>
+                <a href="{% url 'customer_add' %}" class="btn-primary-cta" style="margin-top: 10px;">+ Add Customer</a>
                 {% endif %}
             </div>
             {% endif %}
@@ -219,73 +210,45 @@
     </main>
 </div>
 
-<!-- 
-     DELETE CONFIRMATION MODAL
-      -->
-<div class="modal-backdrop" id="deleteModal" onclick="handleBackdropClick(event)">
+<!-- DELETE CONFIRMATION MODAL -->
+<div class="modal-backdrop" id="deleteModal">
     <div class="modal-card">
         <div class="modal-danger-icon">⚠️</div>
         <h3>Delete Customer?</h3>
         <p>
-            Are you sure you want to delete <strong id="modalCustomerName" class="target-name"></strong>?<br>
-            This action cannot be undone and will permanently remove this customer's records.
+            Are you sure you want to permanently delete <strong id="modalCustomerName" style="color: var(--text-main);"></strong>?<br>
+            This action cannot be undone.
         </p>
-        <form id="deleteForm" method="POST" action="">
+        <form id="deleteForm" method="POST">
             {% csrf_token %}
             <div class="modal-actions">
                 <button type="button" class="btn-modal-cancel" onclick="closeDeleteModal()">Cancel</button>
-                <button type="submit" class="btn-modal-delete">Yes, Delete Customer</button>
+                <button type="submit" class="btn-modal-delete">Yes, Delete</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- 
-     VANILLA JAVASCRIPT INTERACTIONS
-      -->
 <script>
-    function openDeleteModal(customerId, customerName) {
-        const modal = document.getElementById('deleteModal');
-        const nameSpan = document.getElementById('modalCustomerName');
-        const form = document.getElementById('deleteForm');
+function openDeleteModal(customerId, customerName) {
+    const modal = document.getElementById("deleteModal");
+    const name = document.getElementById("modalCustomerName");
+    const form = document.getElementById("deleteForm");
 
-        nameSpan.textContent = customerName;
-        form.action = '/customers/' + customerId + '/delete/';
-        modal.classList.add('open');
+    name.textContent = customerName;
+    form.action = "/customers/" + customerId + "/delete/";
+    modal.classList.add("open");
+}
+
+function closeDeleteModal() {
+    document.getElementById("deleteModal").classList.remove("open");
+}
+
+document.getElementById("deleteModal").addEventListener("click", function(event) {
+    if (event.target === this) {
+        closeDeleteModal();
     }
-
-    function closeDeleteModal() {
-        const modal = document.getElementById('deleteModal');
-        modal.classList.remove('open');
-    }
-
-    function handleBackdropClick(e) {
-        if (e.target.id === 'deleteModal') {
-            closeDeleteModal();
-        }
-    }
-
-    function dismissAlert(alertId) {
-        const el = document.getElementById(alertId);
-        if (el) {
-            el.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(-6px)';
-            setTimeout(() => el.remove(), 250);
-        }
-    }
-
-    // Auto-dismiss success alert after 5 seconds
-    document.addEventListener('DOMContentLoaded', () => {
-        const successAlerts = document.querySelectorAll('.alert-message.success');
-        successAlerts.forEach(alert => {
-            setTimeout(() => {
-                alert.style.transition = 'opacity 0.3s ease';
-                alert.style.opacity = '0';
-                setTimeout(() => alert.remove(), 300);
-            }, 5000);
-        });
-    });
+});
 </script>
 
 </body>

@@ -281,7 +281,6 @@ def forgot_password(request):
 
         # Email required
         if not email:
-
             return render(
                 request,
                 "accounts/forgot_password.html",
@@ -290,38 +289,34 @@ def forgot_password(request):
                 }
             )
 
-            # Delete all previous unverified OTPs
-    
+        # Check if account exists
+        if not User.objects.filter(email=email).exists():
+            return render(
+                request,
+                "accounts/forgot_password.html",
+                {
+                    "error": "No account found with this email address.",
+                    "email": email
+                }
+            )
+
+        # Delete all previous unverified OTPs
         PasswordResetOTP.objects.filter(
             email=email,
             is_verified=False
         ).delete()
 
-            # Generate new OTP
-    
+        # Generate new OTP (expires in 5 minutes)
         otp = generate_otp()
+        expires_at = timezone.now() + timedelta(minutes=5)
 
-            # OTP expires after 5 minutes
-    
-        expires_at = (
-            timezone.now()
-            + timedelta(minutes=5)
-        )
-
-            # Save OTP
-    
         PasswordResetOTP.objects.create(
             email=email,
             otp=otp,
             expires_at=expires_at
         )
 
-            # Temporary testing
-        # Later replace with email service
-    
-        print(
-            f"OTP for {email}: {otp}"
-        )
+        print(f"[AUTH] Generated OTP for {email}: {otp}")
 
         return render(
             request,
@@ -329,7 +324,7 @@ def forgot_password(request):
             {
                 "email": email,
                 "otp_sent": True,
-                "message": "OTP sent successfully. Please check your OTP."
+                "message": f"A 6-digit verification code has been generated for {email}."
             }
         )
 
@@ -344,7 +339,6 @@ def forgot_password(request):
 def verify_otp(request):
 
     if request.method != "POST":
-
         return redirect("forgot_password")
 
     email = request.POST.get(
@@ -359,19 +353,17 @@ def verify_otp(request):
 
     # Required fields
     if not email or not otp:
-
         return render(
             request,
             "accounts/forgot_password.html",
             {
-                "error": "Please enter the OTP.",
+                "error": "Please enter the 6-digit OTP.",
                 "email": email,
                 "otp_sent": True
             }
         )
 
-    # Find latest OTP for this email
-
+    # Find latest unverified OTP for this email
     otp_record = PasswordResetOTP.objects.filter(
         email=email,
         is_verified=False
@@ -381,35 +373,30 @@ def verify_otp(request):
 
     # No OTP found
     if otp_record is None:
-
         return render(
             request,
             "accounts/forgot_password.html",
             {
-                "error": "Invalid or expired OTP.",
+                "error": "No active OTP request found. Please request a new OTP.",
                 "email": email,
                 "otp_sent": True
             }
         )
 
     # Check OTP value
-
     if otp_record.otp != otp:
-
         return render(
             request,
             "accounts/forgot_password.html",
             {
-                "error": "Invalid OTP.",
+                "error": "Invalid OTP. Please check the code and try again.",
                 "email": email,
                 "otp_sent": True
             }
         )
 
     # Check expiry
-
     if not otp_record.is_valid():
-
         return render(
             request,
             "accounts/forgot_password.html",
@@ -421,7 +408,6 @@ def verify_otp(request):
         )
 
     # Mark OTP as verified
-
     otp_record.is_verified = True
     otp_record.save(
         update_fields=["is_verified"]
@@ -431,8 +417,9 @@ def verify_otp(request):
         request,
         "accounts/forgot_password.html",
         {
-            "success": "OTP verified successfully.",
+            "success": "OTP verified successfully. Please enter your new password.",
             "email": email,
+            "otp_sent": True,
             "otp_verified": True
         }
     )
@@ -443,7 +430,6 @@ def verify_otp(request):
 def resend_otp(request):
 
     if request.method != "POST":
-
         return redirect("forgot_password")
 
     email = request.POST.get(
@@ -451,9 +437,7 @@ def resend_otp(request):
         ""
     ).strip().lower()
 
-    # Email required
     if not email:
-
         return render(
             request,
             "accounts/forgot_password.html",
@@ -462,25 +446,22 @@ def resend_otp(request):
             }
         )
 
-    # Remove old OTPs
+    if not User.objects.filter(email=email).exists():
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {
+                "error": "No account found with this email address."
+            }
+        )
 
     PasswordResetOTP.objects.filter(
         email=email,
         is_verified=False
     ).delete()
 
-    # Generate new OTP
-
     otp = generate_otp()
-
-    # New expiry time
-
-    expires_at = (
-        timezone.now()
-        + timedelta(minutes=5)
-    )
-
-    # Save new OTP
+    expires_at = timezone.now() + timedelta(minutes=5)
 
     PasswordResetOTP.objects.create(
         email=email,
@@ -488,10 +469,7 @@ def resend_otp(request):
         expires_at=expires_at
     )
 
-    # Temporary testing
-    print(
-        f"RESEND OTP for {email}: {otp}"
-    )
+    print(f"[AUTH] RESEND OTP for {email}: {otp}")
 
     return render(
         request,
@@ -499,9 +477,97 @@ def resend_otp(request):
         {
             "email": email,
             "otp_sent": True,
-            "message": "A new OTP has been generated successfully."
+            "message": f"A new 6-digit verification code has been sent to {email}."
         }
     )
+
+
+# RESET PASSWORD
+
+def reset_password(request):
+
+    if request.method != "POST":
+        return redirect("forgot_password")
+
+    email = request.POST.get("email", "").strip().lower()
+    password = request.POST.get("password", "")
+    confirm_password = request.POST.get("confirm_password", "")
+
+    if not email or not password or not confirm_password:
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {
+                "error": "All fields are required to reset password.",
+                "email": email,
+                "otp_sent": True,
+                "otp_verified": True
+            }
+        )
+
+    # Check verified OTP session
+    otp_record = PasswordResetOTP.objects.filter(
+        email=email,
+        is_verified=True
+    ).order_by("-created_at").first()
+
+    if not otp_record:
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {
+                "error": "Verification session expired. Please request a new OTP.",
+                "email": email
+            }
+        )
+
+    if len(password) < 8:
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {
+                "error": "Password must contain at least 8 characters.",
+                "email": email,
+                "otp_sent": True,
+                "otp_verified": True
+            }
+        )
+
+    if password != confirm_password:
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {
+                "error": "Passwords do not match.",
+                "email": email,
+                "otp_sent": True,
+                "otp_verified": True
+            }
+        )
+
+    user = User.objects.filter(email=email).first()
+    if not user:
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {
+                "error": "No account associated with this email address.",
+                "email": email
+            }
+        )
+
+    # Update password
+    user.set_password(password)
+    user.save()
+
+    # Clear OTP records
+    PasswordResetOTP.objects.filter(email=email).delete()
+
+    messages.success(
+        request,
+        "Password has been reset successfully! Please sign in with your new password."
+    )
+    return redirect("login")
 
 
 # ADMIN DASHBOARD
@@ -529,9 +595,12 @@ def distributor_dashboard(request):
     if request.user.is_staff:
         return redirect("admin_dashboard")
 
-    from billing.models import Customer, Product
+    from billing.models import Customer, Product, Invoice
     total_customers = Customer.objects.filter(distributor=request.user).count()
     total_products = Product.objects.filter(distributor=request.user).count()
+    invoices_qs = Invoice.objects.filter(distributor=request.user)
+    total_invoices = invoices_qs.count()
+    total_billed = sum(inv.total_amount for inv in invoices_qs)
 
     return render(
         request,
@@ -539,6 +608,8 @@ def distributor_dashboard(request):
         {
             "total_customers": total_customers,
             "total_products": total_products,
+            "total_invoices": total_invoices,
+            "total_billed": total_billed,
         }
     )
 

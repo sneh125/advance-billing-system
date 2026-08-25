@@ -48,20 +48,24 @@
                     <div class="stat-value">{{ total_customers|default:"0" }}</div>
                 </div>
             </a>
-            <div class="stat-card">
-                <div class="stat-icon blue">🧾</div>
-                <div class="stat-label">My Bills</div>
-                <div class="stat-value">—</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon purple">📱</div>
-                <div class="stat-label">QR Generated</div>
-                <div class="stat-value">—</div>
-            </div>
+            <a href="{% url 'invoice_list' %}" style="text-decoration: none; color: inherit; display: block;">
+                <div class="stat-card">
+                    <div class="stat-icon blue">🧾</div>
+                    <div class="stat-label">Invoices Generated</div>
+                    <div class="stat-value">{{ total_invoices|default:"0" }}</div>
+                </div>
+            </a>
+            <a href="{% url 'product_list' %}" style="text-decoration: none; color: inherit; display: block;">
+                <div class="stat-card">
+                    <div class="stat-icon purple">📦</div>
+                    <div class="stat-label">Products in Stock</div>
+                    <div class="stat-value">{{ total_products|default:"0" }}</div>
+                </div>
+            </a>
             <div class="stat-card">
                 <div class="stat-icon orange">💰</div>
-                <div class="stat-label">Total Billed</div>
-                <div class="stat-value">—</div>
+                <div class="stat-label">Total Revenue</div>
+                <div class="stat-value">₹{{ total_billed|floatformat:0|default:"0" }}</div>
             </div>
         </div>
 
@@ -72,24 +76,24 @@
                 <p>Add and manage your customers</p>
                 <span class="card-arrow">→</span>
             </a>
-            <div class="card">
+            <a href="{% url 'invoice_list' %}" class="card">
                 <div class="card-icon">🧾</div>
                 <h3>Invoices</h3>
                 <p>Create and manage invoices</p>
                 <span class="card-arrow">→</span>
-            </div>
+            </a>
             <a href="{% url 'product_list' %}" class="card">
                 <div class="card-icon">📦</div>
                 <h3>Products</h3>
                 <p>Browse and manage products</p>
                 <span class="card-arrow">→</span>
             </a>
-            <div class="card">
-                <div class="card-icon">💰</div>
-                <h3>Payments</h3>
-                <p>Track your payment records</p>
+            <a href="{% url 'invoice_create' %}" class="card">
+                <div class="card-icon">⚡</div>
+                <h3>Quick Bill</h3>
+                <p>Generate new invoice with GST</p>
                 <span class="card-arrow">→</span>
-            </div>
+            </a>
         </div>
 
     </main>

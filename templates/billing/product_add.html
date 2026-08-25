@@ -1,74 +1,98 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Add Product | Advance Billing System</title>
-
     <link rel="stylesheet" href="{% static 'css/product_add.css' %}">
 </head>
-
 <body>
 
-    <div class="product-page">
+<div class="product-page-layout">
+
+    <!-- TOP HEADER -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="header-logo">AB</a>
+            <div class="header-title-group">
+                <h1>Inventory & Products</h1>
+                <p class="subtitle">Advance Billing System</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="user-badge">
+                <div class="user-avatar">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                </div>
+                <span>{{ request.user.first_name|default:request.user.username }}</span>
+            </div>
+            <a href="{% url 'distributor_dashboard' %}" class="nav-link-btn">Dashboard</a>
+            <a href="{% url 'product_list' %}" class="nav-link-btn">Products</a>
+            <a href="{% url 'distributor_profile' %}" class="nav-link-btn">My Profile</a>
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        </div>
+    </header>
+
+    <main class="product-page-content">
+
+        <!-- BREADCRUMBS -->
+        <nav class="breadcrumbs" aria-label="breadcrumb">
+            <a href="{% url 'distributor_dashboard' %}">Dashboard</a>
+            <span class="separator">/</span>
+            <a href="{% url 'product_list' %}">Products</a>
+            <span class="separator">/</span>
+            <span class="current">Add Product</span>
+        </nav>
 
         <div class="product-card">
 
             <div class="page-header">
                 <span class="eyebrow">PRODUCT MANAGEMENT</span>
-
                 <h1>Add New Product</h1>
-
-                <p>
-                    Add product information to your billing inventory.
-                </p>
+                <p>Register a new product with stock, pricing, and tax details to your inventory.</p>
             </div>
 
             {% if error %}
-                <div class="alert-error">
-                    {{ error }}
-                </div>
+            <div class="alert-error">
+                ⚠️ {{ error }}
+            </div>
             {% endif %}
 
             <form method="POST">
-
                 {% csrf_token %}
 
                 <div class="form-grid">
 
                     <div class="field">
-                        <label>Product Name</label>
-
+                        <label for="name">Product Name <span class="required-star">*</span></label>
                         <input
                             type="text"
+                            id="name"
                             name="name"
                             value="{{ name|default:'' }}"
-                            placeholder="Enter product name"
+                            placeholder="e.g. Wireless Ergonomic Mouse"
                             required
                         >
                     </div>
 
                     <div class="field">
-                        <label>Category</label>
-
+                        <label for="category">Category <span class="required-star">*</span></label>
                         <input
                             type="text"
+                            id="category"
                             name="category"
                             value="{{ category|default:'' }}"
-                            placeholder="e.g. Electronics"
+                            placeholder="e.g. Electronics, Hardware, Groceries"
                             required
                         >
                     </div>
 
                     <div class="field">
-                        <label>Price</label>
-
+                        <label for="price">Unit Price (₹) <span class="required-star">*</span></label>
                         <input
                             type="number"
+                            id="price"
                             name="price"
                             value="{{ price|default:'' }}"
                             min="0.01"
@@ -79,23 +103,23 @@
                     </div>
 
                     <div class="field">
-                        <label>Stock</label>
-
+                        <label for="stock">Initial Stock Quantity <span class="required-star">*</span></label>
                         <input
                             type="number"
+                            id="stock"
                             name="stock"
                             value="{{ stock|default:'' }}"
                             min="0"
-                            placeholder="Enter stock quantity"
+                            placeholder="0"
                             required
                         >
                     </div>
 
                     <div class="field">
-                        <label>GST Rate (%)</label>
-
+                        <label for="gst_rate">GST Rate (%) <span class="required-star">*</span></label>
                         <input
                             type="number"
+                            id="gst_rate"
                             name="gst_rate"
                             value="{{ gst_rate|default:'' }}"
                             min="0"
@@ -107,35 +131,33 @@
                     </div>
 
                     <div class="field full-width">
-                        <label>Description</label>
-
+                        <label for="description">Product Description (Optional)</label>
                         <textarea
+                            id="description"
                             name="description"
                             rows="4"
-                            placeholder="Enter product description"
+                            placeholder="Enter detailed description or specifications..."
                         >{{ description|default:'' }}</textarea>
                     </div>
 
                 </div>
 
                 <div class="form-actions">
-
                     <a href="{% url 'product_list' %}" class="cancel-btn">
                         Cancel
                     </a>
-
                     <button type="submit" class="submit-btn">
-                        Add Product
+                        + Add Product
                     </button>
-
                 </div>
 
             </form>
 
         </div>
 
-    </div>
+    </main>
+
+</div>
 
 </body>
-
 </html>

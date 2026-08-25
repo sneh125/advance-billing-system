@@ -1,321 +1,235 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Products | Advance Billing System</title>
-
-    <link rel="stylesheet"
-          href="{% static 'css/product_list.css' %}">
+    <link rel="stylesheet" href="{% static 'css/product_list.css' %}">
 </head>
-
 <body>
 
 <div class="products-page">
 
+    <!-- TOP HEADER -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="header-logo">AB</a>
+            <div class="header-title-group">
+                <h1>Inventory & Products</h1>
+                <p class="subtitle">Advance Billing System</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="user-badge">
+                <div class="user-avatar">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                </div>
+                <span>{{ request.user.first_name|default:request.user.username }}</span>
+            </div>
+            <a href="{% url 'distributor_dashboard' %}" class="nav-link-btn">Dashboard</a>
+            <a href="{% url 'customer_list' %}" class="nav-link-btn">Customers</a>
+            <a href="{% url 'distributor_profile' %}" class="nav-link-btn">My Profile</a>
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        </div>
+    </header>
+
     <div class="products-container">
 
-        <!-- HEADER -->
-
+        <!-- PAGE HEADER -->
         <div class="page-header">
-
             <div>
-                <span class="eyebrow">
-                    INVENTORY MANAGEMENT
-                </span>
-
-                <h1>Products</h1>
-
-                <p>
-                    Manage your products, pricing and inventory.
-                </p>
+                <span class="eyebrow">INVENTORY MANAGEMENT</span>
+                <h1>Product Catalog</h1>
+                <p>Manage your product stock, prices, GST rates, and descriptions.</p>
             </div>
-
-            <a href="{% url 'product_add' %}"
-               class="add-product-btn">
-
-                + Add Product
-
+            <a href="{% url 'product_add' %}" class="add-product-btn">
+                <span>+</span> Add Product
             </a>
-
         </div>
 
-
         <!-- MESSAGES -->
-
         {% if messages %}
-
+        <div class="messages-container">
             {% for message in messages %}
-
-                <div class="alert success">
-                    {{ message }}
-                </div>
-
+            <div class="alert success">
+                <span>✓ {{ message }}</span>
+            </div>
             {% endfor %}
-
+        </div>
         {% endif %}
 
-
-        <!-- SEARCH -->
-
+        <!-- SEARCH BAR -->
         <div class="search-card">
-
-            <form method="GET">
-
+            <form method="GET" action="{% url 'product_list' %}">
                 <div class="search-box">
-
-                    <span class="search-icon">
-                        🔍
-                    </span>
-
+                    <span class="search-icon">🔍</span>
                     <input
                         type="text"
                         name="q"
                         value="{{ query }}"
-                        placeholder="Search by product name or category..."
+                        placeholder="Search products by name or category..."
                     >
-
                 </div>
-
-                <button type="submit"
-                        class="search-btn">
-
-                    Search
-
-                </button>
-
+                <button type="submit" class="search-btn">Search</button>
                 {% if query %}
-
-                    <a href="{% url 'product_list' %}"
-                       class="clear-btn">
-
-                        Clear
-
-                    </a>
-
+                <a href="{% url 'product_list' %}" class="clear-btn">Clear</a>
                 {% endif %}
-
             </form>
-
         </div>
 
-
         <!-- PRODUCT TABLE -->
-
         <div class="table-card">
-
             {% if products %}
-
-                <div class="table-wrapper">
-
-                    <table>
-
-                        <thead>
-
-                            <tr>
-
-                                <th>Product</th>
-                                <th>Category</th>
-                                <th>Price</th>
-                                <th>GST</th>
-                                <th>Stock</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-
-                            </tr>
-
-                        </thead>
-
-                        <tbody>
-
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Category</th>
+                            <th>Unit Price</th>
+                            <th>GST Rate</th>
+                            <th>Stock Status</th>
+                            <th>Created</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         {% for product in products %}
-
-                            <tr>
-
-                                <td>
-
-                                    <div class="product-name">
-
-                                        <div class="product-avatar">
-                                            {{ product.name|first|upper }}
-                                        </div>
-
-                                        <div>
-                                            <strong>
-                                                {{ product.name }}
-                                            </strong>
-
-                                            {% if product.description %}
-
-                                                <small>
-                                                    {{ product.description|truncatechars:45 }}
-                                                </small>
-
-                                            {% endif %}
-
-                                        </div>
-
+                        <tr>
+                            <td>
+                                <div class="product-name">
+                                    <div class="product-avatar">
+                                        {{ product.name|first|upper }}
                                     </div>
-
-                                </td>
-
-
-                                <td>
-                                    {{ product.category }}
-                                </td>
-
-
-                                <td>
-                                    ₹{{ product.price }}
-                                </td>
-
-
-                                <td>
-                                    {{ product.gst_rate }}%
-                                </td>
-
-
-                                <td>
-
-                                    {% if product.stock == 0 %}
-
-                                        <span class="stock out">
-                                            Out of Stock
-                                        </span>
-
-                                    {% elif product.stock <= 10 %}
-
-                                        <span class="stock low">
-                                            {{ product.stock }} Low
-                                        </span>
-
-                                    {% else %}
-
-                                        <span class="stock available">
-                                            {{ product.stock }}
-                                        </span>
-
-                                    {% endif %}
-
-                                </td>
-
-
-                                <td>
-                                    {{ product.created_at|date:"d M Y" }}
-                                </td>
-                                    <td class="product-actions">
-                                        <a href="{% url 'product_edit' product.id %}"class="edit-btn">
-                                            ✏ Edit
-                                        </a>
-                                        <form
-                                            method="POST"
-                                            action="{% url 'product_delete' product.id %}"
-                                            class="delete-form"
-                                            onsubmit="return confirm('Are you sure you want to delete {{ product.name|escapejs }}?');">
-
-                                            {% csrf_token %}
-
-                                            <button type="submit" class="delete-btn">
-                                                🗑 Delete
-                                            </button>
-                                        </form>
-                                    </td>
-        
-                            </tr>
-
+                                    <div>
+                                        <strong>{{ product.name }}</strong>
+                                        {% if product.description %}
+                                        <small>{{ product.description|truncatechars:45 }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="category-badge">{{ product.category }}</span>
+                            </td>
+                            <td>
+                                <strong style="color: var(--text);">₹{{ product.price }}</strong>
+                            </td>
+                            <td>
+                                <span class="gst-badge">{{ product.gst_rate }}% GST</span>
+                            </td>
+                            <td>
+                                {% if product.stock == 0 %}
+                                <span class="stock out">● Out of Stock</span>
+                                {% elif product.stock <= 10 %}
+                                <span class="stock low">● Low ({{ product.stock }})</span>
+                                {% else %}
+                                <span class="stock available">● In Stock ({{ product.stock }})</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="date-text">{{ product.created_at|date:"d M Y" }}</span>
+                            </td>
+                            <td>
+                                <div class="product-actions">
+                                    <a href="{% url 'product_edit' product.id %}" class="edit-btn">
+                                        ✏️ Edit
+                                    </a>
+                                    <button
+                                        type="button"
+                                        class="delete-btn"
+                                        onclick="openDeleteModal('{{ product.id }}', '{{ product.name|escapejs }}')"
+                                    >
+                                        🗑️ Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
                         {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-
-                <!-- PAGINATION -->
-
-                {% if page_obj.has_other_pages %}
-
-                    <div class="pagination">
-
-                        {% if page_obj.has_previous %}
-
-                            <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">
-                                ← Previous
-                            </a>
-
-                        {% endif %}
-
-
-                        <span>
-                            Page {{ page_obj.number }}
-                            of {{ page_obj.paginator.num_pages }}
-                        </span>
-
-
-                        {% if page_obj.has_next %}
-
-                            <a href="?q={{ query }}&page={{ page_obj.next_page_number }}">
-                                Next →
-                            </a>
-
-                        {% endif %}
-
-                    </div>
-
+            <!-- PAGINATION -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">← Previous</a>
+                {% else %}
+                <span class="pagination-disabled">← Previous</span>
                 {% endif %}
 
+                <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
 
-            {% else %}
-
-                <!-- EMPTY STATE -->
-
-                <div class="empty-state">
-
-                    <div class="empty-icon">
-                        📦
-                    </div>
-
-                    <h2>No products found</h2>
-
-                    {% if query %}
-
-                        <p>
-                            No products matched
-                            "<strong>{{ query }}</strong>".
-                        </p>
-
-                        <a href="{% url 'product_list' %}">
-                            Clear Search
-                        </a>
-
-                    {% else %}
-
-                        <p>
-                            Start building your inventory
-                            by adding your first product.
-                        </p>
-
-                        <a href="{% url 'product_add' %}">
-                            + Add Your First Product
-                        </a>
-
-                    {% endif %}
-
-                </div>
-
+                {% if page_obj.has_next %}
+                <a href="?q={{ query }}&page={{ page_obj.next_page_number }}">Next →</a>
+                {% else %}
+                <span class="pagination-disabled">Next →</span>
+                {% endif %}
+            </div>
             {% endif %}
 
+            {% else %}
+            <!-- EMPTY STATE -->
+            <div class="empty-state">
+                <div class="empty-icon">📦</div>
+                <h2>No products found</h2>
+                {% if query %}
+                <p>No products match your search query "<strong>{{ query }}</strong>".</p>
+                <a href="{% url 'product_list' %}">Clear Search Filter</a>
+                {% else %}
+                <p>Start building your inventory catalog by adding your first product.</p>
+                <a href="{% url 'product_add' %}">+ Add Your First Product</a>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
 
     </div>
 
 </div>
 
-</body>
+<!-- DELETE CONFIRMATION MODAL -->
+<div class="modal-backdrop" id="deleteModal">
+    <div class="modal-card">
+        <div class="modal-danger-icon">⚠️</div>
+        <h3>Delete Product?</h3>
+        <p>
+            Are you sure you want to permanently delete <strong id="modalProductName" style="color: var(--text);"></strong>?<br>
+            This action cannot be undone.
+        </p>
+        <form id="deleteForm" method="POST">
+            {% csrf_token %}
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button type="submit" class="btn-modal-delete">Yes, Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
 
+<script>
+function openDeleteModal(productId, productName) {
+    const modal = document.getElementById("deleteModal");
+    const name = document.getElementById("modalProductName");
+    const form = document.getElementById("deleteForm");
+
+    name.textContent = productName;
+    form.action = "/products/" + productId + "/delete/";
+    modal.classList.add("open");
+}
+
+function closeDeleteModal() {
+    document.getElementById("deleteModal").classList.remove("open");
+}
+
+document.getElementById("deleteModal").addEventListener("click", function(event) {
+    if (event.target === this) {
+        closeDeleteModal();
+    }
+});
+</script>
+
+</body>
 </html>
