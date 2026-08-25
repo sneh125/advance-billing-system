@@ -529,14 +529,16 @@ def distributor_dashboard(request):
     if request.user.is_staff:
         return redirect("admin_dashboard")
 
-    from billing.models import Customer
+    from billing.models import Customer, Product
     total_customers = Customer.objects.filter(distributor=request.user).count()
+    total_products = Product.objects.filter(distributor=request.user).count()
 
     return render(
         request,
         "distributor/dashboard.html",
         {
-            "total_customers": total_customers
+            "total_customers": total_customers,
+            "total_products": total_products,
         }
     )
 

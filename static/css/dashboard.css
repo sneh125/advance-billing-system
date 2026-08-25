@@ -19,9 +19,7 @@ body {
     flex-direction: column;
 }
 
-/* =====================
-   HEADER
-   ===================== */
+/*  HEADER  */
 
 .dashboard-header {
     min-height: 72px;
@@ -133,9 +131,7 @@ body {
     color: #fee2e2;
 }
 
-/* =====================
-   CONTENT
-   ===================== */
+/*  CONTENT  */
 
 .dashboard-content {
     max-width: 1200px;
@@ -145,9 +141,7 @@ body {
     width: 100%;
 }
 
-/* =====================
-   WELCOME BANNER
-   ===================== */
+/*  WELCOME BANNER  */
 
 .welcome-banner {
     padding: 30px 36px;
@@ -213,9 +207,7 @@ body {
     z-index: 1;
 }
 
-/* =====================
-   STATS ROW
-   ===================== */
+/*  STATS ROW  */
 
 .stats-row {
     display: grid;
@@ -271,9 +263,7 @@ body {
     color: #0f172a;
 }
 
-/* =====================
-   CARDS GRID
-   ===================== */
+/*  CARDS GRID  */
 
 .cards {
     display: grid;
@@ -339,9 +329,7 @@ body {
     transform: translateX(5px);
 }
 
-/* =====================
-   PROFILE PAGE
-   ===================== */
+/*  PROFILE PAGE  */
 
 .profile-wrapper {
     max-width: 700px;
@@ -481,9 +469,7 @@ body {
     color: #1e293b;
 }
 
-/* =====================
-   ALERTS
-   ===================== */
+/*  ALERTS  */
 
 .alert {
     padding: 12px 18px;
@@ -508,9 +494,7 @@ body {
     border: 1px solid #fecaca;
 }
 
-/* =====================
-   EDIT FORM (PROFILE)
-   ===================== */
+/*  EDIT FORM (PROFILE)  */
 
 .edit-btn {
     display: inline-flex;
@@ -637,9 +621,7 @@ body {
     background: #e2e8f0;
 }
 
-/* =====================
-   RESPONSIVE
-   ===================== */
+/*  RESPONSIVE  */
 
 @media (max-width: 900px) {
     .stats-row { grid-template-columns: repeat(2, 1fr); }

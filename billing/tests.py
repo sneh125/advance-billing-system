@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
-from .models import Customer
+from .models import Customer, Product
 
 
 class CustomerManagementTests(TestCase):
@@ -154,3 +154,111 @@ class CustomerManagementTests(TestCase):
         response = self.client.post(reverse('customer_delete', kwargs={'pk': self.customer1.pk}))
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Customer.objects.filter(pk=self.customer1.pk).exists())
+
+    def test_product_add_validation_and_creation(self):
+        """Test Product add validation and creation"""
+        self.client.login(username="distributor1", password="Password@123")
+
+        # Invalid: missing fields
+        response = self.client.post(reverse('product_add'), {
+            'name': 'A',
+            'category': 'Electronics',
+            'price': '-10',
+            'stock': '5',
+            'gst_rate': '18',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('error', response.context)
+
+        # Valid creation
+        response = self.client.post(reverse('product_add'), {
+            'name': 'Wireless Mouse',
+            'category': 'Electronics',
+            'price': '499.00',
+            'stock': '50',
+            'gst_rate': '18',
+            'description': 'Ergonomic optical wireless mouse',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Product.objects.filter(distributor=self.distributor1).count(), 1)
+
+    def test_product_list_search_and_isolation(self):
+        """Test Product list, search, and distributor isolation"""
+        Product.objects.create(
+            distributor=self.distributor1,
+            name="Laptop Stand",
+            category="Accessories",
+            price=799.00,
+            stock=20,
+            gst_rate=18.00
+        )
+        Product.objects.create(
+            distributor=self.distributor2,
+            name="Secret Product",
+            category="Confidential",
+            price=1000.00,
+            stock=10,
+            gst_rate=18.00
+        )
+
+        self.client.login(username="distributor1", password="Password@123")
+
+        # View list - should see Laptop Stand, not Secret Product
+        response = self.client.get(reverse('product_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Laptop Stand")
+        self.assertNotContains(response, "Secret Product")
+
+        # Search match
+        response = self.client.get(reverse('product_list') + '?q=Laptop')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Laptop Stand")
+
+    def test_product_edit_and_isolation(self):
+        """Test editing product and security isolation"""
+        product = Product.objects.create(
+            distributor=self.distributor1,
+            name="Keyboard",
+            category="Accessories",
+            price=999.00,
+            stock=15,
+            gst_rate=18.00
+        )
+        self.client.login(username="distributor1", password="Password@123")
+
+        # Edit GET
+        response = self.client.get(reverse('product_edit', kwargs={'pk': product.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Keyboard")
+
+        # Edit POST
+        response = self.client.post(reverse('product_edit', kwargs={'pk': product.pk}), {
+            'name': 'Mechanical Keyboard',
+            'category': 'Gaming Accessories',
+            'price': '1499.00',
+            'stock': '10',
+            'gst_rate': '18.00',
+            'description': 'RGB Mechanical Keyboard',
+        })
+        self.assertEqual(response.status_code, 302)
+        product.refresh_from_db()
+        self.assertEqual(product.name, 'Mechanical Keyboard')
+
+    def test_product_delete_post_only(self):
+        """Test deleting product via POST only"""
+        product = Product.objects.create(
+            distributor=self.distributor1,
+            name="USB Hub",
+            category="Accessories",
+            price=299.00,
+            stock=5,
+            gst_rate=18.00
+        )
+        self.client.login(username="distributor1", password="Password@123")
+
+        # Delete POST
+        response = self.client.post(reverse('product_delete', kwargs={'pk': product.pk}))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Product.objects.filter(pk=product.pk).exists())
+
+

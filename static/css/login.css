@@ -363,10 +363,28 @@ body {
         0 15px 30px rgba(20, 184, 166, 0.35);
 }
 
+.register-link {
+    margin-top: 18px;
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.register-link a {
+    color: #0f766e;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.register-link a:hover {
+    color: #14b8a6;
+    text-decoration: underline;
+}
+
 /*    SECURITY MESSAGE */
 
 .security-note {
-    margin-top: 25px;
+    margin-top: 20px;
     padding: 12px;
     border-radius: 11px;
     background: #f0fdfa;

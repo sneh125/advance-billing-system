@@ -6,4 +6,8 @@ urlpatterns = [
     path('customers/add/', views.customer_add, name='customer_add'),
     path('customers/<int:pk>/edit/', views.customer_edit, name='customer_edit'),
     path('customers/<int:pk>/delete/', views.customer_delete, name='customer_delete'),
+    path("products/add/",views.product_add,name="product_add"),
+    path("products/",views.product_list,name="product_list"),
+    path("products/<int:pk>/edit/",views.product_edit,name="product_edit"),
+    path("products/<int:pk>/delete/",views.product_delete,name="product_delete"),
 ]

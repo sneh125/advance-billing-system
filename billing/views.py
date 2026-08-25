@@ -2,12 +2,15 @@ from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from decimal import Decimal, InvalidOperation
 from django.db.models import Q
 from django.utils import timezone
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
+from django.db import models
 
-from .models import Customer
+from .models import Customer, Product
 
 
 @login_required
@@ -51,7 +54,7 @@ def customer_list(request):
         "recently_added": recently_added,
         "this_month": this_month,
     }
-    return render(request, "billing/customers/customer_list.html", context)
+    return render(request, "billing/customer_list.html", context)
 
 
 @login_required
@@ -128,7 +131,7 @@ def customer_add(request):
 
     return render(
         request,
-        "billing/customers/customer_form.html",
+        "billing/customer_form.html",
         {
             "is_edit": False,
             "errors": errors,
@@ -222,7 +225,7 @@ def customer_edit(request, pk):
 
     return render(
         request,
-        "billing/customers/customer_form.html",
+        "billing/customer_form.html",
         {
             "is_edit": True,
             "customer": customer,
@@ -247,3 +250,296 @@ def customer_delete(request, pk):
 
     messages.error(request, "Invalid request method for delete.")
     return redirect("customer_list")
+
+@login_required
+def product_add(request):
+
+    if request.method == "POST":
+
+        name = request.POST.get("name", "").strip()
+        category = request.POST.get("category", "").strip()
+        price = request.POST.get("price", "").strip()
+        stock = request.POST.get("stock", "").strip()
+        gst_rate = request.POST.get("gst_rate", "").strip()
+        description = request.POST.get("description", "").strip()
+
+        context = {
+            "name": name,
+            "category": category,
+            "price": price,
+            "stock": stock,
+            "gst_rate": gst_rate,
+            "description": description,
+        }
+
+        # Required fields
+        if not all([name, category, price, stock, gst_rate]):
+            context["error"] = "Please fill in all required fields."
+            return render(
+                request,
+                "billing/product_add.html",
+                context
+            )
+
+        # Name validation
+        if len(name) < 2:
+            context["error"] = "Product name must contain at least 2 characters."
+            return render(
+                request,
+                "billing/product_add.html",
+                context
+            )
+
+        # Price validation
+        try:
+            price_value = float(price)
+
+            if price_value <= 0:
+                raise ValueError
+
+        except ValueError:
+            context["error"] = "Please enter a valid price greater than 0."
+            return render(
+                request,
+                "billing/product_add.html",
+                context
+            )
+
+        # Stock validation
+        try:
+            stock_value = int(stock)
+
+            if stock_value < 0:
+                raise ValueError
+
+        except ValueError:
+            context["error"] = "Stock must be a valid non-negative number."
+            return render(
+                request,
+                "billing/product_add.html",
+                context
+            )
+
+        # GST validation
+        try:
+            gst_value = float(gst_rate)
+
+            if gst_value < 0 or gst_value > 100:
+                raise ValueError
+
+        except ValueError:
+            context["error"] = "GST rate must be between 0 and 100."
+            return render(
+                request,
+                "billing/product_add.html",
+                context
+            )
+
+        # Create product
+        Product.objects.create(
+            distributor=request.user,
+            name=name,
+            category=category,
+            price=price_value,
+            stock=stock_value,
+            gst_rate=gst_value,
+            description=description,
+        )
+
+        messages.success(
+            request,
+            "Product added successfully."
+        )
+
+        return redirect("product_list")
+
+    return render(
+        request,
+        "billing/product_add.html"
+    )
+
+@login_required
+def product_list(request):
+
+    query = request.GET.get("q", "").strip()
+
+    products = Product.objects.filter(
+        distributor=request.user
+    ).order_by("-created_at")
+
+    if query:
+        products = products.filter(
+            models.Q(name__icontains=query) |
+            models.Q(category__icontains=query)
+        )
+
+    paginator = Paginator(products, 10)
+
+    page_number = request.GET.get("page")
+
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        "billing/product_list.html",
+        {
+            "products": page_obj,
+            "page_obj": page_obj,
+            "query": query,
+        }
+    )
+
+@login_required
+def product_edit(request, pk):
+
+    # Security:
+    # Only the logged-in distributor can edit his own product
+    product = get_object_or_404(
+        Product,
+        pk=pk,
+        distributor=request.user
+    )
+
+    if request.method == "POST":
+
+        name = request.POST.get("name", "").strip()
+        category = request.POST.get("category", "").strip()
+        price = request.POST.get("price", "").strip()
+        stock = request.POST.get("stock", "").strip()
+        gst_rate = request.POST.get("gst_rate", "").strip()
+        description = request.POST.get("description", "").strip()
+
+        # -----------------------------
+        # Required validation
+        # -----------------------------
+
+        if not name or not category or not price or not stock or not gst_rate:
+            return render(
+                request,
+                "billing/product_edit.html",
+                {
+                    "product": product,
+                    "error": "Please fill in all required fields."
+                }
+            )
+
+        # -----------------------------
+        # Price validation
+        # -----------------------------
+
+        try:
+            price_value = Decimal(price)
+
+            if price_value <= 0:
+                raise ValueError
+
+        except (InvalidOperation, ValueError):
+            return render(
+                request,
+                "billing/product_edit.html",
+                {
+                    "product": product,
+                    "error": "Price must be greater than 0."
+                }
+            )
+
+        # -----------------------------
+        # Stock validation
+        # -----------------------------
+
+        try:
+            stock_value = int(stock)
+
+            if stock_value < 0:
+                raise ValueError
+
+        except ValueError:
+            return render(
+                request,
+                "billing/product_edit.html",
+                {
+                    "product": product,
+                    "error": "Stock cannot be negative."
+                }
+            )
+
+        # -----------------------------
+        # GST validation
+        # -----------------------------
+
+        try:
+            gst_value = Decimal(gst_rate)
+
+            if gst_value < 0 or gst_value > 100:
+                raise ValueError
+
+        except (InvalidOperation, ValueError):
+            return render(
+                request,
+                "billing/product_edit.html",
+                {
+                    "product": product,
+                    "error": "GST rate must be between 0 and 100."
+                }
+            )
+
+        # -----------------------------
+        # Update Product
+        # -----------------------------
+
+        product.name = name
+        product.category = category
+        product.price = price_value
+        product.stock = stock_value
+        product.gst_rate = gst_value
+        product.description = description
+
+        product.save()
+
+        messages.success(
+            request,
+            f"Product '{product.name}' updated successfully."
+        )
+
+        return redirect("product_list")
+
+    return render(
+        request,
+        "billing/product_edit.html",
+        {
+            "product": product
+        }
+    )
+
+@login_required
+def product_delete(request, pk):
+
+    # Security:
+    # Only the logged-in distributor can delete his own product
+    product = get_object_or_404(
+        Product,
+        pk=pk,
+        distributor=request.user
+    )
+
+    # Delete only through POST request
+    if request.method == "POST":
+
+        product_name = product.name
+
+        product.delete()
+
+        messages.success(
+            request,
+            f"Product '{product_name}' deleted successfully."
+        )
+
+        return redirect("product_list")
+
+    # If someone tries GET directly, don't delete anything
+    messages.error(
+        request,
+        "Invalid request for product deletion."
+    )
+
+    return redirect("product_list")

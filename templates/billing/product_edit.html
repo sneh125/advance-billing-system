@@ -1,0 +1,295 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Edit Product | Advance Billing System</title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/product_edit.css' %}"
+    >
+
+</head>
+
+<body>
+
+<div class="page">
+
+    <!-- HEADER -->
+
+    <header class="topbar">
+
+        <div class="brand">
+
+            <div class="brand-logo">
+                AB
+            </div>
+
+            <div>
+                <h1>Advance Billing</h1>
+                <span>Distributor Portal</span>
+            </div>
+
+        </div>
+
+        <a
+            href="{% url 'product_list' %}"
+            class="back-link"
+        >
+            ← Back to Products
+        </a>
+
+    </header>
+
+
+    <!-- MAIN -->
+
+    <main class="content">
+
+        <div class="heading">
+
+            <div>
+
+                <span class="eyebrow">
+                    PRODUCT MANAGEMENT
+                </span>
+
+                <h2>Edit Product</h2>
+
+                <p>
+                    Update your product information and save
+                    the latest details.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        {% if error %}
+
+        <div class="alert error">
+
+            <span>!</span>
+
+            <div>
+                {{ error }}
+            </div>
+
+        </div>
+
+        {% endif %}
+
+
+        <section class="form-card">
+
+            <div class="card-header">
+
+                <div>
+
+                    <h3>Product Information</h3>
+
+                    <p>
+                        Update the details of your product.
+                    </p>
+
+                </div>
+
+                <span class="edit-badge">
+                    EDIT MODE
+                </span>
+
+            </div>
+
+
+            <form
+                method="POST"
+                class="product-form"
+            >
+
+                {% csrf_token %}
+
+
+                <!-- PRODUCT NAME -->
+
+                <div class="field">
+
+                    <label for="name">
+                        Product Name
+                        <span>*</span>
+                    </label>
+
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value="{{ product.name }}"
+                        placeholder="Enter product name"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- CATEGORY -->
+
+                <div class="field">
+
+                    <label for="category">
+                        Category
+                        <span>*</span>
+                    </label>
+
+                    <input
+                        type="text"
+                        id="category"
+                        name="category"
+                        value="{{ product.category }}"
+                        placeholder="e.g. Electronics"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- PRICE -->
+
+                <div class="field">
+
+                    <label for="price">
+                        Price
+                        <span>*</span>
+                    </label>
+
+                    <div class="input-prefix">
+
+                        <span>₹</span>
+
+                        <input
+                            type="number"
+                            id="price"
+                            name="price"
+                            value="{{ product.price }}"
+                            min="0.01"
+                            step="0.01"
+                            placeholder="0.00"
+                            required
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <!-- STOCK -->
+
+                <div class="field">
+
+                    <label for="stock">
+                        Stock Quantity
+                        <span>*</span>
+                    </label>
+
+                    <input
+                        type="number"
+                        id="stock"
+                        name="stock"
+                        value="{{ product.stock }}"
+                        min="0"
+                        step="1"
+                        placeholder="0"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- GST -->
+
+                <div class="field">
+
+                    <label for="gst_rate">
+                        GST Rate
+                        <span>*</span>
+                    </label>
+
+                    <div class="input-suffix">
+
+                        <input
+                            type="number"
+                            id="gst_rate"
+                            name="gst_rate"
+                            value="{{ product.gst_rate }}"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            placeholder="18"
+                            required
+                        >
+
+                        <span>%</span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- DESCRIPTION -->
+
+                <div class="field full">
+
+                    <label for="description">
+                        Description
+                    </label>
+
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="5"
+                        placeholder="Enter product description..."
+                    >{{ product.description }}</textarea>
+
+                </div>
+
+
+                <!-- BUTTONS -->
+
+                <div class="form-actions">
+
+                    <a
+                        href="{% url 'product_list' %}"
+                        class="cancel-btn"
+                    >
+                        Cancel
+                    </a>
+
+                    <button
+                        type="submit"
+                        class="save-btn"
+                    >
+                        <span>✓</span>
+                        Update Product
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+    </main>
+
+</div>
+
+</body>
+</html>

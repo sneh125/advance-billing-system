@@ -1,0 +1,551 @@
+/* =========================================================
+   ADVANCE BILLING SYSTEM
+   PRODUCT LIST PAGE
+   ========================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --text: #172033;
+    --muted: #667085;
+    --border: #e4e7ec;
+    --background: #f5f7fb;
+    --white: #ffffff;
+    --success: #15803d;
+    --warning: #b45309;
+    --danger: #dc2626;
+}
+
+body {
+    font-family: Inter, Arial, sans-serif;
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+.products-page {
+    min-height: 100vh;
+    padding: 42px 24px;
+}
+
+.products-container {
+    width: 100%;
+    max-width: 1250px;
+    margin: auto;
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 25px;
+    margin-bottom: 28px;
+}
+
+.eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: var(--primary);
+    background: #eff6ff;
+    padding: 7px 12px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+}
+
+.page-header h1 {
+    font-size: 34px;
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    margin-bottom: 7px;
+}
+
+.page-header p {
+    color: var(--muted);
+    font-size: 15px;
+}
+
+/* =========================================================
+   ADD BUTTON
+   ========================================================= */
+
+.add-product-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    padding: 0 21px;
+    background: var(--primary);
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 11px;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.22);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.add-product-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 9px 20px rgba(37, 99, 235, 0.28);
+}
+
+/* =========================================================
+   ALERT
+   ========================================================= */
+
+.alert {
+    padding: 13px 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.alert.success {
+    background: #ecfdf3;
+    color: var(--success);
+    border: 1px solid #abefc6;
+}
+
+/* =========================================================
+   SEARCH CARD
+   ========================================================= */
+
+.search-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 17px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 25px rgba(16, 24, 40, 0.05);
+}
+
+.search-card form {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+}
+
+.search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 15px;
+    pointer-events: none;
+}
+
+.search-box input {
+    width: 100%;
+    height: 48px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 0 15px 0 44px;
+    outline: none;
+    background: #fcfcfd;
+    color: var(--text);
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.search-box input::placeholder {
+    color: #98a2b3;
+}
+
+.search-box input:focus {
+    background: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10);
+}
+
+.search-btn,
+.clear-btn {
+    height: 48px;
+    padding: 0 20px;
+    border-radius: 11px;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.search-btn {
+    border: none;
+    background: var(--primary);
+    color: #ffffff;
+}
+
+.search-btn:hover {
+    background: var(--primary-dark);
+}
+
+.clear-btn {
+    color: #475467;
+    border: 1px solid #d0d5dd;
+    background: #ffffff;
+}
+
+.clear-btn:hover {
+    background: #f9fafb;
+}
+
+/* =========================================================
+   TABLE CARD
+   ========================================================= */
+
+.table-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+}
+
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 850px;
+}
+
+thead {
+    background: #f8fafc;
+}
+
+th {
+    padding: 16px 20px;
+    text-align: left;
+    color: #667085;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+td {
+    padding: 17px 20px;
+    border-bottom: 1px solid #f0f2f5;
+    color: #475467;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+tbody tr {
+    transition: background 0.18s ease;
+}
+
+tbody tr:hover {
+    background: #f8fbff;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* =========================================================
+   PRODUCT
+   ========================================================= */
+
+.product-name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 220px;
+}
+
+.product-avatar {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    background: #eff6ff;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+}
+
+.product-name strong {
+    display: block;
+    color: #172033;
+    font-size: 14px;
+    margin-bottom: 3px;
+}
+
+.product-name small {
+    display: block;
+    max-width: 190px;
+    color: #98a2b3;
+    font-size: 11px;
+}
+
+/* =========================================================
+   STOCK
+   ========================================================= */
+
+.stock {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.stock.available {
+    background: #ecfdf3;
+    color: var(--success);
+}
+
+.stock.low {
+    background: #fffaeb;
+    color: var(--warning);
+}
+
+.stock.out {
+    background: #fef2f2;
+    color: var(--danger);
+}
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 20px;
+    border-top: 1px solid #eef0f3;
+    color: #667085;
+    font-size: 13px;
+}
+
+.pagination a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid #d0d5dd;
+    border-radius: 9px;
+    color: #344054;
+    background: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.pagination a:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: #eff6ff;
+}
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.empty-state {
+    text-align: center;
+    padding: 80px 25px;
+}
+
+.empty-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 20px;
+    border-radius: 20px;
+    background: #eff6ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 29px;
+}
+
+.empty-state h2 {
+    font-size: 21px;
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 450px;
+    margin: 0 auto 22px;
+    line-height: 1.6;
+}
+
+.empty-state a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    padding: 0 18px;
+    background: var(--primary);
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.empty-state a:hover {
+    background: var(--primary-dark);
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 750px) {
+
+    .products-page {
+        padding: 25px 14px;
+    }
+
+    .page-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .page-header h1 {
+        font-size: 28px;
+    }
+
+    .add-product-btn {
+        width: 100%;
+    }
+
+    .search-card {
+        padding: 13px;
+    }
+
+    .search-card form {
+        flex-wrap: wrap;
+    }
+
+    .search-box {
+        flex: 1 1 100%;
+    }
+
+    .search-btn,
+    .clear-btn {
+        flex: 1;
+    }
+
+    .table-card {
+        border-radius: 16px;
+    }
+
+    .pagination {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 430px) {
+
+    .products-page {
+        padding: 18px 10px;
+    }
+
+    .search-btn,
+    .clear-btn {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .empty-state {
+        padding: 60px 18px;
+    }
+}
+/* =========================================================
+   PRODUCT ACTIONS
+   ========================================================= */
+
+.product-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.edit-btn,
+.delete-btn {
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.edit-btn {
+    color: var(--primary);
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+}
+
+.edit-btn:hover {
+    background: #dbeafe;
+    border-color: #bfdbfe;
+}
+
+.delete-form {
+    margin: 0;
+}
+
+.delete-btn {
+    color: var(--danger);
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    cursor: pointer;
+}
+
+.delete-btn:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    transform: translateY(-1px);
+}

@@ -11,9 +11,9 @@
 
 <div class="dashboard-container">
 
-    <!-- ==========================================
+    <!-- 
          TOP BRAND HEADER
-         ========================================== -->
+          -->
     <header class="dashboard-header">
         <div class="header-left">
             <a href="{% url 'distributor_dashboard' %}" class="header-logo">AB</a>
@@ -35,9 +35,9 @@
         </div>
     </header>
 
-    <!-- ==========================================
+    <!-- 
          MAIN CONTENT
-         ========================================== -->
+          -->
     <main class="dashboard-content">
 
         <!-- DJANGO MESSAGES / ALERTS -->
@@ -219,9 +219,9 @@
     </main>
 </div>
 
-<!-- ==========================================
+<!-- 
      DELETE CONFIRMATION MODAL
-     ========================================== -->
+      -->
 <div class="modal-backdrop" id="deleteModal" onclick="handleBackdropClick(event)">
     <div class="modal-card">
         <div class="modal-danger-icon">⚠️</div>
@@ -240,9 +240,9 @@
     </div>
 </div>
 
-<!-- ==========================================
+<!-- 
      VANILLA JAVASCRIPT INTERACTIONS
-     ========================================== -->
+      -->
 <script>
     function openDeleteModal(customerId, customerName) {
         const modal = document.getElementById('deleteModal');

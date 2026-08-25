@@ -1,8 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* ==========================================================================
-   RESET & BASE STYLES
-   ========================================================================== */
+/*   RESET & BASE STYLES */
 
 *, *::before, *::after {
     margin: 0;
@@ -24,9 +22,7 @@ body {
     flex-direction: column;
 }
 
-/* ==========================================================================
-   TOP HEADER (SHARED BRAND BAR)
-   ========================================================================== */
+/*   TOP HEADER (SHARED BRAND BAR) */
 
 .dashboard-header {
     min-height: 72px;
@@ -146,9 +142,7 @@ body {
     transform: translateY(-1px);
 }
 
-/* ==========================================================================
-   MAIN CONTENT AREA
-   ========================================================================== */
+/*   MAIN CONTENT AREA */
 
 .dashboard-content {
     max-width: 1240px;
@@ -158,9 +152,7 @@ body {
     width: 100%;
 }
 
-/* ==========================================================================
-   PAGE HEADER & CTA
-   ========================================================================== */
+/*   PAGE HEADER & CTA */
 
 .page-header-row {
     display: flex;
@@ -212,9 +204,7 @@ body {
     height: 18px;
 }
 
-/* ==========================================================================
-   STATISTICS CARDS ROW
-   ========================================================================== */
+/*   STATISTICS CARDS ROW */
 
 .stats-grid {
     display: grid;
@@ -278,9 +268,7 @@ body {
     letter-spacing: -0.5px;
 }
 
-/* ==========================================================================
-   SEARCH BAR SECTION
-   ========================================================================== */
+/*   SEARCH BAR SECTION */
 
 .search-section {
     background: white;
@@ -382,9 +370,7 @@ body {
     color: #1e293b;
 }
 
-/* ==========================================================================
-   DJANGO MESSAGES / ALERTS
-   ========================================================================== */
+/*   DJANGO MESSAGES / ALERTS */
 
 .messages-container {
     margin-bottom: 24px;
@@ -446,9 +432,7 @@ body {
     opacity: 1;
 }
 
-/* ==========================================================================
-   CUSTOMER TABLE CONTAINER
-   ========================================================================== */
+/*   CUSTOMER TABLE CONTAINER */
 
 .table-card {
     background: white;
@@ -501,7 +485,7 @@ body {
     border-bottom: none;
 }
 
-/* CUSTOMER COLUMN AVATAR & NAME */
+/*USTOMER COLUMN AVATAR & NAM */
 
 .customer-cell {
     display: flex;
@@ -541,7 +525,7 @@ body {
     margin-top: 1px;
 }
 
-/* BADGES & CHIPS */
+/*ADGES & CHIP */
 
 .location-badge {
     display: inline-flex;
@@ -577,7 +561,7 @@ body {
     white-space: nowrap;
 }
 
-/* ACTION BUTTONS */
+/*CTION BUTTON */
 
 .actions-cell {
     display: flex;
@@ -633,9 +617,7 @@ body {
     box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
 }
 
-/* ==========================================================================
-   EMPTY STATE CARD
-   ========================================================================== */
+/*   EMPTY STATE CARD */
 
 .empty-state-card {
     padding: 64px 24px;
@@ -675,9 +657,7 @@ body {
     margin-bottom: 24px;
 }
 
-/* ==========================================================================
-   DELETE CONFIRMATION MODAL
-   ========================================================================== */
+/*   DELETE CONFIRMATION MODAL */
 
 .modal-backdrop {
     position: fixed;
@@ -799,9 +779,7 @@ body {
     background: linear-gradient(135deg, #b91c1c, #991b1b);
 }
 
-/* ==========================================================================
-   RESPONSIVE DESIGN
-   ========================================================================== */
+/*   RESPONSIVE DESIGN */
 
 @media (max-width: 1024px) {
     .stats-grid {
