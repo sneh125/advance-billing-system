@@ -469,6 +469,42 @@ class InvoiceSystemTests(TestCase):
         self.assertEqual(pdf_response['Content-Type'], 'application/pdf')
         self.assertTrue(pdf_response.content.startswith(b'%PDF'))
 
+    def test_invoice_pdf_download_view_and_isolation(self):
+        """Task 27: Test invoice_pdf download endpoint and multi-tenant security isolation"""
+        invoice = Invoice.objects.create(
+            invoice_number="INV-20260826-PDFVIEW",
+            customer=self.customer1,
+            distributor=self.distributor1,
+            subtotal=Decimal("500.00"),
+            gst_amount=Decimal("90.00"),
+            total_amount=Decimal("590.00"),
+            status="Pending"
+        )
+        InvoiceItem.objects.create(
+            invoice=invoice,
+            product=self.product1,
+            quantity=1,
+            unit_price=Decimal("500.00"),
+            gst_rate=Decimal("18.00"),
+            subtotal=Decimal("500.00"),
+            total=Decimal("590.00")
+        )
+
+        # 1. Distributor 1 downloads their own PDF -> HTTP 200 attachment
+        self.client.login(username="distributor1", password="Password@123")
+        response = self.client.get(reverse('invoice_pdf', kwargs={'pk': invoice.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn('attachment;', response['Content-Disposition'])
+        self.assertIn('INV-20260826-PDFVIEW.pdf', response['Content-Disposition'])
+        self.assertTrue(response.content.startswith(b'%PDF'))
+
+        # 2. Distributor 2 tries to download Distributor 1's PDF -> HTTP 404 (Security check)
+        self.client.login(username="distributor2", password="Password@123")
+        response2 = self.client.get(reverse('invoice_pdf', kwargs={'pk': invoice.pk}))
+        self.assertEqual(response2.status_code, 404)
+
+
 
 
 

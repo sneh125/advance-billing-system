@@ -1,3 +1,4 @@
+from .utils import render_to_pdf
 from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -716,3 +717,44 @@ def invoice_detail(request, pk):
         "invoice": invoice,
         "items": items,
     })
+
+@login_required
+def invoice_pdf(request, pk):
+    """
+    Generate and download invoice as PDF.
+    Only the logged-in distributor can access his own invoice.
+    """
+    invoice = get_object_or_404(
+        Invoice.objects.select_related(
+            "customer",
+            "distributor",
+            "distributor__distributor_profile"
+        ),
+        pk=pk,
+        distributor=request.user
+    )
+
+    items = invoice.items.select_related("product").all()
+
+    context = {
+        "invoice": invoice,
+        "items": items,
+    }
+
+    pdf = render_to_pdf(
+        "billing/invoice_pdf.html",
+        context
+    )
+
+    if pdf is None:
+        messages.error(
+            request,
+            "PDF generation failed. Please try again."
+        )
+        return redirect("invoice_detail", pk=invoice.pk)
+
+    pdf["Content-Disposition"] = (
+        f'attachment; filename="{invoice.invoice_number}.pdf"'
+    )
+
+    return pdf

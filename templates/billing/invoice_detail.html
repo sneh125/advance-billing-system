@@ -53,9 +53,13 @@
                 <span class="current">{{ invoice.invoice_number }}</span>
             </nav>
             <div class="action-buttons-group">
+                <a href="{% url 'invoice_pdf' invoice.pk %}" class="btn-print-invoice">
+                    📄 Download PDF
+                </a>
                 <button type="button" class="btn-print-invoice" onclick="window.print()">
-                    🖨️ Print / Save PDF
+                    🖨️ Print
                 </button>
+                
                 <a href="{% url 'invoice_create' %}" class="btn-new-inv">
                     + Create Another
                 </a>
