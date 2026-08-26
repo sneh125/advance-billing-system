@@ -437,5 +437,38 @@ class InvoiceSystemTests(TestCase):
         self.assertContains(response, "Wireless Mouse")
         self.assertContains(response, "1062.00")
 
+    def test_pdf_generation_library_configured(self):
+        """Task 26: Test xhtml2pdf library is configured and produces valid PDF binary stream"""
+        from billing.utils import render_to_pdf
+        invoice = Invoice.objects.create(
+            invoice_number="INV-20260826-PDF1",
+            customer=self.customer1,
+            distributor=self.distributor1,
+            subtotal=Decimal("500.00"),
+            gst_amount=Decimal("90.00"),
+            total_amount=Decimal("590.00"),
+            status="Pending"
+        )
+        items = [
+            InvoiceItem.objects.create(
+                invoice=invoice,
+                product=self.product1,
+                quantity=1,
+                unit_price=Decimal("500.00"),
+                gst_rate=Decimal("18.00"),
+                subtotal=Decimal("500.00"),
+                total=Decimal("590.00")
+            )
+        ]
+
+        pdf_response = render_to_pdf('billing/invoice_pdf.html', {
+            'invoice': invoice,
+            'items': items,
+        })
+        self.assertIsNotNone(pdf_response)
+        self.assertEqual(pdf_response['Content-Type'], 'application/pdf')
+        self.assertTrue(pdf_response.content.startswith(b'%PDF'))
+
+
 
 
