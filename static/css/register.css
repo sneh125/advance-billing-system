@@ -1,24 +1,5 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-:root {
-    --ink: #10233f;
-    --muted: #718096;
-    --line: #dce4ee;
-    --paper: #ffffff;
-    --soft: #f6f9fc;
-    --accent: #167d75;
-    --accent-dark: #0d625c;
-    --danger: #c83d4d;
-}
-body {
-    min-height: 100vh;
-    font-family: "Segoe UI", Arial, sans-serif;
-    background: #eef3f7;
-    color: var(--ink);
-}
+@import url('base_design_tokens.css');
+
 .register-shell {
     min-height: 100vh;
     display: grid;

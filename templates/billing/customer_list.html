@@ -4,184 +4,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customers | Advance Billing System</title>
+    <title>Customer Directory | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/customers.css' %}">
 </head>
 <body>
 
 <div class="dashboard-container">
 
-    <!-- TOP HEADER -->
-    <header class="dashboard-header">
-        <div class="header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="header-logo">AB</a>
-            <div class="header-title-group">
-                <h1>Customer Management</h1>
-                <p class="subtitle">Advance Billing System</p>
-            </div>
-        </div>
-        <div class="header-right">
-            <div class="user-badge">
-                <div class="user-avatar">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+    <!-- UNIFIED APP HEADER -->
+    <header class="app-shell-header">
+        <div class="app-header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
+                <div class="brand-badge-icon">AB</div>
+                <div class="brand-text-group">
+                    <h1>Advance Billing System</h1>
+                    <span class="brand-tagline">Distributor Cloud Workspace</span>
                 </div>
-                <span>{{ request.user.first_name|default:request.user.username }}</span>
-            </div>
-            <a href="{% url 'distributor_dashboard' %}" class="nav-link-btn">Dashboard</a>
-            <a href="{% url 'product_list' %}" class="nav-link-btn">Products</a>
-            <a href="{% url 'distributor_profile' %}" class="nav-link-btn">My Profile</a>
-            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            </a>
+
+            <!-- NAVIGATION PILL TABS -->
+            <nav class="app-nav-pills" aria-label="Main Navigation">
+                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
+                    📊 Dashboard
+                </a>
+                <a href="{% url 'customer_list' %}" class="app-nav-link active">
+                    👥 Customers
+                </a>
+                <a href="{% url 'product_list' %}" class="app-nav-link">
+                    📦 Products
+                </a>
+                <a href="{% url 'invoice_list' %}" class="app-nav-link">
+                    🧾 Invoices
+                </a>
+                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
+                    👤 My Profile
+                </a>
+            </nav>
+        </div>
+
+        <div class="app-header-right">
+            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
+                ⚡ + Quick Bill
+            </a>
+            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
+                <div class="user-avatar-circle">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                    <span class="avatar-online-dot"></span>
+                </div>
+                <div class="user-info-text-col">
+                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
+                    <span class="user-role-subtag">Distributor</span>
+                </div>
+            </a>
+            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+                Logout
+            </a>
+            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
+                ☰
+            </button>
         </div>
     </header>
 
-    <!-- MAIN CONTENT -->
-    <main class="dashboard-content">
+    <!-- MOBILE NAV DRAWER -->
+    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
+        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
+        <a href="{% url 'customer_list' %}" class="app-nav-link active">👥 Customers</a>
+        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
+        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
+        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
+        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
+    </nav>
 
-        <!-- MESSAGES -->
+    <!-- FLASH TOAST MESSAGES -->
+    <div class="toast-container" id="toastContainer">
         {% if messages %}
-        <div class="messages-container">
             {% for message in messages %}
-            <div class="alert-message {{ message.tags }}">
-                <span>
-                    {% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}⚠️{% else %}ℹ{% endif %}
-                    {{ message }}
-                </span>
-                <button type="button" class="alert-close" onclick="this.parentElement.remove()">×</button>
+            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
+                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
             </div>
             {% endfor %}
-        </div>
         {% endif %}
+    </div>
 
-        <!-- PAGE HEADER -->
+    <!-- MAIN CUSTOMER DIRECTORY -->
+    <main class="customers-page-wrapper">
+
+        <!-- HEADER ROW -->
         <div class="page-header-row">
             <div class="page-title-wrap">
                 <h2>Customer Directory</h2>
-                <p>Manage your registered customer profiles, phone numbers, and addresses.</p>
+                <p>Manage and search registered customer profiles, contact numbers, and billing addresses.</p>
             </div>
-            <a href="{% url 'customer_add' %}" class="btn-primary-cta">
-                <span>+</span> Add Customer
-            </a>
-        </div>
-
-        <!-- STATS GRID -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon-wrap teal">👥</div>
-                <div class="stat-info">
-                    <span class="stat-label">Total Customers</span>
-                    <strong class="stat-value">{{ total_customers|default:"0" }}</strong>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon-wrap blue">✅</div>
-                <div class="stat-info">
-                    <span class="stat-label">Active Customers</span>
-                    <strong class="stat-value">{{ active_customers|default:"0" }}</strong>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon-wrap purple">⚡</div>
-                <div class="stat-info">
-                    <span class="stat-label">Recently Added</span>
-                    <strong class="stat-value">{{ recently_added|default:"0" }}</strong>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon-wrap orange">📅</div>
-                <div class="stat-info">
-                    <span class="stat-label">This Month</span>
-                    <strong class="stat-value">{{ this_month|default:"0" }}</strong>
-                </div>
+            <div class="page-actions-group">
+                <a href="{% url 'customer_add' %}" class="btn-primary-add">
+                    + Add New Customer
+                </a>
             </div>
         </div>
 
-        <!-- SEARCH BAR -->
-        <div class="search-section">
-            <form method="GET" action="{% url 'customer_list' %}" class="search-form">
-                <div class="search-input-wrapper">
-                    <span class="search-icon">🔍</span>
-                    <input
-                        type="text"
-                        name="q"
-                        class="search-input"
-                        value="{{ search_query }}"
-                        placeholder="Search customers by name, email, phone or city..."
-                    >
-                </div>
-                <button type="submit" class="btn-search">Search</button>
+        <!-- SEARCH & STATS BAR -->
+        <div class="search-filter-card">
+            <form method="GET" action="{% url 'customer_list' %}" class="search-form-wrap">
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Search by customer name, phone, or email..." class="search-input-box">
+                <button type="submit" class="btn-search-submit">Search</button>
                 {% if search_query %}
-                <a href="{% url 'customer_list' %}" class="btn-clear-search">Clear</a>
+                <a href="{% url 'customer_list' %}" class="btn-clear-filter">Clear</a>
                 {% endif %}
             </form>
+
+            <span class="search-stats-badge">
+                Showing {{ total_customers }} Customer{{ total_customers|pluralize }}
+            </span>
         </div>
 
-        <!-- CUSTOMER TABLE -->
-        <div class="table-card">
+        <!-- TABLE CARD -->
+        <div class="table-card-container">
             {% if customers %}
             <div class="table-responsive">
-                <table class="customer-table">
+                <table class="saas-data-table" aria-label="Customers Table">
                     <thead>
                         <tr>
-                            <th>Customer Name</th>
-                            <th>Contact Info</th>
-                            <th>Location</th>
-                            <th>Status</th>
-                            <th>Registered</th>
-                            <th style="text-align: right;">Actions</th>
+                            <th style="width: 28%;">Customer Name</th>
+                            <th style="width: 25%;">Contact Info</th>
+                            <th style="width: 25%;">Location / Address</th>
+                            <th style="width: 10%;">Status</th>
+                            <th style="width: 12%; text-align: right;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for customer in customers %}
                         <tr>
                             <td>
-                                <div class="customer-cell">
-                                    <div class="customer-avatar">
+                                <div class="customer-identity-cell">
+                                    <div class="customer-avatar-badge">
                                         {{ customer.name|first|upper }}
                                     </div>
-                                    <div class="customer-name-group">
-                                        <strong>{{ customer.name }}</strong>
-                                        <small>ID #{{ customer.id }}</small>
+                                    <div>
+                                        <div class="customer-name-text">{{ customer.name }}</div>
+                                        <div class="customer-id-text">CUST-{{ customer.id|stringformat:"04d" }}</div>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <div>
-                                    <strong style="color: var(--text-main); font-size: 13.5px;">{{ customer.phone }}</strong>
-                                    {% if customer.email %}
-                                    <div style="font-size: 12px; color: var(--text-muted);">{{ customer.email }}</div>
-                                    {% endif %}
+                                <div class="contact-meta-row">
+                                    <span class="contact-meta-phone">📞 {{ customer.phone }}</span>
+                                    <span class="contact-meta-email">{% if customer.email %}✉️ {{ customer.email }}{% else %}<span style="color: var(--slate-400);">No email</span>{% endif %}</span>
                                 </div>
                             </td>
                             <td>
-                                <span class="location-badge">
-                                    📍 {{ customer.city }}, {{ customer.state }}
-                                    {% if customer.pincode %}<small style="color: var(--text-subtle);">({{ customer.pincode }})</small>{% endif %}
+                                <span class="address-chip">
+                                    {{ customer.city|default:"N/A" }}{% if customer.state %}, {{ customer.state }}{% endif %}
+                                    {% if customer.pincode %}<br><small style="color: var(--text-muted);">PIN: {{ customer.pincode }}</small>{% endif %}
                                 </span>
                             </td>
                             <td>
-                                {% if customer.is_active %}
-                                <span class="status-badge active">● Active</span>
-                                {% else %}
-                                <span class="status-badge inactive">○ Inactive</span>
-                                {% endif %}
+                                <span class="status-badge-active">● Active</span>
                             </td>
-                            <td>
-                                <span class="date-text">{{ customer.created_at|date:"d M Y" }}</span>
-                            </td>
-                            <td>
-                                <div class="actions-cell" style="justify-content: flex-end;">
-                                    <a href="{% url 'customer_edit' customer.pk %}" class="btn-action-edit">
+                            <td style="text-align: right;">
+                                <div class="action-buttons-wrap">
+                                    <a href="{% url 'customer_edit' customer.pk %}" class="btn-table-edit" title="Edit Customer">
                                         ✏️ Edit
                                     </a>
-                                    <button
-                                        type="button"
-                                        class="btn-action-delete"
-                                        onclick="openDeleteModal('{{ customer.pk }}', '{{ customer.name|escapejs }}')"
-                                    >
-                                        🗑️ Delete
+                                    <button type="button" class="btn-table-delete" onclick="openDeleteModal('{{ customer.pk }}', '{{ customer.name|escapejs }}')" title="Delete Customer">
+                                        🗑️
                                     </button>
                                 </div>
                             </td>
@@ -192,63 +179,65 @@
             </div>
             {% else %}
             <!-- EMPTY STATE -->
-            <div class="empty-state-card">
+            <div class="empty-state-wrap">
                 <div class="empty-icon-circle">👥</div>
-                {% if search_query %}
-                <h3>No Matching Customers Found</h3>
-                <p>No customer records match your query "<strong>{{ search_query }}</strong>".</p>
-                <a href="{% url 'customer_list' %}" class="btn-clear-search">Clear Search Filter</a>
-                {% else %}
-                <h3>No Customers Yet</h3>
-                <p>Start building your customer directory by registering your first customer profile.</p>
-                <a href="{% url 'customer_add' %}" class="btn-primary-cta" style="margin-top: 10px;">+ Add Customer</a>
-                {% endif %}
+                <h3>{% if search_query %}No Matching Customers Found{% else %}No Customers Found{% endif %}</h3>
+                <p>{% if search_query %}No customer profiles match your search "<strong>{{ search_query }}</strong>".{% else %}You haven't registered any customers yet. Add your first customer to start billing.{% endif %}</p>
+                <a href="{% if search_query %}{% url 'customer_list' %}{% else %}{% url 'customer_add' %}{% endif %}" class="btn-primary-add" style="margin-top: 8px;">
+                    {% if search_query %}Clear Search{% else %}+ Add New Customer{% endif %}
+                </a>
             </div>
             {% endif %}
         </div>
 
     </main>
+
 </div>
 
 <!-- DELETE CONFIRMATION MODAL -->
 <div class="modal-backdrop" id="deleteModal">
     <div class="modal-card">
-        <div class="modal-danger-icon">⚠️</div>
-        <h3>Delete Customer?</h3>
-        <p>
-            Are you sure you want to permanently delete <strong id="modalCustomerName" style="color: var(--text-main);"></strong>?<br>
-            This action cannot be undone.
-        </p>
-        <form id="deleteForm" method="POST">
+        <div class="modal-icon-circle">🗑️</div>
+        <h3>Delete Customer Profile?</h3>
+        <p id="deleteModalMessage">Are you sure you want to delete this customer? This action cannot be undone.</p>
+        
+        <form method="POST" id="deleteForm" action="">
             {% csrf_token %}
-            <div class="modal-actions">
+            <div class="modal-actions-row">
                 <button type="button" class="btn-modal-cancel" onclick="closeDeleteModal()">Cancel</button>
-                <button type="submit" class="btn-modal-delete">Yes, Delete</button>
+                <button type="submit" class="btn-modal-delete-confirm">Yes, Delete Customer</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-function openDeleteModal(customerId, customerName) {
-    const modal = document.getElementById("deleteModal");
-    const name = document.getElementById("modalCustomerName");
-    const form = document.getElementById("deleteForm");
+    function openDeleteModal(customerId, customerName) {
+        const modal = document.getElementById('deleteModal');
+        const form = document.getElementById('deleteForm');
+        const msg = document.getElementById('deleteModalMessage');
 
-    name.textContent = customerName;
-    form.action = "/customers/" + customerId + "/delete/";
-    modal.classList.add("open");
-}
-
-function closeDeleteModal() {
-    document.getElementById("deleteModal").classList.remove("open");
-}
-
-document.getElementById("deleteModal").addEventListener("click", function(event) {
-    if (event.target === this) {
-        closeDeleteModal();
+        form.action = `/billing/customers/${customerId}/delete/`;
+        msg.innerHTML = `Are you sure you want to delete <strong>${customerName}</strong>? All association data will be removed.`;
+        modal.classList.add('active');
     }
-});
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('active');
+    }
+
+    function toggleMobileNav() {
+        const drawer = document.getElementById('mobileNavDrawer');
+        if (drawer) {
+            drawer.classList.toggle('active');
+        }
+    }
+
+    // Auto dismiss toasts
+    setTimeout(() => {
+        const toasts = document.querySelectorAll('.toast-card');
+        toasts.forEach(t => t.remove());
+    }, 4000);
 </script>
 
 </body>

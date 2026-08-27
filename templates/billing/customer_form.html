@@ -4,274 +4,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_edit %}Edit Customer | {{ customer.name }}{% else %}Add New Customer{% endif %} | Advance Billing System</title>
+    <title>{% if is_edit and customer %}Edit Customer | {{ customer.name }}{% else %}Add New Customer{% endif %} | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/customer_form.css' %}">
 </head>
 <body>
 
 <div class="dashboard-container">
 
-    <!--
-         TOP BRAND HEADER
-         -->
-    <header class="dashboard-header">
-        <div class="header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="header-logo">AB</a>
-            <div class="header-title-group">
-                <h1>Customer Management</h1>
-                <p class="subtitle">Advance Billing System</p>
-            </div>
-        </div>
-        <div class="header-right">
-            <div class="user-badge">
-                <div class="user-avatar">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+    <!-- UNIFIED APP HEADER -->
+    <header class="app-shell-header">
+        <div class="app-header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
+                <div class="brand-badge-icon">AB</div>
+                <div class="brand-text-group">
+                    <h1>Advance Billing System</h1>
+                    <span class="brand-tagline">Distributor Cloud Workspace</span>
                 </div>
-                <span>{{ request.user.first_name|default:request.user.username }}</span>
-            </div>
-            <a href="{% url 'distributor_dashboard' %}" class="nav-link-btn">Dashboard</a>
-            <a href="{% url 'customer_list' %}" class="nav-link-btn">Customers</a>
-            <a href="{% url 'distributor_profile' %}" class="nav-link-btn">My Profile</a>
-            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            </a>
+
+            <!-- NAVIGATION PILL TABS -->
+            <nav class="app-nav-pills" aria-label="Main Navigation">
+                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
+                    📊 Dashboard
+                </a>
+                <a href="{% url 'customer_list' %}" class="app-nav-link active">
+                    👥 Customers
+                </a>
+                <a href="{% url 'product_list' %}" class="app-nav-link">
+                    📦 Products
+                </a>
+                <a href="{% url 'invoice_list' %}" class="app-nav-link">
+                    🧾 Invoices
+                </a>
+                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
+                    👤 My Profile
+                </a>
+            </nav>
+        </div>
+
+        <div class="app-header-right">
+            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
+                ⚡ + Quick Bill
+            </a>
+            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
+                <div class="user-avatar-circle">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                    <span class="avatar-online-dot"></span>
+                </div>
+                <div class="user-info-text-col">
+                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
+                    <span class="user-role-subtag">Distributor</span>
+                </div>
+            </a>
+            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+                Logout
+            </a>
+            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
+                ☰
+            </button>
         </div>
     </header>
 
-    <!--
-         MAIN FORM PAGE
-         -->
+    <!-- MOBILE NAV DRAWER -->
+    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
+        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
+        <a href="{% url 'customer_list' %}" class="app-nav-link active">👥 Customers</a>
+        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
+        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
+        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
+        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
+    </nav>
+
+    <!-- FORM PAGE WRAPPER -->
     <main class="form-page-container">
 
         <!-- BREADCRUMBS -->
-        <nav class="breadcrumbs" aria-label="breadcrumb">
+        <nav class="breadcrumbs-nav" aria-label="Breadcrumb">
             <a href="{% url 'distributor_dashboard' %}">Dashboard</a>
-            <span class="separator">/</span>
+            <span>/</span>
             <a href="{% url 'customer_list' %}">Customers</a>
-            <span class="separator">/</span>
-            <span class="current">{% if is_edit %}Edit Customer{% else %}Add Customer{% endif %}</span>
+            <span>/</span>
+            <span class="current-crumb">{% if is_edit %}Edit Customer{% else %}Add New Customer{% endif %}</span>
         </nav>
 
-        <!-- CUSTOMER FORM CARD -->
+        <!-- FORM CARD -->
         <div class="customer-form-card">
-
+            
             <div class="form-card-header">
-                <h2>{% if is_edit %}Edit Customer: {{ customer.name }}{% else %}Add New Customer{% endif %}</h2>
-                <p>{% if is_edit %}Update customer contact and billing information below.{% else %}Enter customer details to register a new billing profile in your database.{% endif %}</p>
+                <h2>{% if is_edit and customer %}Edit Customer: {{ customer.name }}{% else %}Register New Customer{% endif %}</h2>
+                <p>{% if is_edit %}Update customer contact numbers and billing location details.{% else %}Fill in the details below to add a new customer profile into your distributor database.{% endif %}</p>
             </div>
 
             <div class="form-card-body">
-                <form method="POST" novalidate>
+                <form method="POST" id="customerForm" novalidate>
                     {% csrf_token %}
 
-                    <div class="form-grid">
-
-                        <!-- FULL NAME -->
-                        <div class="form-group">
-                            <label for="name">
-                                Full Name <span class="required-star">*</span>
-                            </label>
-                            <div class="input-with-icon">
-                                <span class="input-icon">👤</span>
-                                <input
-                                    type="text"
-                                    id="name"
-                                    name="name"
-                                    class="form-control {% if errors.name %}has-error{% endif %}"
-                                    placeholder="e.g. Ramesh Patel"
-                                    value="{{ form_data.name|default:'' }}"
-                                    required
-                                >
-                            </div>
-                            {% if errors.name %}
-                            <div class="field-error-text">⚠️ {{ errors.name }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- PHONE NUMBER -->
-                        <div class="form-group">
-                            <label for="phone">
-                                Phone Number <span class="required-star">*</span>
-                            </label>
-                            <div class="input-with-icon">
-                                <span class="input-icon">☎</span>
-                                <input
-                                    type="tel"
-                                    id="phone"
-                                    name="phone"
-                                    class="form-control {% if errors.phone %}has-error{% endif %}"
-                                    placeholder="10-digit mobile number"
-                                    value="{{ form_data.phone|default:'' }}"
-                                    maxlength="10"
-                                    inputmode="numeric"
-                                    required
-                                >
-                            </div>
-                            {% if errors.phone %}
-                            <div class="field-error-text">⚠️ {{ errors.phone }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- EMAIL ADDRESS -->
-                        <div class="form-group full-width">
-                            <label for="email">
-                                Email Address (Optional)
-                            </label>
-                            <div class="input-with-icon">
-                                <span class="input-icon">✉</span>
-                                <input
-                                    type="email"
-                                    id="email"
-                                    name="email"
-                                    class="form-control {% if errors.email %}has-error{% endif %}"
-                                    placeholder="e.g. customer@example.com"
-                                    value="{{ form_data.email|default:'' }}"
-                                >
-                            </div>
-                            {% if errors.email %}
-                            <div class="field-error-text">⚠️ {{ errors.email }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- ADDRESS -->
-                        <div class="form-group full-width">
-                            <label for="address">
-                                Street Address
-                            </label>
-                            <div class="input-with-icon">
-                                <span class="input-icon" style="top: 20px;">📍</span>
-                                <textarea
-                                    id="address"
-                                    name="address"
-                                    class="form-control {% if errors.address %}has-error{% endif %}"
-                                    placeholder="House/Shop no, building name, street, area..."
-                                    rows="3"
-                                >{{ form_data.address|default:'' }}</textarea>
-                            </div>
-                            {% if errors.address %}
-                            <div class="field-error-text">⚠️ {{ errors.address }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- CITY -->
-                        <div class="form-group">
-                            <label for="city">
-                                City <span class="required-star">*</span>
-                            </label>
-                            <div class="input-with-icon">
-                                <span class="input-icon">🏢</span>
-                                <input
-                                    type="text"
-                                    id="city"
-                                    name="city"
-                                    class="form-control {% if errors.city %}has-error{% endif %}"
-                                    placeholder="e.g. Ahmedabad"
-                                    value="{{ form_data.city|default:'' }}"
-                                    required
-                                >
-                            </div>
-                            {% if errors.city %}
-                            <div class="field-error-text">⚠️ {{ errors.city }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- STATE -->
-                        <div class="form-group">
-                            <label for="state">
-                                State <span class="required-star">*</span>
-                            </label>
-                            <div class="input-with-icon">
-                                <span class="input-icon">🗺</span>
-                                <input
-                                    type="text"
-                                    id="state"
-                                    name="state"
-                                    class="form-control {% if errors.state %}has-error{% endif %}"
-                                    placeholder="e.g. Gujarat"
-                                    value="{{ form_data.state|default:'' }}"
-                                    required
-                                >
-                            </div>
-                            {% if errors.state %}
-                            <div class="field-error-text">⚠️ {{ errors.state }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- PINCODE -->
-                        <div class="form-group">
-                            <label for="pincode">
-                                Pincode <span class="required-star">*</span>
-                            </label>
-                            <div class="input-with-icon">
-                                <span class="input-icon">📮</span>
-                                <input
-                                    type="text"
-                                    id="pincode"
-                                    name="pincode"
-                                    class="form-control {% if errors.pincode %}has-error{% endif %}"
-                                    placeholder="e.g. 380001"
-                                    value="{{ form_data.pincode|default:'' }}"
-                                    maxlength="6"
-                                    inputmode="numeric"
-                                    required
-                                >
-                            </div>
-                            {% if errors.pincode %}
-                            <div class="field-error-text">⚠️ {{ errors.pincode }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- STATUS CHECKBOX -->
-                        <label class="checkbox-group">
-                            <input
-                                type="checkbox"
-                                name="is_active"
-                                {% if form_data.is_active or not is_edit and form_data.is_active != False %}checked{% endif %}
-                            >
-                            <div class="checkbox-label-text">
-                                <strong>Active Customer</strong>
-                                <small>Enable this customer for invoice generation and payment tracking</small>
-                            </div>
-                        </label>
-
+                    <!-- SECTION 1: PERSONAL & CONTACT -->
+                    <div class="form-section-title">
+                        👤 Customer & Contact Info
                     </div>
 
-                    <!-- FORM ACTION BUTTONS -->
-                    <div class="form-actions">
-                        <a href="{% url 'customer_list' %}" class="btn-cancel">
+                    <div class="form-grid-2col">
+                        <div class="form-group-field">
+                            <label for="id_name" class="form-label">
+                                Customer Full Name <span class="req">*</span>
+                            </label>
+                            <input type="text" id="id_name" name="name" class="form-control-input {% if errors.name %}has-error{% endif %}" value="{% if form_data.name %}{{ form_data.name }}{% elif customer %}{{ customer.name }}{% endif %}" placeholder="e.g. Rahul Sharma" required minlength="3">
+                            <span class="field-error-msg" id="nameError">{% if errors.name %}{{ errors.name }}{% endif %}</span>
+                        </div>
+
+                        <div class="form-group-field">
+                            <label for="id_phone" class="form-label">
+                                Mobile Number (10 Digits) <span class="req">*</span>
+                            </label>
+                            <input type="tel" id="id_phone" name="phone" class="form-control-input {% if errors.phone %}has-error{% endif %}" value="{% if form_data.phone %}{{ form_data.phone }}{% elif customer %}{{ customer.phone }}{% endif %}" placeholder="e.g. 9876543210" maxlength="10" required>
+                            <span class="field-error-msg" id="phoneError">{% if errors.phone %}{{ errors.phone }}{% endif %}</span>
+                        </div>
+
+                        <div class="form-group-field full-span">
+                            <label for="id_email" class="form-label">
+                                Email Address <small style="color: var(--text-muted); font-weight: normal;">(Optional)</small>
+                            </label>
+                            <input type="email" id="id_email" name="email" class="form-control-input {% if errors.email %}has-error{% endif %}" value="{% if form_data.email %}{{ form_data.email }}{% elif customer %}{{ customer.email }}{% endif %}" placeholder="e.g. rahul@example.com">
+                            <span class="field-error-msg" id="emailError">{% if errors.email %}{{ errors.email }}{% endif %}</span>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: ADDRESS & LOCATION -->
+                    <div class="form-section-title">
+                        📍 Billing & Location Details
+                    </div>
+
+                    <div class="form-grid-2col">
+                        <div class="form-group-field full-span">
+                            <label for="id_address" class="form-label">
+                                Street Address / Shop No <small style="color: var(--text-muted); font-weight: normal;">(Optional)</small>
+                            </label>
+                            <textarea id="id_address" name="address" rows="2" class="form-control-textarea" placeholder="e.g. 402, Trade Square, Ring Road">{% if form_data.address %}{{ form_data.address }}{% elif customer %}{{ customer.address }}{% endif %}</textarea>
+                        </div>
+
+                        <div class="form-group-field">
+                            <label for="id_city" class="form-label">City</label>
+                            <input type="text" id="id_city" name="city" class="form-control-input" value="{% if form_data.city %}{{ form_data.city }}{% elif customer %}{{ customer.city }}{% endif %}" placeholder="e.g. Ahmedabad">
+                        </div>
+
+                        <div class="form-group-field">
+                            <label for="id_state" class="form-label">State</label>
+                            <input type="text" id="id_state" name="state" class="form-control-input" value="{% if form_data.state %}{{ form_data.state }}{% elif customer %}{{ customer.state }}{% endif %}" placeholder="e.g. Gujarat">
+                        </div>
+
+                        <div class="form-group-field full-span">
+                            <label for="id_pincode" class="form-label">PIN Code (6 Digits)</label>
+                            <input type="text" id="id_pincode" name="pincode" class="form-control-input {% if errors.pincode %}has-error{% endif %}" value="{% if form_data.pincode %}{{ form_data.pincode }}{% elif customer %}{{ customer.pincode }}{% endif %}" placeholder="e.g. 380001" maxlength="6">
+                            <span class="field-error-msg" id="pincodeError">{% if errors.pincode %}{{ errors.pincode }}{% endif %}</span>
+                        </div>
+                    </div>
+
+                    <!-- FOOTER ACTIONS -->
+                    <div class="form-footer-actions">
+                        <button type="submit" class="btn-form-submit">
+                            {% if is_edit %}💾 Update Customer Details{% else %}✓ Save & Register Customer{% endif %}
+                        </button>
+                        <a href="{% url 'customer_list' %}" class="btn-form-cancel">
                             Cancel
                         </a>
-                        <button type="submit" class="btn-submit-primary">
-                            {% if is_edit %}💾 Save Changes{% else %}✓ Create Customer{% endif %}
-                        </button>
                     </div>
 
                 </form>
             </div>
+
         </div>
 
     </main>
+
 </div>
 
-<!--
-     FRONTEND FORMATTING JAVASCRIPT
-     -->
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Enforce numeric only for Phone
-        const phoneInput = document.getElementById('phone');
-        if (phoneInput) {
-            phoneInput.addEventListener('input', function() {
-                this.value = this.value.replace(/\D/g, '').slice(0, 10);
-            });
-        }
+    // Real-time client side validation
+    const nameInput = document.getElementById('id_name');
+    const phoneInput = document.getElementById('id_phone');
+    const pincodeInput = document.getElementById('id_pincode');
 
-        // Enforce numeric only for Pincode
-        const pincodeInput = document.getElementById('pincode');
-        if (pincodeInput) {
-            pincodeInput.addEventListener('input', function() {
-                this.value = this.value.replace(/\D/g, '').slice(0, 6);
-            });
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    }
+
+    if (pincodeInput) {
+        pincodeInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    }
+
+    function toggleMobileNav() {
+        const drawer = document.getElementById('mobileNavDrawer');
+        if (drawer) {
+            drawer.classList.toggle('active');
         }
-    });
+    }
 </script>
 
 </body>

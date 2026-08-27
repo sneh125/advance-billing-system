@@ -4,144 +4,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Products | Advance Billing System</title>
+    <title>Product Inventory | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/product_list.css' %}">
+    <link rel="stylesheet" href="{% static 'css/customers.css' %}">
 </head>
 <body>
 
-<div class="products-page">
+<div class="dashboard-container">
 
-    <!-- TOP HEADER -->
-    <header class="dashboard-header">
-        <div class="header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="header-logo">AB</a>
-            <div class="header-title-group">
-                <h1>Inventory & Products</h1>
-                <p class="subtitle">Advance Billing System</p>
-            </div>
-        </div>
-        <div class="header-right">
-            <div class="user-badge">
-                <div class="user-avatar">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+    <!-- UNIFIED APP HEADER -->
+    <header class="app-shell-header">
+        <div class="app-header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
+                <div class="brand-badge-icon">AB</div>
+                <div class="brand-text-group">
+                    <h1>Advance Billing System</h1>
+                    <span class="brand-tagline">Distributor Cloud Workspace</span>
                 </div>
-                <span>{{ request.user.first_name|default:request.user.username }}</span>
-            </div>
-            <a href="{% url 'distributor_dashboard' %}" class="nav-link-btn">Dashboard</a>
-            <a href="{% url 'customer_list' %}" class="nav-link-btn">Customers</a>
-            <a href="{% url 'distributor_profile' %}" class="nav-link-btn">My Profile</a>
-            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            </a>
+
+            <!-- NAVIGATION PILL TABS -->
+            <nav class="app-nav-pills" aria-label="Main Navigation">
+                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
+                    📊 Dashboard
+                </a>
+                <a href="{% url 'customer_list' %}" class="app-nav-link">
+                    👥 Customers
+                </a>
+                <a href="{% url 'product_list' %}" class="app-nav-link active">
+                    📦 Products
+                </a>
+                <a href="{% url 'invoice_list' %}" class="app-nav-link">
+                    🧾 Invoices
+                </a>
+                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
+                    👤 My Profile
+                </a>
+            </nav>
+        </div>
+
+        <div class="app-header-right">
+            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
+                ⚡ + Quick Bill
+            </a>
+            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
+                <div class="user-avatar-circle">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                    <span class="avatar-online-dot"></span>
+                </div>
+                <div class="user-info-text-col">
+                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
+                    <span class="user-role-subtag">Distributor</span>
+                </div>
+            </a>
+            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+                Logout
+            </a>
+            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
+                ☰
+            </button>
         </div>
     </header>
 
-    <div class="products-container">
+    <!-- MOBILE NAV DRAWER -->
+    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
+        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
+        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
+        <a href="{% url 'product_list' %}" class="app-nav-link active">📦 Products</a>
+        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
+        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
+        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
+    </nav>
 
-        <!-- PAGE HEADER -->
-        <div class="page-header">
-            <div>
-                <span class="eyebrow">INVENTORY MANAGEMENT</span>
-                <h1>Product Catalog</h1>
-                <p>Manage your product stock, prices, GST rates, and descriptions.</p>
-            </div>
-            <a href="{% url 'product_add' %}" class="add-product-btn">
-                <span>+</span> Add Product
-            </a>
-        </div>
-
-        <!-- MESSAGES -->
+    <!-- FLASH TOAST MESSAGES -->
+    <div class="toast-container" id="toastContainer">
         {% if messages %}
-        <div class="messages-container">
             {% for message in messages %}
-            <div class="alert success">
-                <span>✓ {{ message }}</span>
+            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
+                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
             </div>
             {% endfor %}
-        </div>
         {% endif %}
+    </div>
 
-        <!-- SEARCH BAR -->
-        <div class="search-card">
-            <form method="GET" action="{% url 'product_list' %}">
-                <div class="search-box">
-                    <span class="search-icon">🔍</span>
-                    <input
-                        type="text"
-                        name="q"
-                        value="{{ query }}"
-                        placeholder="Search products by name or category..."
-                    >
-                </div>
-                <button type="submit" class="search-btn">Search</button>
-                {% if query %}
-                <a href="{% url 'product_list' %}" class="clear-btn">Clear</a>
+    <!-- MAIN PRODUCT INVENTORY -->
+    <main class="products-page-wrapper">
+
+        <!-- HEADER ROW -->
+        <div class="page-header-row">
+            <div class="page-title-wrap">
+                <h2>Product Catalog & Stock</h2>
+                <p>Manage product inventories, live stock counts, GST slab rates, and unit pricing.</p>
+            </div>
+            <div>
+                <a href="{% url 'product_add' %}" class="btn-primary-add">
+                    + Add New Product
+                </a>
+            </div>
+        </div>
+
+        <!-- SEARCH & FILTER BAR -->
+        <div class="search-filter-card">
+            <form method="GET" action="{% url 'product_list' %}" class="search-form-wrap">
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Search products by name, category, or description..." class="search-input-box">
+                <button type="submit" class="btn-search-submit">Search</button>
+                {% if search_query %}
+                <a href="{% url 'product_list' %}" class="btn-clear-filter">Clear</a>
                 {% endif %}
             </form>
+
+            <span class="search-stats-badge">
+                Showing {{ total_products }} Product{{ total_products|pluralize }}
+            </span>
         </div>
 
-        <!-- PRODUCT TABLE -->
-        <div class="table-card">
+        <!-- PRODUCTS DATA TABLE -->
+        <div class="table-card-container">
             {% if products %}
-            <div class="table-wrapper">
-                <table>
+            <div class="table-responsive">
+                <table class="saas-data-table" aria-label="Products Table">
                     <thead>
                         <tr>
-                            <th>Product Name</th>
-                            <th>Category</th>
-                            <th>Unit Price</th>
-                            <th>GST Rate</th>
-                            <th>Stock Status</th>
-                            <th>Created</th>
-                            <th style="text-align: right;">Actions</th>
+                            <th style="width: 30%;">Product Details</th>
+                            <th style="width: 18%;">Category</th>
+                            <th style="width: 16%;">Price (INR)</th>
+                            <th style="width: 14%;">Stock Status</th>
+                            <th style="width: 10%;">GST Rate</th>
+                            <th style="width: 12%; text-align: right;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for product in products %}
                         <tr>
                             <td>
-                                <div class="product-name">
-                                    <div class="product-avatar">
-                                        {{ product.name|first|upper }}
-                                    </div>
-                                    <div>
-                                        <strong>{{ product.name }}</strong>
-                                        {% if product.description %}
-                                        <small>{{ product.description|truncatechars:45 }}</small>
-                                        {% endif %}
-                                    </div>
+                                <div style="display: flex; flex-direction: column; gap: 2px;">
+                                    <strong style="font-size: 14.5px; color: var(--text-main);">{{ product.name }}</strong>
+                                    {% if product.description %}
+                                    <small style="color: var(--text-muted); font-size: 12px;">{{ product.description|truncatechars:45 }}</small>
+                                    {% endif %}
                                 </div>
                             </td>
                             <td>
-                                <span class="category-badge">{{ product.category }}</span>
+                                <span style="font-size: 13.5px; color: var(--text-secondary);">{{ product.category|default:"General" }}</span>
                             </td>
                             <td>
-                                <strong style="color: var(--text);">₹{{ product.price }}</strong>
+                                <span class="price-display-text">₹{{ product.price }}</span>
                             </td>
                             <td>
-                                <span class="gst-badge">{{ product.gst_rate }}% GST</span>
-                            </td>
-                            <td>
-                                {% if product.stock == 0 %}
-                                <span class="stock out">● Out of Stock</span>
-                                {% elif product.stock <= 10 %}
-                                <span class="stock low">● Low ({{ product.stock }})</span>
+                                {% if product.stock > 10 %}
+                                <span class="stock-pill in-stock">● {{ product.stock }} in stock</span>
+                                {% elif product.stock > 0 %}
+                                <span class="stock-pill low-stock">⚠️ {{ product.stock }} low</span>
                                 {% else %}
-                                <span class="stock available">● In Stock ({{ product.stock }})</span>
+                                <span class="stock-pill out-of-stock">✕ Out of stock</span>
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="date-text">{{ product.created_at|date:"d M Y" }}</span>
+                                <span class="gst-rate-tag">{{ product.gst_rate }}%</span>
                             </td>
-                            <td>
-                                <div class="product-actions">
-                                    <a href="{% url 'product_edit' product.id %}" class="edit-btn">
+                            <td style="text-align: right;">
+                                <div class="action-buttons-wrap">
+                                    <a href="{% url 'product_edit' product.pk %}" class="btn-table-edit" title="Edit Product">
                                         ✏️ Edit
                                     </a>
-                                    <button
-                                        type="button"
-                                        class="delete-btn"
-                                        onclick="openDeleteModal('{{ product.id }}', '{{ product.name|escapejs }}')"
-                                    >
-                                        🗑️ Delete
+                                    <button type="button" class="btn-table-delete" onclick="openDeleteModal('{{ product.pk }}', '{{ product.name|escapejs }}')" title="Delete Product">
+                                        🗑️
                                     </button>
                                 </div>
                             </td>
@@ -152,83 +181,86 @@
             </div>
 
             <!-- PAGINATION -->
-            {% if page_obj.has_other_pages %}
-            <div class="pagination">
-                {% if page_obj.has_previous %}
-                <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">← Previous</a>
-                {% else %}
-                <span class="pagination-disabled">← Previous</span>
+            {% if products.has_other_pages %}
+            <div class="pagination-wrapper">
+                {% if products.has_previous %}
+                <a href="?page={{ products.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-btn">« Prev</a>
                 {% endif %}
 
-                <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                {% for i in products.paginator.page_range %}
+                    {% if products.number == i %}
+                    <span class="page-btn active">{{ i }}</span>
+                    {% else %}
+                    <a href="?page={{ i }}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-btn">{{ i }}</a>
+                    {% endif %}
+                {% endfor %}
 
-                {% if page_obj.has_next %}
-                <a href="?q={{ query }}&page={{ page_obj.next_page_number }}">Next →</a>
-                {% else %}
-                <span class="pagination-disabled">Next →</span>
+                {% if products.has_next %}
+                <a href="?page={{ products.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-btn">Next »</a>
                 {% endif %}
             </div>
             {% endif %}
 
             {% else %}
             <!-- EMPTY STATE -->
-            <div class="empty-state">
-                <div class="empty-icon">📦</div>
-                <h2>No products found</h2>
-                {% if query %}
-                <p>No products match your search query "<strong>{{ query }}</strong>".</p>
-                <a href="{% url 'product_list' %}">Clear Search Filter</a>
-                {% else %}
-                <p>Start building your inventory catalog by adding your first product.</p>
-                <a href="{% url 'product_add' %}">+ Add Your First Product</a>
-                {% endif %}
+            <div class="empty-state-wrap">
+                <div class="empty-icon-circle">📦</div>
+                <h3>No Products Found</h3>
+                <p>{% if search_query %}No products match your search "<strong>{{ search_query }}</strong>".{% else %}You haven't added any products to your inventory yet.{% endif %}</p>
+                <a href="{% if search_query %}{% url 'product_list' %}{% else %}{% url 'product_add' %}{% endif %}" class="btn-primary-add" style="margin-top: 8px;">
+                    {% if search_query %}Clear Search{% else %}+ Add First Product{% endif %}
+                </a>
             </div>
             {% endif %}
         </div>
 
-    </div>
+    </main>
 
 </div>
 
-<!-- DELETE CONFIRMATION MODAL -->
+<!-- DELETE MODAL -->
 <div class="modal-backdrop" id="deleteModal">
     <div class="modal-card">
-        <div class="modal-danger-icon">⚠️</div>
+        <div class="modal-icon-circle">🗑️</div>
         <h3>Delete Product?</h3>
-        <p>
-            Are you sure you want to permanently delete <strong id="modalProductName" style="color: var(--text);"></strong>?<br>
-            This action cannot be undone.
-        </p>
-        <form id="deleteForm" method="POST">
+        <p id="deleteModalMessage">Are you sure you want to remove this product from your inventory?</p>
+        
+        <form method="POST" id="deleteForm" action="">
             {% csrf_token %}
-            <div class="modal-actions">
+            <div class="modal-actions-row">
                 <button type="button" class="btn-modal-cancel" onclick="closeDeleteModal()">Cancel</button>
-                <button type="submit" class="btn-modal-delete">Yes, Delete</button>
+                <button type="submit" class="btn-modal-delete-confirm">Yes, Delete Product</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-function openDeleteModal(productId, productName) {
-    const modal = document.getElementById("deleteModal");
-    const name = document.getElementById("modalProductName");
-    const form = document.getElementById("deleteForm");
+    function openDeleteModal(productId, productName) {
+        const modal = document.getElementById('deleteModal');
+        const form = document.getElementById('deleteForm');
+        const msg = document.getElementById('deleteModalMessage');
 
-    name.textContent = productName;
-    form.action = "/products/" + productId + "/delete/";
-    modal.classList.add("open");
-}
-
-function closeDeleteModal() {
-    document.getElementById("deleteModal").classList.remove("open");
-}
-
-document.getElementById("deleteModal").addEventListener("click", function(event) {
-    if (event.target === this) {
-        closeDeleteModal();
+        form.action = `/billing/products/${productId}/delete/`;
+        msg.innerHTML = `Are you sure you want to delete <strong>${productName}</strong>? This item will be permanently removed.`;
+        modal.classList.add('active');
     }
-});
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('active');
+    }
+
+    function toggleMobileNav() {
+        const drawer = document.getElementById('mobileNavDrawer');
+        if (drawer) {
+            drawer.classList.toggle('active');
+        }
+    }
+
+    setTimeout(() => {
+        const toasts = document.querySelectorAll('.toast-card');
+        toasts.forEach(t => t.remove());
+    }, 4000);
 </script>
 
 </body>

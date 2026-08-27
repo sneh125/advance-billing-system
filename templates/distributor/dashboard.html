@@ -5,99 +5,198 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distributor Dashboard | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 </head>
 <body>
 
 <div class="dashboard-container">
 
-    <header class="dashboard-header">
-        <div class="header-left">
-            <div class="header-logo">AB</div>
-            <div>
-                <h1>Distributor Dashboard</h1>
-                <p class="subtitle">Advance Billing System</p>
-            </div>
-        </div>
-        <div class="header-right">
-            <div class="user-badge">
-                <div class="user-avatar">
-                    {{ request.user.first_name|first|upper|default:"D" }}
+    <!-- UNIFIED APP TOP HEADER -->
+    <header class="app-shell-header">
+        <div class="app-header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
+                <div class="brand-badge-icon">AB</div>
+                <div class="brand-text-group">
+                    <h1>Advance Billing System</h1>
+                    <span class="brand-tagline">Distributor Cloud Workspace</span>
                 </div>
-                {{ request.user.first_name|default:request.user.username }}
-            </div>
-            <a href="{% url 'customer_list' %}" class="logout-btn" style="background: rgba(255,255,255,0.08); color: #cbd5e1; border-color: rgba(255,255,255,0.12);">Customers</a>
-            <a href="{% url 'distributor_profile' %}" class="logout-btn">My Profile</a>
-            <a href="{% url 'logout' %}" class="logout-btn danger">Logout</a>
+            </a>
+
+            <!-- NAVIGATION PILL TABS -->
+            <nav class="app-nav-pills" aria-label="Main Navigation">
+                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link active">
+                    📊 Dashboard
+                </a>
+                <a href="{% url 'customer_list' %}" class="app-nav-link">
+                    👥 Customers
+                </a>
+                <a href="{% url 'product_list' %}" class="app-nav-link">
+                    📦 Products
+                </a>
+                <a href="{% url 'invoice_list' %}" class="app-nav-link">
+                    🧾 Invoices
+                </a>
+                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
+                    👤 My Profile
+                </a>
+            </nav>
+        </div>
+
+        <div class="app-header-right">
+            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
+                ⚡ + Quick Bill
+            </a>
+            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
+                <div class="user-avatar-circle">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                    <span class="avatar-online-dot"></span>
+                </div>
+                <div class="user-info-text-col">
+                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
+                    <span class="user-role-subtag">Distributor</span>
+                </div>
+            </a>
+            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+                Logout
+            </a>
+            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
+                ☰
+            </button>
         </div>
     </header>
 
+    <!-- MOBILE NAV DRAWER -->
+    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
+        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link active">📊 Dashboard</a>
+        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
+        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
+        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
+        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
+        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
+    </nav>
+
+    <!-- MAIN DASHBOARD CONTENT -->
     <main class="dashboard-content">
 
-        <div class="welcome-banner">
-            <h2>Welcome, {{ request.user.first_name|default:request.user.username }} 👋</h2>
-            <p>Manage your customers, create invoices and track billing activity from your distributor panel.</p>
-            <span class="badge">✅ Distributor Access</span>
-        </div>
+        <!-- WELCOME BANNER -->
+        <section class="welcome-banner" aria-label="Welcome Banner">
+            <div class="welcome-text-wrap">
+                <div class="welcome-badge-chip">
+                    ✨ Distributor Portal Active
+                </div>
+                <h2>Welcome Back, {{ request.user.first_name|default:request.user.username }} 👋</h2>
+                <p>Track your real-time billing performance, generate GST compliant invoices, and manage registered customer profiles effortlessly.</p>
+            </div>
+            <div class="welcome-action-wrap">
+                <a href="{% url 'invoice_create' %}" class="btn-welcome-cta">
+                    + Generate New Bill
+                </a>
+            </div>
+        </section>
 
-        <div class="stats-row">
+        <!-- KPI STATS ROW -->
+        <section class="stats-row" aria-label="Key Performance Indicators">
+            
             <a href="{% url 'customer_list' %}" style="text-decoration: none; color: inherit; display: block;">
                 <div class="stat-card">
-                    <div class="stat-icon teal">👤</div>
-                    <div class="stat-label">Customers</div>
-                    <div class="stat-value">{{ total_customers|default:"0" }}</div>
+                    <div class="stat-card-top">
+                        <div class="stat-icon teal">👥</div>
+                        <span class="stat-trend-tag">Active Directory</span>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Total Customers</span>
+                        <div class="stat-value">{{ total_customers|default:"0" }}</div>
+                    </div>
                 </div>
             </a>
+
             <a href="{% url 'invoice_list' %}" style="text-decoration: none; color: inherit; display: block;">
                 <div class="stat-card">
-                    <div class="stat-icon blue">🧾</div>
-                    <div class="stat-label">Invoices Generated</div>
-                    <div class="stat-value">{{ total_invoices|default:"0" }}</div>
+                    <div class="stat-card-top">
+                        <div class="stat-icon blue">🧾</div>
+                        <span class="stat-trend-tag">GST Compliant</span>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Invoices Generated</span>
+                        <div class="stat-value">{{ total_invoices|default:"0" }}</div>
+                    </div>
                 </div>
             </a>
+
             <a href="{% url 'product_list' %}" style="text-decoration: none; color: inherit; display: block;">
                 <div class="stat-card">
-                    <div class="stat-icon purple">📦</div>
-                    <div class="stat-label">Products in Stock</div>
-                    <div class="stat-value">{{ total_products|default:"0" }}</div>
+                    <div class="stat-card-top">
+                        <div class="stat-icon purple">📦</div>
+                        <span class="stat-trend-tag">Catalog Live</span>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Products in Stock</span>
+                        <div class="stat-value">{{ total_products|default:"0" }}</div>
+                    </div>
                 </div>
             </a>
+
             <div class="stat-card">
-                <div class="stat-icon orange">💰</div>
-                <div class="stat-label">Total Revenue</div>
-                <div class="stat-value">₹{{ total_billed|floatformat:0|default:"0" }}</div>
+                <div class="stat-card-top">
+                    <div class="stat-icon orange">💰</div>
+                    <span class="stat-trend-tag" style="background: var(--warning-bg); color: var(--warning-text);">Gross Total</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Total Revenue</span>
+                    <div class="stat-value" style="font-family: var(--font-mono); font-size: 24px;">₹{{ total_billed|floatformat:0|default:"0" }}</div>
+                </div>
             </div>
+
+        </section>
+
+        <!-- QUICK ACTIONS GRID -->
+        <div class="section-title-wrap">
+            <h3>⚡ Quick Action Hub</h3>
         </div>
 
-        <div class="cards">
+        <section class="cards" aria-label="Quick Actions">
             <a href="{% url 'customer_list' %}" class="card">
-                <div class="card-icon">👤</div>
-                <h3>Customers</h3>
-                <p>Add and manage your customers</p>
-                <span class="card-arrow">→</span>
+                <div class="card-icon">👥</div>
+                <h3>Customer Directory</h3>
+                <p>Register, update and search through your distributor customer records.</p>
+                <span class="card-arrow">Open Customers →</span>
             </a>
+
             <a href="{% url 'invoice_list' %}" class="card">
                 <div class="card-icon">🧾</div>
-                <h3>Invoices</h3>
-                <p>Create and manage invoices</p>
-                <span class="card-arrow">→</span>
+                <h3>Invoices & History</h3>
+                <p>View generated tax invoices, filter bills and download branded PDFs.</p>
+                <span class="card-arrow">View Invoices →</span>
             </a>
+
             <a href="{% url 'product_list' %}" class="card">
                 <div class="card-icon">📦</div>
-                <h3>Products</h3>
-                <p>Browse and manage products</p>
-                <span class="card-arrow">→</span>
+                <h3>Product Inventory</h3>
+                <p>Manage product catalog, check live stock badges and configure GST rates.</p>
+                <span class="card-arrow">Manage Products →</span>
             </a>
-            <a href="{% url 'invoice_create' %}" class="card">
-                <div class="card-icon">⚡</div>
-                <h3>Quick Bill</h3>
-                <p>Generate new invoice with GST</p>
-                <span class="card-arrow">→</span>
+
+            <a href="{% url 'invoice_create' %}" class="card" style="border-color: var(--primary-200); background: linear-gradient(180deg, #ffffff 0%, var(--primary-50) 100%);">
+                <div class="card-icon" style="background: var(--primary-100); border-color: var(--primary-300);">⚡</div>
+                <h3 style="color: var(--primary-800);">Quick Bill Creator</h3>
+                <p>Add dynamic multiple products with real-time tax and auto-discount engine.</p>
+                <span class="card-arrow" style="font-weight: 800;">Create Bill Now →</span>
             </a>
-        </div>
+        </section>
 
     </main>
+
 </div>
+
+<script>
+    function toggleMobileNav() {
+        const drawer = document.getElementById('mobileNavDrawer');
+        if (drawer) {
+            drawer.classList.toggle('active');
+        }
+    }
+</script>
 
 </body>
 </html>

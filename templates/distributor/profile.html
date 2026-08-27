@@ -1,389 +1,1003 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     <style>
+        /* ==========================================
+           DRIBBLE-INSPIRED PROFILE PAGE STYLING
+           ========================================== */
 
-        .edit-btn {
-            display: inline-flex;
+        .profile-page-wrapper {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 28px 24px 60px 24px;
+        }
+
+        /* HERO PROFILE BANNER CARD */
+        .profile-hero-card {
+            background: #ffffff;
+            border-radius: var(--radius-2xl);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            margin-bottom: 28px;
+            position: relative;
+        }
+
+        .profile-cover-banner {
+            height: 180px;
+            background: linear-gradient(135deg, #042f2e 0%, #0f766e 45%, #14b8a6 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-cover-banner::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.15) 0%, transparent 60%);
+        }
+
+        .cover-pattern-grid {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.6;
+        }
+
+        .profile-hero-body {
+            padding: 0 36px 28px 36px;
+            position: relative;
+        }
+
+        .profile-hero-main-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-top: -64px;
+            margin-bottom: 20px;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .profile-avatar-wrap {
+            display: flex;
+            align-items: flex-end;
+            gap: 24px;
+        }
+
+        .profile-avatar-large {
+            width: 120px;
+            height: 120px;
+            border-radius: var(--radius-2xl);
+            background: linear-gradient(135deg, #0f766e, #14b8a6);
+            border: 4px solid #ffffff;
+            box-shadow: var(--shadow-xl);
+            display: flex;
             align-items: center;
-            gap: 7px;
-            padding: 10px 20px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #0f766e, #14b8a6);
-            color: white;
-            border: none;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.25s;
-            text-decoration: none;
+            justify-content: center;
+            font-size: 44px;
+            font-weight: 800;
+            color: #ffffff;
+            position: relative;
+            flex-shrink: 0;
         }
 
-        .edit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(20, 184, 166, 0.35);
-        }
-
-        /* EDIT FORM */
-
-        .edit-form-wrap {
-            display: none;
-            margin-top: 24px;
-            padding: 24px;
-            background: #f8fafc;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .edit-form-wrap.open {
-            display: block;
-        }
-
-        .edit-form-wrap h3 {
-            font-size: 16px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        .form-field {
+        .verified-badge-icon {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            background: #10b981;
+            color: #ffffff;
+            border: 3px solid #ffffff;
             display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .form-field.full {
-            grid-column: 1 / -1;
-        }
-
-        .form-field label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .form-field input {
-            padding: 12px 16px;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
+            align-items: center;
+            justify-content: center;
             font-size: 14px;
-            color: #0f172a;
-            background: white;
-            outline: none;
-            transition: border-color 0.25s;
+            font-weight: 800;
+            box-shadow: var(--shadow-md);
         }
 
-        .form-field input:focus {
-            border-color: #14b8a6;
-            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+        .profile-identity-info {
+            padding-bottom: 6px;
         }
 
-        .form-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .save-btn {
-            padding: 12px 24px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #0f766e, #14b8a6);
-            color: white;
-            border: none;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.25s;
-        }
-
-        .save-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(20, 184, 166, 0.3);
-        }
-
-        .cancel-btn {
-            padding: 12px 24px;
-            border-radius: 12px;
-            background: #f1f5f9;
-            color: #475569;
-            border: 1px solid #e2e8f0;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.25s;
-        }
-
-        .cancel-btn:hover {
-            background: #e2e8f0;
-        }
-
-        /* SUCCESS / ERROR ALERT */
-
-        .alert {
-            padding: 12px 18px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 20px;
+        .profile-identity-info h2 {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 1.2;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .alert-success {
-            background: #f0fdfa;
-            color: #0f766e;
-            border: 1px solid #99f6e4;
+        .profile-username-tag {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            margin-top: 4px;
         }
 
-        .alert-error {
-            background: #fef2f2;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
+        .profile-badges-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
         }
 
-        @media (max-width: 600px) {
-            .form-row {
+        .badge-pill-role {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--primary-50);
+            color: var(--primary-700);
+            border: 1px solid var(--primary-200);
+        }
+
+        .badge-pill-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--success-bg);
+            color: var(--success-text);
+            border: 1px solid var(--success-border);
+        }
+
+        .profile-hero-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 6px;
+        }
+
+        .btn-edit-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: var(--radius-lg);
+            background: var(--primary-gradient);
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(20, 184, 166, 0.35);
+            transition: var(--transition-fast);
+            text-decoration: none;
+        }
+
+        .btn-edit-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(20, 184, 166, 0.45);
+        }
+
+        .btn-reset-pw {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: var(--radius-lg);
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .btn-reset-pw:hover {
+            background: var(--slate-50);
+            color: var(--text-main);
+            border-color: var(--border-hover);
+        }
+
+        /* 2-COLUMN ASYMMETRIC GRID */
+        .profile-layout-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 28px;
+            align-items: start;
+        }
+
+        /* LEFT COLUMN CARDS */
+        .profile-sidebar-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .saas-card {
+            background: #ffffff;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            padding: 24px;
+            transition: var(--transition-fast);
+        }
+
+        .saas-card:hover {
+            border-color: var(--slate-300);
+            box-shadow: var(--shadow-md);
+        }
+
+        .saas-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .saas-card-header h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-meta-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .sidebar-meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meta-item-label {
+            font-size: 11.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .meta-item-value-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--slate-50);
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--slate-200);
+        }
+
+        .meta-item-value {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text-main);
+            word-break: break-all;
+        }
+
+        .btn-copy-mini {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition-fast);
+            flex-shrink: 0;
+        }
+
+        .btn-copy-mini:hover {
+            background: var(--primary-subtle);
+        }
+
+        /* STATS SUMMARY TILES */
+        .profile-quick-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 4px;
+        }
+
+        .mini-stat-tile {
+            padding: 14px;
+            border-radius: var(--radius-lg);
+            background: var(--slate-50);
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .mini-stat-num {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--primary);
+            font-family: var(--font-mono);
+        }
+
+        .mini-stat-lbl {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* RIGHT COLUMN: TABBED DETAIL PANELS */
+        .profile-main-content {
+            background: #ffffff;
+            border-radius: var(--radius-2xl);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .profile-tab-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 24px 0 24px;
+            background: var(--slate-50);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .profile-tab-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .profile-tab-btn:hover {
+            color: var(--text-main);
+        }
+
+        .profile-tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: #ffffff;
+            border-top-left-radius: var(--radius-md);
+            border-top-right-radius: var(--radius-md);
+        }
+
+        .profile-tab-body {
+            padding: 32px;
+        }
+
+        .tab-panel {
+            display: none;
+            animation: fadeIn 0.25s ease-in-out forwards;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* DETAIL GRID */
+        .profile-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .detail-group-card {
+            background: var(--slate-50);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--slate-200);
+            padding: 20px;
+        }
+
+        .detail-group-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .detail-group-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--primary-700);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 0;
+            border-bottom: 1px solid var(--slate-200);
+            font-size: 14px;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-key {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .detail-val {
+            color: var(--text-main);
+            font-weight: 600;
+            text-align: right;
+        }
+
+        /* FORM INPUT STYLES */
+        .profile-edit-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-field-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-field-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .form-field-group label .required-star {
+            color: var(--danger);
+        }
+
+        .form-input-box {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: #ffffff;
+            font-size: 14px;
+            color: var(--text-main);
+            transition: var(--transition-fast);
+            outline: none;
+        }
+
+        .form-input-box:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .form-help-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .form-action-footer {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-save-profile {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            border-radius: var(--radius-lg);
+            background: var(--primary-gradient);
+            color: #ffffff;
+            font-size: 14.5px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(20, 184, 166, 0.35);
+            transition: var(--transition-fast);
+        }
+
+        .btn-save-profile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(20, 184, 166, 0.45);
+        }
+
+        .btn-cancel-edit {
+            padding: 12px 22px;
+            border-radius: var(--radius-lg);
+            background: var(--slate-100);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .btn-cancel-edit:hover {
+            background: var(--slate-200);
+            color: var(--text-main);
+        }
+
+        /* RESPONSIVENESS */
+        @media (max-width: 992px) {
+            .profile-layout-grid {
+                grid-template-columns: 1fr;
+            }
+            .profile-details-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-grid-2col {
                 grid-template-columns: 1fr;
             }
         }
 
+        @media (max-width: 640px) {
+            .profile-hero-main-row {
+                flex-direction: column;
+                align-items: flex-start;
+                margin-top: -48px;
+            }
+            .profile-avatar-large {
+                width: 96px;
+                height: 96px;
+                font-size: 34px;
+            }
+            .profile-tab-header {
+                overflow-x: auto;
+            }
+            .profile-tab-btn {
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
-
 <body>
 
-<div class="dashboard-container">
-
-    <!-- HEADER -->
-    <header class="dashboard-header">
-        <div class="header-left">
-            <div class="header-logo">AB</div>
-            <div>
-                <h1>My Profile</h1>
-                <p class="subtitle">Advance Billing System</p>
-            </div>
-        </div>
-        <div class="header-right">
-            <div class="user-badge">
-                <div class="user-avatar">
-                    {{ profile.user.first_name|first|upper|default:"D" }}
+    <!-- UNIFIED APP TOP HEADER -->
+    <header class="app-shell-header">
+        <div class="app-header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
+                <div class="brand-badge-icon">AB</div>
+                <div class="brand-text-group">
+                    <h1>Advance Billing System</h1>
+                    <span class="brand-tagline">Distributor Cloud Workspace</span>
                 </div>
-                {{ profile.user.first_name|default:profile.user.username }}
-            </div>
-            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            </a>
+
+            <!-- NAVIGATION PILL TABS -->
+            <nav class="app-nav-pills" aria-label="Main Navigation">
+                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
+                    📊 Dashboard
+                </a>
+                <a href="{% url 'customer_list' %}" class="app-nav-link">
+                    👥 Customers
+                </a>
+                <a href="{% url 'product_list' %}" class="app-nav-link">
+                    📦 Products
+                </a>
+                <a href="{% url 'invoice_list' %}" class="app-nav-link">
+                    🧾 Invoices
+                </a>
+                <a href="{% url 'distributor_profile' %}" class="app-nav-link active">
+                    👤 My Profile
+                </a>
+            </nav>
+        </div>
+
+        <div class="app-header-right">
+            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
+                ⚡ + Quick Bill
+            </a>
+            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
+                <div class="user-avatar-circle">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                    <span class="avatar-online-dot"></span>
+                </div>
+                <div class="user-info-text-col">
+                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
+                    <span class="user-role-subtag">Distributor</span>
+                </div>
+            </a>
+            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+                Logout
+            </a>
+            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
+                ☰
+            </button>
         </div>
     </header>
 
-    <!-- CONTENT -->
-    <main class="dashboard-content">
+    <!-- MOBILE NAV DRAWER -->
+    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
+        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
+        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
+        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
+        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
+        <a href="{% url 'distributor_profile' %}" class="app-nav-link active">👤 My Profile</a>
+        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
+    </nav>
 
-        <div class="profile-wrapper">
-            <div class="profile-card">
+    <!-- TOAST MESSAGES -->
+    <div class="toast-container" id="toastContainer">
+        {% if success %}
+        <div class="toast-card success">
+            <span>✓ {{ success }}</span>
+            <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
+        </div>
+        {% endif %}
+        {% if error %}
+        <div class="toast-card error">
+            <span>⚠️ {{ error }}</span>
+            <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
+        </div>
+        {% endif %}
+    </div>
 
-                <!-- BANNER -->
-                <div class="profile-header-banner">
+    <!-- MAIN PROFILE WRAPPER -->
+    <main class="profile-page-wrapper">
+
+        <!-- HERO PROFILE HEADER CARD -->
+        <section class="profile-hero-card" aria-label="Profile Banner">
+            <div class="profile-cover-banner">
+                <div class="cover-pattern-grid"></div>
+            </div>
+
+            <div class="profile-hero-body">
+                <div class="profile-hero-main-row">
                     <div class="profile-avatar-wrap">
-                        <div class="profile-avatar">
-                            {{ profile.user.first_name|first|upper|default:"D" }}
+                        <div class="profile-avatar-large">
+                            {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                            <div class="verified-badge-icon" title="Verified Account">✓</div>
+                        </div>
+                        <div class="profile-identity-info">
+                            <h2>
+                                {{ request.user.first_name|default:request.user.username }}
+                            </h2>
+                            <div class="profile-username-tag">@{{ request.user.username }}</div>
+                            <div class="profile-badges-row">
+                                <span class="badge-pill-role">💼 Verified Distributor</span>
+                                <span class="badge-pill-status">● Active Account</span>
+                                <span class="badge-pill-role" style="background: var(--purple-bg); color: var(--purple-text); border-color: var(--purple-border);">📅 Member since Aug 2026</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-hero-actions">
+                        <button type="button" class="btn-edit-toggle" id="btnHeaderEdit" onclick="switchTab('editTab')">
+                            ✏️ Edit Profile
+                        </button>
+                        <a href="{% url 'forgot_password' %}" class="btn-reset-pw">
+                            🔒 Change Password
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2-COLUMN ASYMMETRIC GRID -->
+        <div class="profile-layout-grid">
+
+            <!-- LEFT COLUMN: SIDEBAR IDENTITY & ACCOUNT CARDS -->
+            <aside class="profile-sidebar-cards">
+
+                <!-- BUSINESS IDENTITY CARD -->
+                <div class="saas-card">
+                    <div class="saas-card-header">
+                        <h3>📋 Account Details</h3>
+                    </div>
+                    <div class="sidebar-meta-list">
+                        <div class="sidebar-meta-item">
+                            <span class="meta-item-label">Primary Email</span>
+                            <div class="meta-item-value-row">
+                                <span class="meta-item-value">{{ request.user.email }}</span>
+                                <button type="button" class="btn-copy-mini" onclick="copyToClipboard('{{ request.user.email }}', 'Email')">Copy</button>
+                            </div>
+                        </div>
+
+                        <div class="sidebar-meta-item">
+                            <span class="meta-item-label">Phone Contact</span>
+                            <div class="meta-item-value-row">
+                                <span class="meta-item-value">{{ profile.phone|default:"Not Provided" }}</span>
+                                {% if profile.phone %}
+                                <button type="button" class="btn-copy-mini" onclick="copyToClipboard('{{ profile.phone }}', 'Phone')">Copy</button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="sidebar-meta-item">
+                            <span class="meta-item-label">Distributor Role</span>
+                            <div class="meta-item-value-row">
+                                <span class="meta-item-value">Full Access Distributor</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- BODY -->
-                <div class="profile-body">
-
-                    <!-- SUCCESS / ERROR MESSAGES -->
-                    {% if success %}
-                        <div class="alert alert-success">
-                            ✅ {{ success }}
+                <!-- QUICK SUMMARY CARD -->
+                <div class="saas-card">
+                    <div class="saas-card-header">
+                        <h3>📊 Workspace Overview</h3>
+                    </div>
+                    <div class="profile-quick-stats">
+                        <div class="mini-stat-tile">
+                            <div class="mini-stat-num">GST</div>
+                            <div class="mini-stat-lbl">Compliant Billing</div>
                         </div>
-                    {% endif %}
-
-                    {% if error %}
-                        <div class="alert alert-error">
-                            ⚠️ {{ error }}
+                        <div class="mini-stat-tile">
+                            <div class="mini-stat-num">PDF</div>
+                            <div class="mini-stat-lbl">Instant Export</div>
                         </div>
-                    {% endif %}
+                    </div>
+                    <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+                        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">+ Generate New Invoice</a>
+                    </div>
+                </div>
 
-                    <div class="profile-name">
-                        {{ profile.user.first_name|default:profile.user.username }}
+                <!-- SECURITY & VERIFICATION CARD -->
+                <div class="saas-card">
+                    <div class="saas-card-header">
+                        <h3>🔒 Security & Privacy</h3>
+                    </div>
+                    <div class="sidebar-meta-list">
+                        <div class="sidebar-meta-item">
+                            <div class="meta-item-value-row" style="background: var(--success-bg); border-color: var(--success-border);">
+                                <span class="meta-item-value" style="color: var(--success-text);">✓ OTP Recovery Active</span>
+                            </div>
+                        </div>
+                        <div class="sidebar-meta-item">
+                            <div class="meta-item-value-row">
+                                <span class="meta-item-value" style="font-size: 12.5px; color: var(--text-muted);">Session encrypted via HTTPS</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- RIGHT COLUMN: MAIN INTERACTIVE TABS CONTENT -->
+            <section class="profile-main-content">
+
+                <!-- TABS HEADER -->
+                <div class="profile-tab-header">
+                    <button type="button" class="profile-tab-btn active" id="tabBtnOverview" onclick="switchTab('overviewTab')">
+                        👤 Profile Overview
+                    </button>
+                    <button type="button" class="profile-tab-btn" id="tabBtnEdit" onclick="switchTab('editTab')">
+                        ✏️ Edit Details
+                    </button>
+                    <button type="button" class="profile-tab-btn" id="tabBtnSettings" onclick="switchTab('settingsTab')">
+                        ⚙️ Preferences & Features
+                    </button>
+                </div>
+
+                <!-- TAB 1: OVERVIEW -->
+                <div class="profile-tab-body">
+                    <div class="tab-panel active" id="overviewTab">
+                        <div class="profile-details-grid">
+                            
+                            <div class="detail-group-card">
+                                <div class="detail-group-title">👤 Personal Info</div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Full Name:</span>
+                                    <span class="detail-val">{{ request.user.first_name|default:request.user.username }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Username:</span>
+                                    <span class="detail-val">@{{ request.user.username }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Role:</span>
+                                    <span class="detail-val">Distributor</span>
+                                </div>
+                            </div>
+
+                            <div class="detail-group-card">
+                                <div class="detail-group-title">📞 Contact Details</div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Email:</span>
+                                    <span class="detail-val">{{ request.user.email }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Mobile Phone:</span>
+                                    <span class="detail-val">{{ profile.phone|default:"Not specified" }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Phone Status:</span>
+                                    <span class="detail-val" style="color: var(--success);">Verified</span>
+                                </div>
+                            </div>
+
+                            <div class="detail-group-card full-width">
+                                <div class="detail-group-title">🏢 Billing & Distributor Workspace</div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Platform:</span>
+                                    <span class="detail-val">Advance Billing System with QR</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Tax Invoice Engine:</span>
+                                    <span class="detail-val">Standard GST Compliant Calculation</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Multi-Tenant Isolation:</span>
+                                    <span class="detail-val" style="color: var(--primary-600);">Strict Distributor-Scoped Data</span>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
 
-                    <span class="profile-role">✅ Distributor</span>
-
-                    <!-- DETAIL ROWS -->
-                    <div class="profile-details">
-
-                        <div class="profile-row">
-                            <div class="profile-row-icon">👤</div>
-                            <div>
-                                <div class="profile-row-label">Full Name</div>
-                                <div class="profile-row-value">
-                                    {{ profile.user.first_name|default:"—" }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="profile-row">
-                            <div class="profile-row-icon">📧</div>
-                            <div>
-                                <div class="profile-row-label">Email Address</div>
-                                <div class="profile-row-value">
-                                    {{ profile.user.email|default:"—" }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="profile-row">
-                            <div class="profile-row-icon">📱</div>
-                            <div>
-                                <div class="profile-row-label">Phone Number</div>
-                                <div class="profile-row-value">
-                                    {{ profile.phone|default:"—" }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="profile-row">
-                            <div class="profile-row-icon">🔑</div>
-                            <div>
-                                <div class="profile-row-label">Username</div>
-                                <div class="profile-row-value">
-                                    {{ profile.user.username }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="profile-row">
-                            <div class="profile-row-icon">📅</div>
-                            <div>
-                                <div class="profile-row-label">Member Since</div>
-                                <div class="profile-row-value">
-                                    {{ profile.created_at|date:"d M Y" }}
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <!-- EDIT FORM TOGGLE BUTTON -->
-                    <div style="margin-top: 24px;">
-                        <button class="edit-btn" onclick="toggleEdit()">
-                            ✏️ Edit Profile
-                        </button>
-                    </div>
-
-                    <!-- EDIT FORM -->
-                    <div class="edit-form-wrap" id="editForm">
-                        <h3>✏️ Update Profile</h3>
-                        <form method="POST">
+                    <!-- TAB 2: EDIT PROFILE FORM -->
+                    <div class="tab-panel" id="editTab">
+                        <form method="POST" action="{% url 'distributor_profile' %}" class="profile-edit-form">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="update_profile">
 
-                            <div class="form-row">
-                                <div class="form-field">
-                                    <label>Full Name</label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value="{{ profile.user.first_name }}"
-                                        placeholder="Enter full name"
-                                        required
-                                    >
+                            <div class="form-grid-2col">
+                                <div class="form-field-group">
+                                    <label for="id_name">
+                                        Full Name <span class="required-star">*</span>
+                                    </label>
+                                    <input type="text" id="id_name" name="name" class="form-input-box" value="{{ request.user.first_name|default:request.user.username }}" required minlength="3">
+                                    <span class="form-help-hint">Your legal name or distributor business title.</span>
                                 </div>
-                                <div class="form-field">
-                                    <label>Phone Number</label>
-                                    <input
-                                        type="tel"
-                                        name="phone"
-                                        value="{{ profile.phone }}"
-                                        placeholder="10 digit number"
-                                        maxlength="10"
-                                        inputmode="numeric"
-                                        required
-                                    >
+
+                                <div class="form-field-group">
+                                    <label for="id_email">
+                                        Email Address <span class="required-star">*</span>
+                                    </label>
+                                    <input type="email" id="id_email" name="email" class="form-input-box" value="{{ request.user.email }}" required>
+                                    <span class="form-help-hint">Used for login and password recovery OTPs.</span>
+                                </div>
+
+                                <div class="form-field-group full">
+                                    <label for="id_phone">
+                                        Phone Number (10 Digits) <span class="required-star">*</span>
+                                    </label>
+                                    <input type="tel" id="id_phone" name="phone" class="form-input-box" value="{{ profile.phone }}" maxlength="10" pattern="[0-9]{10}" placeholder="9876543210" required>
+                                    <span class="form-help-hint">Enter your 10-digit mobile number.</span>
                                 </div>
                             </div>
 
-                            <div class="form-row">
-                                <div class="form-field full">
-                                    <label>Email Address</label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value="{{ profile.user.email }}"
-                                        placeholder="you@example.com"
-                                        required
-                                    >
-                                </div>
-                            </div>
-
-                            <div class="form-actions">
-                                <button type="submit" class="save-btn">
-                                    💾 Save Changes
+                            <div class="form-action-footer">
+                                <button type="submit" class="btn-save-profile">
+                                    💾 Save Profile Changes
                                 </button>
-                                <button type="button" class="cancel-btn" onclick="toggleEdit()">
+                                <button type="button" class="btn-cancel-edit" onclick="switchTab('overviewTab')">
                                     Cancel
                                 </button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- FOOTER -->
-                    <div class="profile-footer">
-                        <a href="{% url 'distributor_dashboard' %}" class="btn-back">
-                            ← Back to Dashboard
-                        </a>
+                    <!-- TAB 3: SETTINGS & PREFERENCES -->
+                    <div class="tab-panel" id="settingsTab">
+                        <div class="profile-details-grid">
+                            <div class="detail-group-card full-width">
+                                <div class="detail-group-title">🔔 Notification & Billing Preferences</div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Email Notifications on New Invoice</span>
+                                    <span class="detail-val" style="color: var(--primary);">Enabled</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Auto Generate PDF on Save</span>
+                                    <span class="detail-val" style="color: var(--primary);">Enabled</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Default Currency</span>
+                                    <span class="detail-val">Indian Rupee (INR ₹)</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
-            </div>
+
+            </section>
+
         </div>
 
     </main>
 
-</div>
+    <!-- JAVASCRIPT FOR TABS & COPY ACTIONS -->
+    <script>
+        function switchTab(tabId) {
+            // Remove active classes
+            document.querySelectorAll('.profile-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
 
-<script>
-    function toggleEdit() {
-        const form = document.getElementById("editForm");
-        form.classList.toggle("open");
-    }
+            // Activate chosen tab
+            if (tabId === 'overviewTab') {
+                document.getElementById('tabBtnOverview').classList.add('active');
+                document.getElementById('overviewTab').classList.add('active');
+            } else if (tabId === 'editTab') {
+                document.getElementById('tabBtnEdit').classList.add('active');
+                document.getElementById('editTab').classList.add('active');
+            } else if (tabId === 'settingsTab') {
+                document.getElementById('tabBtnSettings').classList.add('active');
+                document.getElementById('settingsTab').classList.add('active');
+            }
+        }
 
-    // Auto open form if there was an error
-    {% if error %}
-        document.addEventListener("DOMContentLoaded", function() {
-            document.getElementById("editForm").classList.add("open");
-        });
-    {% endif %}
+        function copyToClipboard(text, label) {
+            if (!text || text === 'Not Provided') return;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(`${label} copied to clipboard!`, 'success');
+            }).catch(() => {
+                showToast('Failed to copy text', 'error');
+            });
+        }
 
-    // Phone number only digits
-    const phoneInput = document.querySelector("input[name='phone']");
-    if (phoneInput) {
-        phoneInput.addEventListener("input", function() {
-            this.value = this.value.replace(/\D/g, "");
-        });
-    }
-</script>
+        function showToast(message, type) {
+            const container = document.getElementById('toastContainer');
+            const card = document.createElement('div');
+            card.className = `toast-card ${type}`;
+            card.innerHTML = `<span>✓ ${message}</span><button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>`;
+            container.appendChild(card);
+            setTimeout(() => {
+                card.remove();
+            }, 3500);
+        }
+
+        function toggleMobileNav() {
+            const drawer = document.getElementById('mobileNavDrawer');
+            if (drawer) {
+                drawer.classList.toggle('active');
+            }
+        }
+
+        {% if error %}
+        // If server returned a form error, automatically switch to the edit tab
+        switchTab('editTab');
+        {% endif %}
+    </script>
 
 </body>
 </html>

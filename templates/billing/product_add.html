@@ -5,159 +5,187 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Product | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/product_add.css' %}">
 </head>
 <body>
 
-<div class="product-page-layout">
+<div class="dashboard-container">
 
-    <!-- TOP HEADER -->
-    <header class="dashboard-header">
-        <div class="header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="header-logo">AB</a>
-            <div class="header-title-group">
-                <h1>Inventory & Products</h1>
-                <p class="subtitle">Advance Billing System</p>
-            </div>
-        </div>
-        <div class="header-right">
-            <div class="user-badge">
-                <div class="user-avatar">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+    <!-- UNIFIED APP HEADER -->
+    <header class="app-shell-header">
+        <div class="app-header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
+                <div class="brand-badge-icon">AB</div>
+                <div class="brand-text-group">
+                    <h1>Advance Billing System</h1>
+                    <span class="brand-tagline">Distributor Cloud Workspace</span>
                 </div>
-                <span>{{ request.user.first_name|default:request.user.username }}</span>
-            </div>
-            <a href="{% url 'distributor_dashboard' %}" class="nav-link-btn">Dashboard</a>
-            <a href="{% url 'product_list' %}" class="nav-link-btn">Products</a>
-            <a href="{% url 'distributor_profile' %}" class="nav-link-btn">My Profile</a>
-            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            </a>
+
+            <!-- NAVIGATION PILL TABS -->
+            <nav class="app-nav-pills" aria-label="Main Navigation">
+                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
+                    📊 Dashboard
+                </a>
+                <a href="{% url 'customer_list' %}" class="app-nav-link">
+                    👥 Customers
+                </a>
+                <a href="{% url 'product_list' %}" class="app-nav-link active">
+                    📦 Products
+                </a>
+                <a href="{% url 'invoice_list' %}" class="app-nav-link">
+                    🧾 Invoices
+                </a>
+                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
+                    👤 My Profile
+                </a>
+            </nav>
+        </div>
+
+        <div class="app-header-right">
+            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
+                ⚡ + Quick Bill
+            </a>
+            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
+                <div class="user-avatar-circle">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                    <span class="avatar-online-dot"></span>
+                </div>
+                <div class="user-info-text-col">
+                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
+                    <span class="user-role-subtag">Distributor</span>
+                </div>
+            </a>
+            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+                Logout
+            </a>
+            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
+                ☰
+            </button>
         </div>
     </header>
 
-    <main class="product-page-content">
+    <!-- MOBILE NAV DRAWER -->
+    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
+        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
+        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
+        <a href="{% url 'product_list' %}" class="app-nav-link active">📦 Products</a>
+        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
+        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
+        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
+    </nav>
+
+    <!-- FORM PAGE CONTENT -->
+    <main class="product-form-page-container">
 
         <!-- BREADCRUMBS -->
-        <nav class="breadcrumbs" aria-label="breadcrumb">
+        <nav class="breadcrumbs-nav" aria-label="Breadcrumb">
             <a href="{% url 'distributor_dashboard' %}">Dashboard</a>
-            <span class="separator">/</span>
+            <span>/</span>
             <a href="{% url 'product_list' %}">Products</a>
-            <span class="separator">/</span>
-            <span class="current">Add Product</span>
+            <span>/</span>
+            <span class="current-crumb">Add Product</span>
         </nav>
 
+        <!-- FORM CARD -->
         <div class="product-card">
 
-            <div class="page-header">
-                <span class="eyebrow">PRODUCT MANAGEMENT</span>
-                <h1>Add New Product</h1>
-                <p>Register a new product with stock, pricing, and tax details to your inventory.</p>
+            <div class="form-card-header">
+                <h2>Add New Product to Inventory</h2>
+                <p>Configure product pricing, live inventory stock count, and GST tax rate.</p>
             </div>
 
             {% if error %}
-            <div class="alert-error">
+            <div style="margin: 20px 32px 0 32px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger-text); font-size: 13.5px; font-weight: 500;">
                 ⚠️ {{ error }}
             </div>
             {% endif %}
 
-            <form method="POST">
-                {% csrf_token %}
+            <div class="form-card-body">
+                <form method="POST" action="{% url 'product_add' %}" novalidate>
+                    {% csrf_token %}
 
-                <div class="form-grid">
-
-                    <div class="field">
-                        <label for="name">Product Name <span class="required-star">*</span></label>
-                        <input
-                            type="text"
-                            id="name"
-                            name="name"
-                            value="{{ name|default:'' }}"
-                            placeholder="e.g. Wireless Ergonomic Mouse"
-                            required
-                        >
+                    <div class="form-section-title">
+                        📦 Product Information
                     </div>
 
-                    <div class="field">
-                        <label for="category">Category <span class="required-star">*</span></label>
-                        <input
-                            type="text"
-                            id="category"
-                            name="category"
-                            value="{{ category|default:'' }}"
-                            placeholder="e.g. Electronics, Hardware, Groceries"
-                            required
-                        >
+                    <div class="form-grid-2col">
+                        <div class="form-group-field">
+                            <label for="id_name" class="form-label">
+                                Product Name <span class="req">*</span>
+                            </label>
+                            <input type="text" id="id_name" name="name" class="form-control-input" value="{{ name|default:'' }}" placeholder="e.g. Wireless Mouse" required minlength="2">
+                        </div>
+
+                        <div class="form-group-field">
+                            <label for="id_category" class="form-label">
+                                Category <span class="req">*</span>
+                            </label>
+                            <input type="text" id="id_category" name="category" class="form-control-input" value="{{ category|default:'' }}" placeholder="e.g. Electronics, Hardware" required>
+                        </div>
+
+                        <div class="form-group-field">
+                            <label for="id_price" class="form-label">
+                                Unit Price (INR ₹) <span class="req">*</span>
+                            </label>
+                            <input type="number" id="id_price" name="price" step="0.01" min="0.01" class="form-control-input" value="{{ price|default:'' }}" placeholder="0.00" required>
+                        </div>
+
+                        <div class="form-group-field">
+                            <label for="id_stock" class="form-label">
+                                Initial Stock Quantity <span class="req">*</span>
+                            </label>
+                            <input type="number" id="id_stock" name="stock" min="0" class="form-control-input" value="{{ stock|default:'0' }}" placeholder="0" required>
+                        </div>
+
+                        <div class="form-group-field">
+                            <label for="id_gst_rate" class="form-label">
+                                GST Slab Rate (%) <span class="req">*</span>
+                            </label>
+                            <select id="id_gst_rate" name="gst_rate" class="form-control-select">
+                                <option value="0.00" {% if gst_rate == '0.00' %}selected{% endif %}>0% (Exempted)</option>
+                                <option value="5.00" {% if gst_rate == '5.00' %}selected{% endif %}>5% GST</option>
+                                <option value="12.00" {% if gst_rate == '12.00' %}selected{% endif %}>12% GST</option>
+                                <option value="18.00" {% if gst_rate == '18.00' or not gst_rate %}selected{% endif %}>18% GST (Standard)</option>
+                                <option value="28.00" {% if gst_rate == '28.00' %}selected{% endif %}>28% GST</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group-field full-span">
+                            <label for="id_description" class="form-label">
+                                Description <small style="color: var(--text-muted); font-weight: normal;">(Optional)</small>
+                            </label>
+                            <textarea id="id_description" name="description" rows="3" class="form-control-textarea" placeholder="Product details, specifications or warranty notes...">{{ description|default:'' }}</textarea>
+                        </div>
                     </div>
 
-                    <div class="field">
-                        <label for="price">Unit Price (₹) <span class="required-star">*</span></label>
-                        <input
-                            type="number"
-                            id="price"
-                            name="price"
-                            value="{{ price|default:'' }}"
-                            min="0.01"
-                            step="0.01"
-                            placeholder="0.00"
-                            required
-                        >
+                    <div class="form-footer-actions">
+                        <button type="submit" class="btn-form-submit">
+                            ✓ Save Product to Inventory
+                        </button>
+                        <a href="{% url 'product_list' %}" class="btn-form-cancel">
+                            Cancel
+                        </a>
                     </div>
 
-                    <div class="field">
-                        <label for="stock">Initial Stock Quantity <span class="required-star">*</span></label>
-                        <input
-                            type="number"
-                            id="stock"
-                            name="stock"
-                            value="{{ stock|default:'' }}"
-                            min="0"
-                            placeholder="0"
-                            required
-                        >
-                    </div>
-
-                    <div class="field">
-                        <label for="gst_rate">GST Rate (%) <span class="required-star">*</span></label>
-                        <input
-                            type="number"
-                            id="gst_rate"
-                            name="gst_rate"
-                            value="{{ gst_rate|default:'' }}"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            placeholder="e.g. 18"
-                            required
-                        >
-                    </div>
-
-                    <div class="field full-width">
-                        <label for="description">Product Description (Optional)</label>
-                        <textarea
-                            id="description"
-                            name="description"
-                            rows="4"
-                            placeholder="Enter detailed description or specifications..."
-                        >{{ description|default:'' }}</textarea>
-                    </div>
-
-                </div>
-
-                <div class="form-actions">
-                    <a href="{% url 'product_list' %}" class="cancel-btn">
-                        Cancel
-                    </a>
-                    <button type="submit" class="submit-btn">
-                        + Add Product
-                    </button>
-                </div>
-
-            </form>
+                </form>
+            </div>
 
         </div>
 
     </main>
 
 </div>
+
+<script>
+    function toggleMobileNav() {
+        const drawer = document.getElementById('mobileNavDrawer');
+        if (drawer) {
+            drawer.classList.toggle('active');
+        }
+    }
+</script>
 
 </body>
 </html>

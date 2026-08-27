@@ -5,159 +5,118 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/login.css' %}">
 </head>
 <body>
+
     <div class="login-container">
 
         <!-- LEFT BRANDING SECTION -->
         <div class="brand-section">
-            <div class="logo">
-                ₹
+            <div>
+                <div class="brand-logo-badge">AB</div>
+                <h1>
+                    Advance<br>
+                    <span>Billing System</span>
+                </h1>
+                <p>
+                    Manage billing, GST tax invoices, customers and real-time inventory from one secure and powerful cloud platform.
+                </p>
+                <div class="features-list">
+                    <div class="feature-pill-item">
+                        <div class="feature-check-icon">✓</div>
+                        <span>Multi-Tenant Distributor Isolation</span>
+                    </div>
+                    <div class="feature-pill-item">
+                        <div class="feature-check-icon">✓</div>
+                        <span>Instant PDF Tax Invoices</span>
+                    </div>
+                    <div class="feature-pill-item">
+                        <div class="feature-check-icon">✓</div>
+                        <span>Real-Time GST & Discount Engine</span>
+                    </div>
+                    <div class="feature-pill-item">
+                        <div class="feature-check-icon">✓</div>
+                        <span>Secure OTP Password Recovery</span>
+                    </div>
+                </div>
             </div>
-            <h1>
-                Advance<br>
-                <span>Billing System</span>
-            </h1>
-            <p>
-                Manage billing, invoices, payments and QR-based
-                transactions from one secure and powerful platform.
-            </p>
-            <div class="features">
-                <div class="feature">
-                    <div class="feature-icon">✓</div>
-                    <span>Secure Authentication</span>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">✓</div>
-                    <span>Smart Invoice Management</span>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">✓</div>
-                    <span>QR Based Payments</span>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">✓</div>
-                    <span>Admin & Distributor Management</span>
-                </div>
+
+            <div class="brand-footer-text">
+                © 2026 Advance Billing System. All rights reserved.
             </div>
         </div>
 
-        <!-- LOGIN SECTION -->
+        <!-- RIGHT FORM SECTION -->
         <div class="form-section">
-            <div class="login-card">
-                <h2>Welcome Back 👋</h2>
-                <p class="subtitle">
-                    Sign in to continue to your dashboard
-                </p>
+            <div class="login-card-inner">
+                
+                <div class="auth-header-wrap">
+                    <h2>Welcome Back 👋</h2>
+                    <p>Sign in to access your distributor billing panel.</p>
+                </div>
+
                 {% if error %}
-                <div class="login-error">
-                    {{ error }}
+                <div class="auth-alert-error">
+                    ⚠️ {{ error }}
                 </div>
                 {% endif %}
-                
-                {% if messages %}
-                <div class="messages">
 
-                    {% for message in messages %}
-                    <div class="message {{ message.tags }}">
-                        {{ message }}
-                        </div>
-                        {% endfor %}
-                        </div>
-                        {% endif %}
-                        
-                    <form method="POST">
+                {% if messages %}
+                {% for message in messages %}
+                <div style="padding: 12px 16px; border-radius: var(--radius-md); background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-text); font-size: 13px; font-weight: 500;">
+                    ✓ {{ message }}
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                <form method="POST" action="{% url 'login' %}" class="auth-form-fields" novalidate>
                     {% csrf_token %}
 
-    <!-- USERNAME -->
-                    <div class="input-group">
-                        <label for="username">
-                            Username
-                        </label>
-                        <div class="input-wrapper">
-                            <span class="icon">👤</span>
-                            <input
-                                type="text"
-                                id="username"
-                                name="username"
-                                placeholder="Enter your username"
-                                required
-                            >
+                    <div class="input-field-group">
+                        <label for="username">Username or Email</label>
+                        <input type="text" id="username" name="username" class="auth-input-box" placeholder="Enter username or email" value="{{ username|default:'' }}" required autofocus>
+                    </div>
+
+                    <div class="input-field-group">
+                        <label for="password">Password</label>
+                        <div class="pw-input-wrap">
+                            <input type="password" id="password" name="password" class="auth-input-box" placeholder="Enter your password" required style="padding-right: 42px;">
+                            <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('password', this)" title="Show/Hide Password">👁️</button>
                         </div>
                     </div>
 
-                    <!-- PASSWORD -->
-                    <div class="input-group">
-                        <label for="password">
-                            Password
-                        </label>
-                        <div class="input-wrapper">
-                            <span class="icon">🔒</span>
-                            <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                placeholder="Enter your password"
-                                required
-                            >
-                            <button
-                                type="button"
-                                class="password-toggle"
-                                onclick="togglePassword()">
-                                👁
-                            </button>
-                        </div>
+                    <div class="auth-extra-links">
+                        <a href="{% url 'forgot_password' %}" class="link-forgot-pw">Forgot Password?</a>
                     </div>
 
-                    <!-- OPTIONS -->
-                    <div class="login-options">
-                        <label class="remember">
-                            <input
-                                type="checkbox"
-                                name="remember"
-                            >
-                            <span>Remember me</span>
-                        </label>
-                        <a href="{% url 'forgot_password' %}">
-                            Forgot Password?
-                        </a>
-                      
-                    </div>
-
-                    <!-- LOGIN BUTTON -->
-                    <button
-                        type="submit"
-                        class="login-btn">
-                        Sign In →
+                    <button type="submit" class="btn-auth-submit">
+                        Sign In to Dashboard →
                     </button>
                 </form>
 
-                <!-- REGISTER LINK -->
-                <div class="register-link">
-                    Don't have an account?
-                    <a href="{% url 'register' %}">Register as Distributor</a>
+                <div class="auth-footer-prompt">
+                    Don't have a distributor account? <a href="{% url 'register' %}">Register here</a>
                 </div>
 
-                <div class="security-note">
-                    🔐 Your login is protected by secure authentication
-                </div>
-                <div class="footer">
-                    © 2026 Advance Billing System
-                </div>
             </div>
         </div>
+
     </div>
 
     <script>
-        function togglePassword() {
-            const password = document.getElementById("password");
-            if (password.type === "password") {
-                password.type = "text";
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
             } else {
-                password.type = "password";
+                input.type = 'password';
+                btn.textContent = '👁️';
             }
         }
     </script>
+
 </body>
 </html>

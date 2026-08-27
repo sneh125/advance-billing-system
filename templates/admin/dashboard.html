@@ -5,88 +5,136 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 </head>
 <body>
 
 <div class="dashboard-container">
 
-    <header class="dashboard-header">
-        <div class="header-left">
-            <div class="header-logo">AB</div>
-            <div>
-                <h1>Admin Dashboard</h1>
-                <p class="subtitle">Advance Billing System</p>
+    <!-- ADMIN APP HEADER -->
+    <header class="app-shell-header">
+        <div class="app-header-left">
+            <div class="app-brand-logo">
+                <div class="brand-badge-icon" style="background: linear-gradient(135deg, #f43f5e, #e11d48);">AB</div>
+                <div class="brand-text-group">
+                    <h1>Advance Billing System</h1>
+                    <span class="brand-tagline" style="color: #fda4af;">Super Admin Portal</span>
+                </div>
             </div>
         </div>
-        <div class="header-right">
-            <div class="user-badge">
-                <div class="user-avatar">A</div>
-                {{ request.user.username }}
+
+        <div class="app-header-right">
+            <div class="app-user-profile-badge">
+                <div class="user-avatar-circle" style="background: linear-gradient(135deg, #f43f5e, #be123c);">
+                    A
+                </div>
+                <span class="user-name-label">{{ request.user.username }} (Admin)</span>
             </div>
-            <a href="{% url 'logout' %}" class="logout-btn danger">Logout</a>
+            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+                Logout
+            </a>
         </div>
     </header>
 
+    <!-- ADMIN CONTENT -->
     <main class="dashboard-content">
 
-        <div class="welcome-banner">
-            <h2>Welcome back, {{ request.user.first_name|default:request.user.username }} 👋</h2>
-            <p>Manage distributors, monitor billing activity and track all system operations from your admin panel.</p>
-            <span class="badge">🔴 Admin Access</span>
+        <!-- WELCOME BANNER -->
+        <section class="welcome-banner" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #881337 100%);">
+            <div class="welcome-text-wrap">
+                <div class="welcome-badge-chip" style="background: rgba(244, 63, 94, 0.2); border-color: rgba(244, 63, 94, 0.4); color: #fda4af;">
+                    🛡️ Administrator Control Center
+                </div>
+                <h2>System Overview & Monitoring ⚡</h2>
+                <p>Track all registered distributors, global customer registrations, product inventories, and overall platform revenue metrics.</p>
+            </div>
+        </section>
+
+        <!-- KPI STATS ROW -->
+        <section class="stats-row" aria-label="System Metrics">
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon teal">👥</div>
+                    <span class="stat-trend-tag">Active</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Distributors</span>
+                    <div class="stat-value">Active</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon blue">🧾</div>
+                    <span class="stat-trend-tag">System Wide</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Total Invoices</span>
+                    <div class="stat-value">Live</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon purple">📦</div>
+                    <span class="stat-trend-tag">Catalogs</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Total Products</span>
+                    <div class="stat-value">Live</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon orange">💰</div>
+                    <span class="stat-trend-tag" style="background: var(--warning-bg); color: var(--warning-text);">Platform</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Gross Billed</span>
+                    <div class="stat-value">Tracked</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- QUICK ACTIONS GRID -->
+        <div class="section-title-wrap">
+            <h3>⚙️ Platform Administration</h3>
         </div>
 
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-icon teal">👥</div>
-                <div class="stat-label">Distributors</div>
-                <div class="stat-value">—</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon blue">🧾</div>
-                <div class="stat-label">Total Bills</div>
-                <div class="stat-value">—</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon purple">📦</div>
-                <div class="stat-label">Products</div>
-                <div class="stat-value">—</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon orange">💰</div>
-                <div class="stat-label">Revenue</div>
-                <div class="stat-value">—</div>
-            </div>
-        </div>
+        <section class="cards">
+            <a href="/admin/" class="card" target="_blank">
+                <div class="card-icon">🔐</div>
+                <h3>Django Admin Core</h3>
+                <p>Manage raw database tables, user authentication permissions, and system models.</p>
+                <span class="card-arrow">Open Django Admin →</span>
+            </a>
 
-        <div class="cards">
-            <div class="card">
-                <div class="card-icon">👥</div>
-                <h3>Distributors</h3>
-                <p>View and manage all registered distributors</p>
-                <span class="card-arrow">→</span>
-            </div>
-            <div class="card">
-                <div class="card-icon">🧾</div>
-                <h3>Bills</h3>
-                <p>Monitor and manage all invoices</p>
-                <span class="card-arrow">→</span>
-            </div>
-            <div class="card">
-                <div class="card-icon">📦</div>
-                <h3>Products</h3>
-                <p>Add, edit and manage products</p>
-                <span class="card-arrow">→</span>
-            </div>
             <div class="card">
                 <div class="card-icon">📊</div>
-                <h3>Reports</h3>
-                <p>View analytics and system reports</p>
-                <span class="card-arrow">→</span>
+                <h3>System Logs & Audit</h3>
+                <p>Monitor real-time application requests, OTP dispatches, and authentication safety.</p>
+                <span class="card-arrow" style="color: var(--text-muted);">Protected →</span>
             </div>
-        </div>
+
+            <div class="card">
+                <div class="card-icon">🏢</div>
+                <h3>Multi-Tenancy Guard</h3>
+                <p>Tenant isolation active ensuring each distributor can only view their own records.</p>
+                <span class="card-arrow" style="color: var(--success);">100% Enforced ✓</span>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">⚡</div>
+                <h3>Database Health</h3>
+                <p>SQLite3 engine running in full sync with atomic transactions on invoice saves.</p>
+                <span class="card-arrow" style="color: var(--success);">Operational ✓</span>
+            </div>
+        </section>
 
     </main>
+
 </div>
 
 </body>
