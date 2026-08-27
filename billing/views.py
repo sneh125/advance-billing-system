@@ -793,7 +793,7 @@ def invoice_detail(request, pk):
 @login_required
 def invoice_pdf(request, pk):
     """
-    Generate and download invoice as PDF.
+    Generate and download invoice as PDF with embedded dynamic QR code.
     Only the logged-in distributor can access his own invoice.
     """
     invoice = get_object_or_404(
@@ -807,10 +807,12 @@ def invoice_pdf(request, pk):
     )
 
     items = invoice.items.select_related("product").all()
+    qr_code = generate_invoice_qr(invoice)
 
     context = {
         "invoice": invoice,
         "items": items,
+        "qr_code": qr_code,
     }
 
     pdf = render_to_pdf(

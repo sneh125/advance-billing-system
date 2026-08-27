@@ -236,14 +236,26 @@
         </tbody>
     </table>
 
-    <!-- TOTALS BREAKDOWN -->
+    <!-- TOTALS & VERIFICATION BREAKDOWN -->
     <table class="totals-table">
         <tr>
             <td class="terms-box">
-                <strong>Terms & Conditions:</strong><br>
-                1. Goods once sold will not be taken back or exchanged.<br>
-                2. Payment is due upon receipt.<br>
-                3. This is a computer-generated tax invoice and requires no signature.
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        {% if qr_code %}
+                        <td style="width: 80px; vertical-align: top; padding-right: 10px;">
+                            <img src="data:image/png;base64,{{ qr_code }}" width="75" height="75" alt="Invoice QR Code" style="border: 0.5pt solid #cbd5e1; padding: 2px; background: #ffffff;" />
+                        </td>
+                        {% endif %}
+                        <td style="vertical-align: top; font-size: 8pt; color: #475569; line-height: 1.35;">
+                            <strong style="color: #0f766e;">Invoice QR Verification:</strong><br>
+                            Scan with any smartphone or QR reader to verify genuine bill details and product summary.<br><br>
+                            <strong>Terms & Conditions:</strong><br>
+                            1. Goods once sold will not be returned.<br>
+                            2. Computer generated tax invoice.
+                        </td>
+                    </tr>
+                </table>
             </td>
             <td style="width: 50%; vertical-align: top;">
                 <table style="width: 100%; border: 1pt solid #cbd5e1; border-collapse: collapse;">
@@ -263,6 +275,7 @@
             </td>
         </tr>
     </table>
+
 
 </body>
 </html>

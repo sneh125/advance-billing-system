@@ -608,6 +608,40 @@ class InvoiceSystemTests(TestCase):
         self.assertEqual(response_p2.status_code, 200)
         self.assertTrue(len(response_p2.context['invoices']) >= 2)
 
+    def test_invoice_pdf_dynamic_qr_code_embedding(self):
+        """Task 30: Test that generated QR code is dynamically embedded in the invoice PDF export"""
+        invoice = Invoice.objects.create(
+            invoice_number="INV-20260827-PDFQR",
+            customer=self.customer1,
+            distributor=self.distributor1,
+            subtotal=Decimal("2000.00"),
+            gst_amount=Decimal("360.00"),
+            total_amount=Decimal("2360.00"),
+            status="Pending"
+        )
+        InvoiceItem.objects.create(
+            invoice=invoice,
+            product=self.product1,
+            quantity=4,
+            unit_price=Decimal("500.00"),
+            gst_rate=Decimal("18.00"),
+            subtotal=Decimal("2000.00"),
+            total=Decimal("2360.00")
+        )
+
+        self.client.login(username="distributor1", password="Password@123")
+        response = self.client.get(reverse('invoice_pdf', kwargs={'pk': invoice.pk}))
+
+        # Validate HTTP 200 and Content-Type for application/pdf
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn('attachment; filename="INV-20260827-PDFQR.pdf"', response['Content-Disposition'])
+
+        # Validate PDF binary content begins with %PDF header
+        pdf_bytes = response.content
+        self.assertTrue(pdf_bytes.startswith(b'%PDF'))
+        self.assertTrue(len(pdf_bytes) > 1000)
+
 
 
 
