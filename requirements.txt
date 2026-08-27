@@ -7,3 +7,4 @@ reportlab==4.5.1
 pypdf==6.9.1
 html5lib==1.1
 Pillow==10.1.0
+qrcode==8.2

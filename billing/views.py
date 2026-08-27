@@ -12,6 +12,10 @@ from django.core.paginator import Paginator
 from django.db import models, transaction
 import uuid
 
+import qrcode
+import base64
+from io import BytesIO
+
 from .models import Customer, Product, Invoice, InvoiceItem
 from .forms import InvoiceCreateForm
 
@@ -701,22 +705,71 @@ def invoice_list(request):
     })
 
 
+def generate_invoice_qr(invoice):
+    """
+    Generate QR code containing important invoice information.
+    """
+    product_count = invoice.items.count()
+
+    qr_data = (
+        f"Invoice: {invoice.invoice_number}\n"
+        f"Customer: {invoice.customer.name}\n"
+        f"Products: {product_count}\n"
+        f"Total: ₹{invoice.total_amount}\n"
+        f"Date: {invoice.created_at.strftime('%d %b %Y')}"
+    )
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=8,
+        border=4,
+    )
+
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+
+    qr_image = qr.make_image(
+        fill_color="black",
+        back_color="white"
+    )
+
+    buffer = BytesIO()
+    qr_image.save(buffer, format="PNG")
+
+    qr_base64 = base64.b64encode(
+        buffer.getvalue()
+    ).decode("utf-8")
+
+    return qr_base64
+
+
 @login_required
 def invoice_detail(request, pk):
     """
-    Detailed view and printable invoice view.
+    Detailed invoice view with dynamically generated QR code.
     """
     invoice = get_object_or_404(
-        Invoice.objects.select_related("customer", "distributor"),
+        Invoice.objects.select_related(
+            "customer",
+            "distributor"
+        ),
         pk=pk,
         distributor=request.user
     )
-    items = invoice.items.select_related("product").all()
 
-    return render(request, "billing/invoice_detail.html", {
-        "invoice": invoice,
-        "items": items,
-    })
+    items = invoice.items.select_related("product").all()
+    qr_code = generate_invoice_qr(invoice)
+
+    return render(
+        request,
+        "billing/invoice_detail.html",
+        {
+            "invoice": invoice,
+            "items": items,
+            "qr_code": qr_code,
+        }
+    )
 
 @login_required
 def invoice_pdf(request, pk):

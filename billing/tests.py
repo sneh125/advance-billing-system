@@ -504,6 +504,46 @@ class InvoiceSystemTests(TestCase):
         response2 = self.client.get(reverse('invoice_pdf', kwargs={'pk': invoice.pk}))
         self.assertEqual(response2.status_code, 404)
 
+    def test_invoice_qr_code_generation_and_detail_view(self):
+        """Task 28: Test dynamic QR code generation from invoice data and detail view rendering"""
+        from billing.views import generate_invoice_qr
+        import base64
+
+        invoice = Invoice.objects.create(
+            invoice_number="INV-20260827-QRTEST",
+            customer=self.customer1,
+            distributor=self.distributor1,
+            subtotal=Decimal("1000.00"),
+            gst_amount=Decimal("180.00"),
+            total_amount=Decimal("1180.00"),
+            status="Pending"
+        )
+        InvoiceItem.objects.create(
+            invoice=invoice,
+            product=self.product1,
+            quantity=2,
+            unit_price=Decimal("500.00"),
+            gst_rate=Decimal("18.00"),
+            subtotal=Decimal("1000.00"),
+            total=Decimal("1180.00")
+        )
+
+        # 1. Test generate_invoice_qr helper function produces valid base64 PNG data
+        qr_b64 = generate_invoice_qr(invoice)
+        self.assertIsInstance(qr_b64, str)
+        self.assertTrue(len(qr_b64) > 100)
+        decoded_bytes = base64.b64decode(qr_b64)
+        self.assertTrue(decoded_bytes.startswith(b'\x89PNG\r\n\x1a\n'))
+
+        # 2. Test invoice_detail view embeds QR in context and response HTML
+        self.client.login(username="distributor1", password="Password@123")
+        response = self.client.get(reverse('invoice_detail', kwargs={'pk': invoice.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('qr_code', response.context)
+        self.assertEqual(response.context['qr_code'], qr_b64)
+        self.assertContains(response, 'data:image/png;base64,')
+        self.assertContains(response, 'Invoice Verification QR Code')
+
 
 
 
