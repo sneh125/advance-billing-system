@@ -5,174 +5,223 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice {{ invoice.invoice_number }} | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/invoices.css' %}">
-    <style>
-        @media print {
-            .dashboard-header, .invoice-action-bar, .breadcrumbs { display: none !important; }
-            .invoice-page-content { padding: 0 !important; max-width: 100% !important; }
-            .invoice-paper { box-shadow: none !important; border: none !important; padding: 0 !important; }
-            body { background: #ffffff !important; }
-        }
-    </style>
 </head>
 <body>
 
 <div class="invoice-page-layout">
 
-    <!-- TOP HEADER -->
-    <header class="dashboard-header">
-        <div class="header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="header-logo">AB</a>
-            <div class="header-title-group">
-                <h1>Invoice Preview</h1>
-                <p class="subtitle">Advance Billing System</p>
-            </div>
-        </div>
-        <div class="header-right">
-            <div class="user-badge">
-                <div class="user-avatar">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+    <!-- UNIFIED APP HEADER -->
+    <header class="app-shell-header">
+        <div class="app-header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
+                <div class="brand-badge-icon">AB</div>
+                <div class="brand-text-group">
+                    <h1>Advance Billing System</h1>
+                    <span class="brand-tagline">Distributor Cloud Workspace</span>
                 </div>
-                <span>{{ request.user.first_name|default:request.user.username }}</span>
-            </div>
-            <a href="{% url 'invoice_list' %}" class="nav-link-btn">All Invoices</a>
-            <a href="{% url 'invoice_create' %}" class="nav-link-btn">+ New Invoice</a>
-            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            </a>
+
+            <!-- NAVIGATION PILL TABS -->
+            <nav class="app-nav-pills" aria-label="Main Navigation">
+                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
+                    📊 Dashboard
+                </a>
+                <a href="{% url 'customer_list' %}" class="app-nav-link">
+                    👥 Customers
+                </a>
+                <a href="{% url 'product_list' %}" class="app-nav-link">
+                    📦 Products
+                </a>
+                <a href="{% url 'invoice_list' %}" class="app-nav-link active">
+                    🧾 Invoices
+                </a>
+                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
+                    👤 My Profile
+                </a>
+            </nav>
+        </div>
+
+        <div class="app-header-right">
+            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
+                ⚡ + Quick Bill
+            </a>
+            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
+                <div class="user-avatar-circle">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                    <span class="avatar-online-dot"></span>
+                </div>
+                <div class="user-info-text-col">
+                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
+                    <span class="user-role-subtag">Distributor</span>
+                </div>
+            </a>
+            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+                Logout
+            </a>
+            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
+                ☰
+            </button>
         </div>
     </header>
 
-    <main class="invoice-page-content">
+    <!-- MOBILE NAV DRAWER -->
+    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
+        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
+        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
+        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
+        <a href="{% url 'invoice_list' %}" class="app-nav-link active">🧾 Invoices</a>
+        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
+        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
+    </nav>
 
-        <!-- ACTION BAR -->
-        <div class="invoice-action-bar">
-            <nav class="breadcrumbs" aria-label="breadcrumb">
+    <main class="invoice-page-content" style="max-width: 960px;">
+
+        <!-- ACTION & BREADCRUMB BAR -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+            <nav class="breadcrumbs-nav" aria-label="Breadcrumb">
                 <a href="{% url 'distributor_dashboard' %}">Dashboard</a>
-                <span class="separator">/</span>
+                <span>/</span>
                 <a href="{% url 'invoice_list' %}">Invoices</a>
-                <span class="separator">/</span>
-                <span class="current">{{ invoice.invoice_number }}</span>
+                <span>/</span>
+                <span class="current-crumb">{{ invoice.invoice_number }}</span>
             </nav>
-            <div class="action-buttons-group">
-                <a href="{% url 'invoice_pdf' invoice.pk %}" class="btn-print-invoice">
+
+            <div style="display: flex; align-items: center; gap: 10px;" class="action-buttons-group">
+                <a href="{% url 'invoice_pdf' invoice.pk %}" class="btn-form-submit" style="text-decoration: none; padding: 9px 18px; font-size: 13.5px;">
                     📄 Download PDF
                 </a>
-                <button type="button" class="btn-print-invoice" onclick="window.print()">
-                    🖨️ Print
+                <button type="button" class="btn-form-cancel" onclick="window.print()" style="padding: 9px 16px; font-size: 13.5px; cursor: pointer;">
+                    🖨️ Print Invoice
                 </button>
-                
-                <a href="{% url 'invoice_create' %}" class="btn-new-inv">
-                    + Create Another
+                <a href="{% url 'invoice_create' %}" class="btn-form-cancel" style="padding: 9px 16px; font-size: 13.5px;">
+                    + New Invoice
                 </a>
             </div>
         </div>
 
-        <!-- PRINTABLE INVOICE PAPER -->
-        <div class="invoice-paper">
+        <!-- PRINTABLE INVOICE PAPER CARD -->
+        <div class="invoice-paper-card">
 
-            <!-- INVOICE TOP BAR -->
-            <div class="invoice-paper-header">
-                <div class="invoice-brand-col">
-                    <div class="brand-badge-pill">
-                        <div class="brand-mini-logo">AB</div>
-                        <div>
-                            <h2>Advance Billing</h2>
-                            <small>Enterprise Billing & GST Invoicing</small>
-                        </div>
-                    </div>
-                    <div class="distributor-meta" style="margin-top: 14px;">
-                        <strong>Billed By:</strong>
-                        <p>{{ request.user.get_full_name|default:request.user.username }}</p>
-                        <p>Email: {{ request.user.email }}</p>
-                    </div>
+            <!-- PAPER HEADER -->
+            <div class="invoice-paper-top">
+                <div>
+                    <div class="paper-brand-title">Advance Billing System</div>
+                    <div style="font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">Smart GST Billing Engine</div>
                 </div>
-
-                <div class="invoice-meta-col">
-                    <div class="invoice-title-badge">TAX INVOICE</div>
-                    <div class="meta-row">
-                        <span>Invoice Number:</span>
-                        <strong class="inv-num">{{ invoice.invoice_number }}</strong>
-                    </div>
-                    <div class="meta-row">
-                        <span>Date Issued:</span>
-                        <span>{{ invoice.created_at|date:"d M Y, h:i A" }}</span>
-                    </div>
-                    <div class="meta-row">
-                        <span>Status:</span>
-                        <span class="status-pill-print">{{ invoice.status }}</span>
-                    </div>
+                <div>
+                    <div class="paper-invoice-title">TAX INVOICE</div>
+                    <div style="font-size: 13px; color: var(--text-muted); font-family: var(--font-mono); text-align: right; margin-top: 4px;"><strong>Invoice #:</strong> {{ invoice.invoice_number }}</div>
+                    <div style="font-size: 12.5px; color: var(--text-muted); text-align: right;"><strong>Date:</strong> {{ invoice.created_at|date:"d M Y, h:i A" }}</div>
                 </div>
             </div>
 
-            <div class="invoice-divider"></div>
-
-            <!-- BILL TO SECTION -->
-            <div class="bill-to-grid">
-                <div class="bill-col">
-                    <span class="col-title">Billed To (Customer)</span>
-                    <h3 class="customer-name-heading">{{ invoice.customer.name }}</h3>
-                    <p><strong>Phone:</strong> {{ invoice.customer.phone }}</p>
-                    {% if invoice.customer.email %}
-                    <p><strong>Email:</strong> {{ invoice.customer.email }}</p>
+            <!-- PARTIES INFO -->
+            <div class="paper-parties-grid">
+                <div class="party-info-box">
+                    <div class="party-box-title">Billed By (Distributor)</div>
+                    <div class="party-name-bold">{{ invoice.distributor.get_full_name|default:invoice.distributor.username }}</div>
+                    <div class="party-detail-line">✉️ {{ invoice.distributor.email }}</div>
+                    {% if invoice.distributor.distributor_profile.phone %}
+                    <div class="party-detail-line">📞 {{ invoice.distributor.distributor_profile.phone }}</div>
                     {% endif %}
-                    <p><strong>Address:</strong> {{ invoice.customer.address|default:"N/A" }}, {{ invoice.customer.city }}, {{ invoice.customer.state }} - {{ invoice.customer.pincode }}</p>
+                </div>
+
+                <div class="party-info-box">
+                    <div class="party-box-title">Billed To (Customer)</div>
+                    <div class="party-name-bold">{{ invoice.customer.name }}</div>
+                    <div class="party-detail-line">📞 {{ invoice.customer.phone }}</div>
+                    {% if invoice.customer.email %}
+                    <div class="party-detail-line">✉️ {{ invoice.customer.email }}</div>
+                    {% endif %}
+                    <div class="party-detail-line">📍 {{ invoice.customer.address|default:"N/A" }}, {{ invoice.customer.city }}, {{ invoice.customer.state }} - {{ invoice.customer.pincode }}</div>
                 </div>
             </div>
 
             <!-- LINE ITEMS TABLE -->
-            <div class="paper-table-wrap">
-                <table class="paper-items-table">
+            <div style="overflow-x: auto; margin-bottom: 28px;">
+                <table class="saas-data-table">
                     <thead>
                         <tr>
-                            <th style="width: 5%;">#</th>
-                            <th style="width: 35%;">Item & Description</th>
-                            <th style="width: 15%; text-align: right;">Unit Price</th>
+                            <th style="width: 6%; text-align: center;">#</th>
+                            <th style="width: 38%;">Item & Description</th>
+                            <th style="width: 14%; text-align: right;">Price (₹)</th>
                             <th style="width: 10%; text-align: center;">Qty</th>
-                            <th style="width: 15%; text-align: right;">Taxable Subtotal</th>
-                            <th style="width: 10%; text-align: center;">GST %</th>
-                            <th style="width: 15%; text-align: right;">Item Total</th>
+                            <th style="width: 14%; text-align: right;">Subtotal</th>
+                            <th style="width: 8%; text-align: center;">GST</th>
+                            <th style="width: 10%; text-align: right;">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in items %}
                         <tr>
-                            <td>{{ forloop.counter }}</td>
+                            <td style="text-align: center;">{{ forloop.counter }}</td>
                             <td>
-                                <strong>{{ item.product.name }}</strong>
+                                <strong style="color: var(--text-main);">{{ item.product.name }}</strong>
                                 {% if item.product.description %}
-                                <div class="item-desc">{{ item.product.description|truncatechars:60 }}</div>
+                                <br><small style="color: var(--text-muted); font-size: 12px;">{{ item.product.description }}</small>
                                 {% endif %}
                             </td>
-                            <td style="text-align: right;">₹{{ item.unit_price }}</td>
+                            <td style="text-align: right; font-family: var(--font-mono);">₹{{ item.unit_price }}</td>
                             <td style="text-align: center;">{{ item.quantity }}</td>
-                            <td style="text-align: right;">₹{{ item.subtotal }}</td>
-                            <td style="text-align: center;">{{ item.gst_rate }}%</td>
-                            <td style="text-align: right;"><strong>₹{{ item.total }}</strong></td>
+                            <td style="text-align: right; font-family: var(--font-mono);">₹{{ item.subtotal }}</td>
+                            <td style="text-align: center;"><span class="gst-rate-tag">{{ item.gst_rate }}%</span></td>
+                            <td style="text-align: right; font-family: var(--font-mono); font-weight: 700;">₹{{ item.total }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
 
-            <!-- INVOICE TOTALS BREAKDOWN -->
-            <div class="invoice-summary-bottom">
-                <div class="bottom-notes">
-                    <strong>Payment Terms:</strong>
-                    <p>Payment is due upon receipt. This is a computer-generated tax invoice and requires no physical signature.</p>
+            <!-- TOTALS & TERMS -->
+            <div style="display: grid; grid-template-columns: 1fr 320px; gap: 32px; align-items: start;">
+                <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
+                    <strong style="color: var(--text-main);">Terms & Conditions:</strong><br>
+                    1. Goods once sold will not be returned.<br>
+                    2. Payment is due immediately upon receipt.<br>
+                    3. This is a computer-generated tax invoice.
                 </div>
 
-                <div class="totals-table-wrap">
-                    <div class="total-row">
-                        <span>Taxable Amount (Subtotal):</span>
-                        <span>₹{{ invoice.subtotal }}</span>
+                <div style="background: var(--slate-50); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: var(--text-secondary);">
+                        <span>Taxable Subtotal:</span>
+                        <strong style="font-family: var(--font-mono); color: var(--text-main);">₹{{ invoice.subtotal }}</strong>
                     </div>
-                    <div class="total-row">
-                        <span>GST Tax Amount:</span>
-                        <span>₹{{ invoice.gst_amount }}</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: var(--text-secondary);">
+                        <span>GST Tax Total:</span>
+                        <strong style="font-family: var(--font-mono); color: #7c3aed;">₹{{ invoice.gst_amount }}</strong>
                     </div>
-                    <div class="total-row grand-total-row">
+                    <div style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; color: var(--primary-800);">
                         <span>Grand Total:</span>
-                        <span class="grand-total-val">₹{{ invoice.total_amount }}</span>
+                        <span style="font-family: var(--font-mono); color: var(--primary-700);">₹{{ invoice.total_amount }}</span>
                     </div>
+                </div>
+            </div>
+
+            <!-- QR CODE VERIFICATION SECTION -->
+            <div class="invoice-qr-section">
+                <div class="qr-content">
+                    <div class="qr-text-block">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <span style="font-size: 16px;">📱</span>
+                            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-main);">Invoice Verification QR Code</h3>
+                        </div>
+                        <p style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 13px;">
+                            Scan this QR code with any camera or scanner to verify genuine invoice details (Invoice #, Customer, Products count, and Total Amount).
+                        </p>
+                        <div class="qr-meta-chips" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span style="font-size: 11.5px; background: var(--primary-50); color: var(--primary-800); padding: 3px 10px; border-radius: var(--radius-full); font-weight: 600; border: 1px solid var(--primary-200);">✓ Digital Verification</span>
+                            <span style="font-size: 11.5px; background: var(--slate-100); color: var(--slate-700); padding: 3px 10px; border-radius: var(--radius-full); font-weight: 600; border: 1px solid var(--slate-200);">Auto-Generated</span>
+                        </div>
+                    </div>
+
+                    {% if qr_code %}
+                    <div class="qr-code-box">
+                        <img src="data:image/png;base64,{{ qr_code }}" alt="Invoice Verification QR Code">
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -181,6 +230,15 @@
     </main>
 
 </div>
+
+<script>
+    function toggleMobileNav() {
+        const drawer = document.getElementById('mobileNavDrawer');
+        if (drawer) {
+            drawer.classList.toggle('active');
+        }
+    }
+</script>
 
 </body>
 </html>
