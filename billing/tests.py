@@ -544,6 +544,70 @@ class InvoiceSystemTests(TestCase):
         self.assertContains(response, 'data:image/png;base64,')
         self.assertContains(response, 'Invoice Verification QR Code')
 
+    def test_dynamic_invoice_and_item_retrieval_with_product_summary(self):
+        """Task 29: Test dynamic retrieval of customer, date, total bill, and product summary in invoice directory"""
+        invoice = Invoice.objects.create(
+            invoice_number="INV-20260827-TASK29",
+            customer=self.customer1,
+            distributor=self.distributor1,
+            subtotal=Decimal("1500.00"),
+            gst_amount=Decimal("270.00"),
+            total_amount=Decimal("1770.00"),
+            status="Pending"
+        )
+        InvoiceItem.objects.create(
+            invoice=invoice,
+            product=self.product1,
+            quantity=3,
+            unit_price=Decimal("500.00"),
+            gst_rate=Decimal("18.00"),
+            subtotal=Decimal("1500.00"),
+            total=Decimal("1770.00")
+        )
+
+        self.client.login(username="distributor1", password="Password@123")
+        response = self.client.get(reverse('invoice_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "INV-20260827-TASK29")
+        self.assertContains(response, self.customer1.name)
+        self.assertContains(response, "1770.00")
+        self.assertContains(response, f"{self.product1.name} (x3)")
+        self.assertContains(response, "1 Item")
+
+    def test_invoice_list_pagination(self):
+        """Task 29: Test pagination functionality when invoices exceed 10 records"""
+        for i in range(12):
+            inv = Invoice.objects.create(
+                invoice_number=f"INV-PAG-{i:03d}",
+                customer=self.customer1,
+                distributor=self.distributor1,
+                subtotal=Decimal("100.00"),
+                gst_amount=Decimal("18.00"),
+                total_amount=Decimal("118.00"),
+                status="Pending"
+            )
+            InvoiceItem.objects.create(
+                invoice=inv,
+                product=self.product1,
+                quantity=1,
+                unit_price=Decimal("100.00"),
+                gst_rate=Decimal("18.00"),
+                subtotal=Decimal("100.00"),
+                total=Decimal("118.00")
+            )
+
+        self.client.login(username="distributor1", password="Password@123")
+        # Page 1
+        response = self.client.get(reverse('invoice_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['invoices']), 10)
+        self.assertTrue(response.context['page_obj'].has_next())
+
+        # Page 2
+        response_p2 = self.client.get(reverse('invoice_list') + '?page=2')
+        self.assertEqual(response_p2.status_code, 200)
+        self.assertTrue(len(response_p2.context['invoices']) >= 2)
+
 
 
 

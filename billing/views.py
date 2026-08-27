@@ -682,10 +682,16 @@ def invoice_create(request):
 @login_required
 def invoice_list(request):
     """
-    Invoice directory listing with distributor ownership isolation and search.
+    Invoice directory listing with dynamic data retrieval from Invoice and InvoiceItem models,
+    including customer name, total bill, date, product summary, and pagination.
     """
     search_query = request.GET.get("q", "").strip()
-    invoices_qs = Invoice.objects.filter(distributor=request.user).select_related("customer").order_by("-created_at")
+    invoices_qs = (
+        Invoice.objects.filter(distributor=request.user)
+        .select_related("customer")
+        .prefetch_related("items__product")
+        .order_by("-created_at")
+    )
 
     if search_query:
         invoices_qs = invoices_qs.filter(
@@ -697,8 +703,21 @@ def invoice_list(request):
     total_invoices = invoices_qs.count()
     total_billed = sum(inv.total_amount for inv in invoices_qs)
 
+    # Attach dynamic product summary and item count for each invoice
+    for inv in invoices_qs:
+        item_list = list(inv.items.all())
+        inv.product_count = len(item_list)
+        inv.product_summary = ", ".join(f"{item.product.name} (x{item.quantity})" for item in item_list)
+        inv.product_names = [item.product.name for item in item_list]
+
+    # Pagination (10 items per page)
+    paginator = Paginator(invoices_qs, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
     return render(request, "billing/invoice_list.html", {
-        "invoices": invoices_qs,
+        "invoices": page_obj,
+        "page_obj": page_obj,
         "search_query": search_query,
         "total_invoices": total_invoices,
         "total_billed": total_billed,

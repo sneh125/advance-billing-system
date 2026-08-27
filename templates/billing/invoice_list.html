@@ -132,12 +132,12 @@
                 <table class="saas-data-table" aria-label="Invoices Table">
                     <thead>
                         <tr>
-                            <th style="width: 22%;">Invoice #</th>
-                            <th style="width: 24%;">Customer</th>
-                            <th style="width: 16%;">Date & Time</th>
-                            <th style="width: 14%; text-align: right;">Total Amount</th>
-                            <th style="width: 10%;">Status</th>
-                            <th style="width: 14%; text-align: right;">Actions</th>
+                            <th style="width: 18%;">Invoice #</th>
+                            <th style="width: 18%;">Customer</th>
+                            <th style="width: 26%;">Product Summary</th>
+                            <th style="width: 13%;">Date & Time</th>
+                            <th style="width: 13%; text-align: right;">Total Bill</th>
+                            <th style="width: 12%; text-align: right;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -155,18 +155,25 @@
                                 </div>
                             </td>
                             <td>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                        <span class="product-count-chip">
+                                            📦 {{ inv.product_count|default:inv.items.count }} Item{{ inv.product_count|default:inv.items.count|pluralize }}
+                                        </span>
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; max-width: 320px;" title="{{ inv.product_summary }}">
+                                        {{ inv.product_summary|default:"No items" }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
                                 <span style="font-size: 13px; color: var(--text-secondary);">{{ inv.created_at|date:"d M Y, h:i A" }}</span>
                             </td>
                             <td style="text-align: right;">
                                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
-                                    <strong style="font-size: 15px; color: var(--text-main); font-family: var(--font-mono);">₹{{ inv.total_amount }}</strong>
-                                    <small style="font-size: 11.5px; color: var(--text-muted);">GST: ₹{{ inv.gst_amount }}</small>
+                                    <strong style="font-size: 15px; color: var(--primary-800); font-family: var(--font-mono);">₹{{ inv.total_amount }}</strong>
+                                    <small style="font-size: 11px; color: var(--text-muted);">Sub: ₹{{ inv.subtotal }} | GST: ₹{{ inv.gst_amount }}</small>
                                 </div>
-                            </td>
-                            <td>
-                                <span class="status-badge-active" style="background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border);">
-                                    ● {{ inv.status }}
-                                </span>
                             </td>
                             <td style="text-align: right;">
                                 <div class="action-buttons-wrap">
@@ -183,6 +190,39 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- PAGINATION -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination-wrapper" style="padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-color); background: var(--slate-50);">
+                <div style="font-size: 13px; color: var(--text-muted);">
+                    Showing page <strong>{{ page_obj.number }}</strong> of <strong>{{ page_obj.paginator.num_pages }}</strong>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn-page-nav">
+                        ← Previous
+                    </a>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if num == page_obj.number %}
+                    <span class="btn-page-nav active">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn-page-nav">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn-page-nav">
+                        Next →
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             {% else %}
             <!-- EMPTY STATE -->
             <div class="empty-state-wrap">
