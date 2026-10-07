@@ -1,7 +1,10 @@
 import secrets
+import json
 from datetime import timedelta
 
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -782,3 +785,111 @@ def update_profile(request):
             "phone": profile.phone,
         }
     )
+
+
+# ==============================================================================
+# ADMIN USER REGISTRATION API ENDPOINT
+# ==============================================================================
+
+@csrf_exempt
+def admin_register_api(request):
+    """
+    REST API endpoint for registering Admin users.
+    Accepts JSON or Form POST data:
+        - username (required, unique, min 3 chars)
+        - email (required, unique, valid email format)
+        - password (required, min 8 chars)
+        - first_name / name (optional, admin full name)
+    Creates User with is_staff=True, is_superuser=True.
+    Returns:
+        HTTP 201 Created with JSON on success
+        HTTP 400 Bad Request on validation failure
+        HTTP 405 Method Not Allowed for non-POST
+    """
+    if request.method != "POST":
+        return JsonResponse({
+            "status": "error",
+            "message": "Method not allowed. Only POST requests are supported."
+        }, status=405)
+
+    # Parse payload (supports both application/json and form-data)
+    data = {}
+    if request.content_type == "application/json" and request.body:
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JsonResponse({
+                "status": "error",
+                "message": "Malformed JSON payload in request body."
+            }, status=400)
+    else:
+        data = request.POST.dict()
+
+    username = str(data.get("username", "")).strip()
+    email = str(data.get("email", "")).strip().lower()
+    password = str(data.get("password", ""))
+    first_name = str(data.get("name", "") or data.get("first_name", "")).strip()
+
+    errors = {}
+
+    # 1. Username validation
+    if not username:
+        errors["username"] = "Username is required."
+    elif len(username) < 3:
+        errors["username"] = "Username must be at least 3 characters long."
+    elif User.objects.filter(username=username).exists():
+        errors["username"] = "A user with this username already exists."
+
+    # 2. Email validation
+    if not email:
+        errors["email"] = "Email address is required."
+    else:
+        try:
+            validate_email(email)
+        except ValidationError:
+            errors["email"] = "Please enter a valid email address."
+        if User.objects.filter(email=email).exists():
+            errors["email"] = "An account with this email already exists."
+
+    # 3. Password validation
+    if not password:
+        errors["password"] = "Password is required."
+    elif len(password) < 8:
+        errors["password"] = "Password must be at least 8 characters long."
+
+    if errors:
+        return JsonResponse({
+            "status": "error",
+            "message": "Validation failed.",
+            "errors": errors
+        }, status=400)
+
+    try:
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            first_name=first_name
+        )
+        user.is_staff = True
+        user.is_superuser = True
+        user.save()
+
+        return JsonResponse({
+            "status": "success",
+            "message": "Admin user registered successfully.",
+            "data": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser,
+            }
+        }, status=201)
+
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": f"Server error creating admin account: {str(e)}"
+        }, status=500)

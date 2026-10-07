@@ -1,8 +1,9 @@
+import json
+from datetime import timedelta
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
-from datetime import timedelta
 
 from .models import DistributorProfile, PasswordResetOTP
 
@@ -126,3 +127,59 @@ class AccountAuthenticationTests(TestCase):
         })
         self.assertEqual(response_expired.status_code, 200)
         self.assertContains(response_expired, "expired")
+
+    def test_admin_register_api_success(self):
+        """Task 32: Test registering an Admin user via JSON API endpoint returns 201"""
+        payload = {
+            "username": "superadmin_test",
+            "email": "superadmin@billing.local",
+            "password": "AdminSecurePassword@123",
+            "name": "Super Admin User"
+        }
+        response = self.client.post(
+            reverse('admin_register_api'),
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["data"]["username"], "superadmin_test")
+        self.assertTrue(data["data"]["is_staff"])
+        self.assertTrue(data["data"]["is_superuser"])
+
+        # Check in DB
+        admin_user = User.objects.get(username="superadmin_test")
+        self.assertTrue(admin_user.is_staff)
+        self.assertTrue(admin_user.is_superuser)
+        self.assertTrue(admin_user.check_password("AdminSecurePassword@123"))
+
+    def test_admin_register_api_validations(self):
+        """Task 32: Test validation failures on missing fields, short password, duplicate username/email"""
+        # 1. Missing username & password
+        resp1 = self.client.post(
+            reverse('admin_register_api'),
+            data=json.dumps({"email": "bad@example.com"}),
+            content_type="application/json"
+        )
+        self.assertEqual(resp1.status_code, 400)
+        self.assertIn("username", resp1.json()["errors"])
+        self.assertIn("password", resp1.json()["errors"])
+
+        # 2. Duplicate email
+        resp2 = self.client.post(
+            reverse('admin_register_api'),
+            data=json.dumps({
+                "username": "brand_new_admin",
+                "email": "test_dist@example.com",  # Already exists from setUp
+                "password": "ValidPassword@123"
+            }),
+            content_type="application/json"
+        )
+        self.assertEqual(resp2.status_code, 400)
+        self.assertIn("email", resp2.json()["errors"])
+
+        # 3. Method not allowed for GET
+        resp_get = self.client.get(reverse('admin_register_api'))
+        self.assertEqual(resp_get.status_code, 405)
+

@@ -72,9 +72,15 @@ urlpatterns = [
     ),
 
     path(
-    "distributor/profile/update/",
-    views.update_profile,
-    name="update_profile"
+        "distributor/profile/update/",
+        views.update_profile,
+        name="update_profile"
+    ),
+
+    path(
+        "api/admin/register/",
+        views.admin_register_api,
+        name="admin_register_api"
     ),
 
 ]
