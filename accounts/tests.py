@@ -209,4 +209,69 @@ class AccountAuthenticationTests(TestCase):
         self.assertTrue(admin_user.is_superuser)
         self.assertTrue(admin_user.check_password('ChiefPassword@123'))
 
+    def test_admin_password_recovery_full_flow(self):
+        """Task 34: Test complete backend logic for Admin password recovery flow"""
+        # Create an admin user
+        admin = User.objects.create_user(
+            username="ops_admin",
+            email="ops_admin@billing.local",
+            password="InitialPassword@123",
+            first_name="Ops Administrator"
+        )
+        admin.is_staff = True
+        admin.is_superuser = True
+        admin.save()
+
+        # 1. Request OTP via Admin Forgot Password API
+        resp1 = self.client.post(
+            reverse('api_admin_forgot_password'),
+            data=json.dumps({"email": "ops_admin@billing.local"}),
+            content_type="application/json"
+        )
+        self.assertEqual(resp1.status_code, 200)
+        self.assertTrue(resp1.json()["otp_sent"])
+
+        otp_record = PasswordResetOTP.objects.filter(email="ops_admin@billing.local").first()
+        self.assertIsNotNone(otp_record)
+        otp = otp_record.otp
+
+        # 2. Verify OTP
+        resp2 = self.client.post(
+            reverse('api_admin_verify_otp'),
+            data=json.dumps({"email": "ops_admin@billing.local", "otp": otp}),
+            content_type="application/json"
+        )
+        self.assertEqual(resp2.status_code, 200)
+        self.assertTrue(resp2.json()["otp_verified"])
+
+        # 3. Reset Password
+        resp3 = self.client.post(
+            reverse('api_admin_reset_password'),
+            data=json.dumps({
+                "email": "ops_admin@billing.local",
+                "password": "NewAdminPassword@2026",
+                "confirm_password": "NewAdminPassword@2026"
+            }),
+            content_type="application/json"
+        )
+        self.assertEqual(resp3.status_code, 200)
+        self.assertEqual(resp3.json()["status"], "success")
+
+        # Verify new password works
+        admin.refresh_from_db()
+        self.assertTrue(admin.check_password("NewAdminPassword@2026"))
+        self.assertFalse(admin.check_password("InitialPassword@123"))
+
+    def test_admin_password_recovery_rejects_non_admin(self):
+        """Task 34: Test that non-admin accounts are rejected by Admin recovery backend"""
+        # user in setUp is not staff
+        resp = self.client.post(
+            reverse('api_admin_forgot_password'),
+            data=json.dumps({"email": "test_dist@example.com"}),
+            content_type="application/json"
+        )
+        self.assertEqual(resp.status_code, 403)
+        self.assertIn("does not belong to an Administrator account", resp.json()["message"])
+
+
 

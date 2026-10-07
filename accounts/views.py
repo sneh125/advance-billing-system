@@ -984,4 +984,221 @@ def admin_register_view(request):
             return render(request, "accounts/admin_register.html", context)
 
     return render(request, "accounts/admin_register.html")
+
+
+# ==============================================================================
+# ADMIN PASSWORD RECOVERY BACKEND LOGIC
+# ==============================================================================
+
+@csrf_exempt
+def admin_forgot_password(request):
+    """
+    Backend logic for Admin password recovery - Step 1: Request OTP.
+    Ensures the account has is_staff=True (Admin privilege verification).
+    """
+    if request.method == "POST":
+        data = {}
+        if request.content_type == "application/json" and request.body:
+            try:
+                data = json.loads(request.body.decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                return JsonResponse({"status": "error", "message": "Invalid JSON."}, status=400)
+        else:
+            data = request.POST.dict()
+
+        email = str(data.get("email", "")).strip().lower()
+
+        if not email:
+            error_msg = "Please enter administrator email address."
+            if request.content_type == "application/json":
+                return JsonResponse({"status": "error", "message": error_msg}, status=400)
+            return render(request, "accounts/forgot_password.html", {"error": error_msg, "is_admin": True})
+
+        # Check if user exists and verify admin role (is_staff=True)
+        user = User.objects.filter(email=email).first()
+        if not user:
+            error_msg = "No administrator account found with this email address."
+            if request.content_type == "application/json":
+                return JsonResponse({"status": "error", "message": error_msg}, status=404)
+            return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "is_admin": True})
+
+        if not user.is_staff:
+            error_msg = "This email does not belong to an Administrator account. Access denied."
+            if request.content_type == "application/json":
+                return JsonResponse({"status": "error", "message": error_msg}, status=403)
+            return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "is_admin": True})
+
+        # Invalidate previous unverified OTPs
+        PasswordResetOTP.objects.filter(email=email, is_verified=False).delete()
+
+        # Generate new 6-digit OTP (5-minute expiry)
+        otp = generate_otp()
+        expires_at = timezone.now() + timedelta(minutes=5)
+        PasswordResetOTP.objects.create(email=email, otp=otp, expires_at=expires_at)
+
+        print(f"[AUTH-ADMIN] Generated Password Recovery OTP for Admin {email}: {otp}")
+
+        success_msg = f"A 6-digit admin verification code has been generated for {email}."
+        if request.content_type == "application/json":
+            return JsonResponse({
+                "status": "success",
+                "message": success_msg,
+                "email": email,
+                "otp_sent": True
+            }, status=200)
+
+        return render(request, "accounts/forgot_password.html", {
+            "email": email,
+            "otp_sent": True,
+            "is_admin": True,
+            "message": success_msg
+        })
+
+    return render(request, "accounts/forgot_password.html", {"is_admin": True})
+
+
+@csrf_exempt
+def admin_verify_otp(request):
+    """
+    Backend logic for Admin password recovery - Step 2: Verify OTP.
+    Validates OTP matches and is not expired, ensuring admin role.
+    """
+    if request.method != "POST":
+        return redirect("admin_forgot_password")
+
+    data = {}
+    if request.content_type == "application/json" and request.body:
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JsonResponse({"status": "error", "message": "Invalid JSON."}, status=400)
+    else:
+        data = request.POST.dict()
+
+    email = str(data.get("email", "")).strip().lower()
+    otp = str(data.get("otp", "")).strip()
+
+    if not email or not otp:
+        error_msg = "Both administrator email and OTP code are required."
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=400)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "is_admin": True})
+
+    # Verify admin role
+    admin_user = User.objects.filter(email=email, is_staff=True).first()
+    if not admin_user:
+        error_msg = "Administrator privilege verification failed for this account."
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=403)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "is_admin": True})
+
+    otp_record = PasswordResetOTP.objects.filter(email=email, is_verified=False).order_by("-created_at").first()
+
+    if not otp_record or otp_record.otp != otp:
+        error_msg = "Invalid OTP code. Please verify and try again."
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=400)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "is_admin": True})
+
+    if not otp_record.is_valid():
+        error_msg = "OTP has expired. Please request a new code."
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=400)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "is_admin": True})
+
+    # Mark OTP as verified
+    otp_record.is_verified = True
+    otp_record.save(update_fields=["is_verified"])
+
+    success_msg = "Administrator OTP verified successfully. You may now reset your password."
+    if request.content_type == "application/json":
+        return JsonResponse({
+            "status": "success",
+            "message": success_msg,
+            "email": email,
+            "otp_verified": True
+        }, status=200)
+
+    return render(request, "accounts/forgot_password.html", {
+        "email": email,
+        "otp_sent": True,
+        "otp_verified": True,
+        "is_admin": True,
+        "success": success_msg
+    })
+
+
+@csrf_exempt
+def admin_reset_password(request):
+    """
+    Backend logic for Admin password recovery - Step 3: Set New Password.
+    Verifies valid verified OTP session, updates admin password, clears OTP records.
+    """
+    if request.method != "POST":
+        return redirect("admin_forgot_password")
+
+    data = {}
+    if request.content_type == "application/json" and request.body:
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JsonResponse({"status": "error", "message": "Invalid JSON."}, status=400)
+    else:
+        data = request.POST.dict()
+
+    email = str(data.get("email", "")).strip().lower()
+    password = str(data.get("password", ""))
+    confirm_password = str(data.get("confirm_password", ""))
+
+    if not email or not password or not confirm_password:
+        error_msg = "All fields are required to reset administrator password."
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=400)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "otp_verified": True, "is_admin": True})
+
+    # Verify that a verified OTP session exists
+    otp_record = PasswordResetOTP.objects.filter(email=email, is_verified=True).order_by("-created_at").first()
+    if not otp_record:
+        error_msg = "Verification session expired. Please request a new OTP."
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=400)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "is_admin": True})
+
+    # Validate admin user
+    admin_user = User.objects.filter(email=email, is_staff=True).first()
+    if not admin_user:
+        error_msg = "Administrator account verification failed."
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=403)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "is_admin": True})
+
+    if len(password) < 8:
+        error_msg = "Password must contain at least 8 characters."
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=400)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "otp_verified": True, "is_admin": True})
+
+    if password != confirm_password:
+        error_msg = "Passwords do not match."
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=400)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "otp_verified": True, "is_admin": True})
+
+    # Set new password
+    admin_user.set_password(password)
+    admin_user.save()
+
+    # Clear OTP records
+    PasswordResetOTP.objects.filter(email=email).delete()
+
+    success_msg = f"Administrator password for '{admin_user.username}' has been updated successfully!"
+    if request.content_type == "application/json":
+        return JsonResponse({
+            "status": "success",
+            "message": success_msg
+        }, status=200)
+
+    messages.success(request, success_msg)
+    return redirect("login")
+
 

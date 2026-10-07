@@ -95,4 +95,38 @@ urlpatterns = [
         name="register_admin"
     ),
 
+    # Admin Password Recovery
+    path(
+        "admin/forgot-password/",
+        views.admin_forgot_password,
+        name="admin_forgot_password"
+    ),
+    path(
+        "admin/verify-otp/",
+        views.admin_verify_otp,
+        name="admin_verify_otp"
+    ),
+    path(
+        "admin/reset-password/",
+        views.admin_reset_password,
+        name="admin_reset_password"
+    ),
+
+    # API endpoints for Admin Password Recovery
+    path(
+        "api/admin/forgot-password/",
+        views.admin_forgot_password,
+        name="api_admin_forgot_password"
+    ),
+    path(
+        "api/admin/verify-otp/",
+        views.admin_verify_otp,
+        name="api_admin_verify_otp"
+    ),
+    path(
+        "api/admin/reset-password/",
+        views.admin_reset_password,
+        name="api_admin_reset_password"
+    ),
+
 ]
