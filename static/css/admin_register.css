@@ -1,0 +1,315 @@
+@import url('base_design_tokens.css');
+
+.admin-reg-shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 42% 58%;
+    background-color: var(--bg-surface);
+}
+
+/* LEFT BRAND PANEL */
+.admin-brand-panel {
+    position: relative;
+    overflow: hidden;
+    padding: 48px 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background:
+        radial-gradient(circle at 85% 15%, rgba(124, 58, 237, 0.22), transparent 35%),
+        linear-gradient(145deg, #0f172a, #1e1b4b 60%, #31104b);
+    color: #ffffff;
+}
+
+.admin-brand-panel::before {
+    content: "";
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    right: -140px;
+    bottom: 60px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.admin-brand-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.admin-brand-mark {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 18px;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+}
+
+.admin-brand-title {
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #ffffff;
+}
+
+.admin-brand-subtitle {
+    font-size: 11.5px;
+    color: #a5b4fc;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.admin-brand-content {
+    margin: 40px 0;
+}
+
+.admin-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(124, 58, 237, 0.25);
+    border: 1px solid rgba(167, 139, 250, 0.4);
+    color: #c4b5fd;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: var(--radius-full);
+    margin-bottom: 20px;
+}
+
+.admin-brand-content h1 {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.25;
+    margin-bottom: 16px;
+    color: #ffffff;
+}
+
+.admin-brand-content h1 span {
+    background: linear-gradient(135deg, #a78bfa, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.admin-brand-content p {
+    color: #cbd5e1;
+    font-size: 14.5px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+}
+
+.admin-perks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.admin-perk-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+}
+
+.admin-perk-icon {
+    color: #a78bfa;
+    font-size: 16px;
+    margin-top: 1px;
+}
+
+.admin-perk-item strong {
+    display: block;
+    font-size: 13.5px;
+    color: #f8fafc;
+}
+
+.admin-perk-item small {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.admin-brand-footer {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* RIGHT FORM SECTION */
+.admin-form-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 40px;
+    background: #ffffff;
+    overflow-y: auto;
+}
+
+.admin-form-container {
+    width: 100%;
+    max-width: 520px;
+}
+
+.admin-form-header {
+    margin-bottom: 28px;
+}
+
+.admin-form-header h2 {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 6px;
+}
+
+.admin-form-header p {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.admin-alert-error {
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    color: var(--danger);
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-weight: 500;
+    margin-bottom: 22px;
+}
+
+.admin-reg-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-row-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.admin-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-input-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.admin-input-group label span.required {
+    color: var(--danger);
+}
+
+.admin-field-control {
+    width: 100%;
+    height: 44px;
+    padding: 0 14px;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    color: var(--text-main);
+    background: #ffffff;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.admin-field-control:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.admin-field-control::placeholder {
+    color: #94a3b8;
+}
+
+.pw-wrapper {
+    position: relative;
+}
+
+.pw-toggle-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #64748b;
+    padding: 4px;
+}
+
+.btn-admin-submit {
+    height: 48px;
+    background: linear-gradient(135deg, #7c3aed, #6366f1);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+}
+
+.btn-admin-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.35);
+}
+
+.btn-admin-submit:active {
+    transform: translateY(0);
+}
+
+.admin-form-footer {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--text-muted);
+}
+
+.admin-form-footer a {
+    color: #7c3aed;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.admin-form-footer a:hover {
+    text-decoration: underline;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+    .admin-reg-shell {
+        grid-template-columns: 1fr;
+    }
+    .admin-brand-panel {
+        display: none;
+    }
+    .admin-form-panel {
+        padding: 32px 20px;
+    }
+    .form-row-2col {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Registration | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/admin_register.css' %}">
+</head>
+<body>
+
+<main class="admin-reg-shell">
+
+    <!-- LEFT BRAND PANEL -->
+    <section class="admin-brand-panel">
+        <div>
+            <div class="admin-brand-header">
+                <div class="admin-brand-mark">AB</div>
+                <div>
+                    <div class="admin-brand-title">Advance Billing</div>
+                    <div class="admin-brand-subtitle">System Administration</div>
+                </div>
+            </div>
+
+            <div class="admin-brand-content">
+                <div class="admin-role-badge">
+                    👑 System Administrator Portal
+                </div>
+                <h1>
+                    Master Control &<br>
+                    <span>Cloud Administration</span>
+                </h1>
+                <p>
+                    Register as a system administrator to oversee distributors, audit financial tax invoices, monitor real-time business activities, and configure master catalog settings.
+                </p>
+
+                <div class="admin-perks-list">
+                    <div class="admin-perk-item">
+                        <span class="admin-perk-icon">🛡️</span>
+                        <div>
+                            <strong>Full System Control</strong>
+                            <small>Comprehensive administrative access to distributors & users.</small>
+                        </div>
+                    </div>
+                    <div class="admin-perk-item">
+                        <span class="admin-perk-icon">📊</span>
+                        <div>
+                            <strong>Master Billing Metrics</strong>
+                            <small>Audit platform-wide sales volume and GST compliance.</small>
+                        </div>
+                    </div>
+                    <div class="admin-perk-item">
+                        <span class="admin-perk-icon">🔒</span>
+                        <div>
+                            <strong>Staff & Superuser Security</strong>
+                            <small>Enterprise-grade authentication with role-based dashboard routing.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-brand-footer">
+            © 2026 Advance Billing System. Internal & Administrative Use Only.
+        </div>
+    </section>
+
+    <!-- RIGHT REGISTRATION FORM -->
+    <section class="admin-form-panel">
+        <div class="admin-form-container">
+
+            <div class="admin-form-header">
+                <h2>Create Administrator Account 👑</h2>
+                <p>Enter your credentials to provision a new system administrator profile.</p>
+            </div>
+
+            {% if error %}
+            <div class="admin-alert-error">
+                ⚠️ {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{% url 'admin_register' %}" class="admin-reg-form" novalidate id="adminRegisterForm">
+                {% csrf_token %}
+
+                <div class="form-row-2col">
+                    <div class="admin-input-group">
+                        <label for="name">Full Name <span class="required">*</span></label>
+                        <input type="text" id="name" name="name" class="admin-field-control" placeholder="e.g. Sneh Patel" value="{{ name|default:'' }}" required autofocus>
+                    </div>
+
+                    <div class="admin-input-group">
+                        <label for="username">Admin Username <span class="required">*</span></label>
+                        <input type="text" id="username" name="username" class="admin-field-control" placeholder="e.g. admin_sneh" value="{{ username|default:'' }}" required>
+                    </div>
+                </div>
+
+                <div class="admin-input-group">
+                    <label for="email">Work / Official Email <span class="required">*</span></label>
+                    <input type="email" id="email" name="email" class="admin-field-control" placeholder="admin@advancebilling.com" value="{{ email|default:'' }}" required>
+                </div>
+
+                <div class="form-row-2col">
+                    <div class="admin-input-group">
+                        <label for="password">Master Password <span class="required">*</span></label>
+                        <div class="pw-wrapper">
+                            <input type="password" id="password" name="password" class="admin-field-control" placeholder="Min. 8 characters" required style="padding-right: 40px;">
+                            <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('password', this)" title="Show/Hide Password">👁️</button>
+                        </div>
+                    </div>
+
+                    <div class="admin-input-group">
+                        <label for="confirm_password">Confirm Password <span class="required">*</span></label>
+                        <div class="pw-wrapper">
+                            <input type="password" id="confirm_password" name="confirm_password" class="admin-field-control" placeholder="Re-type password" required style="padding-right: 40px;">
+                            <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('confirm_password', this)" title="Show/Hide Password">👁️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-admin-submit" id="btnSubmit">
+                    <span>👑 Register Admin Account →</span>
+                </button>
+            </form>
+
+            <div class="admin-form-footer">
+                Already registered as Admin or Distributor? <a href="{% url 'login' %}">Sign in here</a>
+            </div>
+
+        </div>
+    </section>
+
+</main>
+
+<script>
+    function togglePasswordVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.textContent = '🙈';
+        } else {
+            input.type = 'password';
+            btn.textContent = '👁️';
+        }
+    }
+</script>
+
+</body>
+</html>

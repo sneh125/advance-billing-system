@@ -83,4 +83,16 @@ urlpatterns = [
         name="admin_register_api"
     ),
 
+    path(
+        "admin-register/",
+        views.admin_register_view,
+        name="admin_register"
+    ),
+
+    path(
+        "register/admin/",
+        views.admin_register_view,
+        name="register_admin"
+    ),
+
 ]

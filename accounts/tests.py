@@ -183,3 +183,30 @@ class AccountAuthenticationTests(TestCase):
         resp_get = self.client.get(reverse('admin_register_api'))
         self.assertEqual(resp_get.status_code, 405)
 
+    def test_admin_register_frontend_get_and_post_flow(self):
+        """Task 33: Test frontend Admin registration form renders on GET and provisions admin on POST"""
+        # 1. GET request renders admin_register.html
+        response_get = self.client.get(reverse('admin_register'))
+        self.assertEqual(response_get.status_code, 200)
+        self.assertContains(response_get, "Create Administrator Account")
+        self.assertContains(response_get, "Master Password")
+
+        # 2. POST valid form data
+        response_post = self.client.post(reverse('admin_register'), {
+            'name': 'Chief Admin',
+            'username': 'chief_admin',
+            'email': 'chief_admin@advancebilling.local',
+            'password': 'ChiefPassword@123',
+            'confirm_password': 'ChiefPassword@123',
+        })
+        self.assertEqual(response_post.status_code, 302)
+        self.assertRedirects(response_post, reverse('login'))
+
+        # Verify admin created in DB
+        admin_user = User.objects.filter(username='chief_admin').first()
+        self.assertIsNotNone(admin_user)
+        self.assertTrue(admin_user.is_staff)
+        self.assertTrue(admin_user.is_superuser)
+        self.assertTrue(admin_user.check_password('ChiefPassword@123'))
+
+

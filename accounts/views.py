@@ -892,4 +892,96 @@ def admin_register_api(request):
         return JsonResponse({
             "status": "error",
             "message": f"Server error creating admin account: {str(e)}"
-        }, status=500)
+        }, status=500)
+
+
+# ==============================================================================
+# ADMIN FRONTEND REGISTRATION VIEW
+# ==============================================================================
+
+def admin_register_view(request):
+    """
+    Frontend view for Admin registration.
+    Renders admin_register.html on GET.
+    Processes submission, validates input, and provisions Admin user on POST.
+    """
+    if request.user.is_authenticated:
+        if request.user.is_staff:
+            return redirect("admin_dashboard")
+        return redirect("distributor_dashboard")
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        username = request.POST.get("username", "").strip()
+        email = request.POST.get("email", "").strip().lower()
+        password = request.POST.get("password", "")
+        confirm_password = request.POST.get("confirm_password", "")
+
+        context = {
+            "name": name,
+            "username": username,
+            "email": email,
+        }
+
+        # Required fields validation
+        if not all([name, username, email, password, confirm_password]):
+            context["error"] = "Please fill in all required fields."
+            return render(request, "accounts/admin_register.html", context)
+
+        # Name length validation
+        if len(name) < 3:
+            context["error"] = "Full name must be at least 3 characters long."
+            return render(request, "accounts/admin_register.html", context)
+
+        # Username validation
+        if len(username) < 3:
+            context["error"] = "Username must be at least 3 characters long."
+            return render(request, "accounts/admin_register.html", context)
+
+        if User.objects.filter(username=username).exists():
+            context["error"] = "An account with this username already exists."
+            return render(request, "accounts/admin_register.html", context)
+
+        # Email validation
+        try:
+            validate_email(email)
+        except ValidationError:
+            context["error"] = "Please enter a valid email address."
+            return render(request, "accounts/admin_register.html", context)
+
+        if User.objects.filter(email=email).exists():
+            context["error"] = "An account with this email already exists."
+            return render(request, "accounts/admin_register.html", context)
+
+        # Password validation
+        if len(password) < 8:
+            context["error"] = "Password must be at least 8 characters long."
+            return render(request, "accounts/admin_register.html", context)
+
+        if password != confirm_password:
+            context["error"] = "Passwords do not match."
+            return render(request, "accounts/admin_register.html", context)
+
+        try:
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=name
+            )
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
+
+            messages.success(
+                request,
+                f"Administrator account '{username}' registered successfully! Please sign in."
+            )
+            return redirect("login")
+
+        except Exception as e:
+            context["error"] = f"Unable to create admin account: {str(e)}"
+            return render(request, "accounts/admin_register.html", context)
+
+    return render(request, "accounts/admin_register.html")
+
