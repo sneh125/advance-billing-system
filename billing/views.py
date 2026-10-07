@@ -763,10 +763,56 @@ def generate_invoice_qr(invoice):
     return qr_base64
 
 
+def generate_upi_qr(invoice):
+    """
+    Generate dynamic UPI Payment QR code (Scan & Pay) compatible with
+    Google Pay, PhonePe, Paytm, BHIM, and any UPI application.
+    URI Format: upi://pay?pa=<upi_id>&pn=<payee_name>&am=<amount>&cu=INR&tn=<note>
+    """
+    from urllib.parse import quote
+
+    distributor = invoice.distributor
+    dist_profile = getattr(distributor, "distributor_profile", None)
+    phone = dist_profile.phone if dist_profile and dist_profile.phone else "9876543210"
+
+    upi_id = f"{phone}@upi"
+    payee_name = distributor.get_full_name() or distributor.username
+    note = f"Bill {invoice.invoice_number}"
+    amount = f"{invoice.total_amount:.2f}"
+
+    upi_uri = (
+        f"upi://pay?pa={upi_id}"
+        f"&pn={quote(payee_name)}"
+        f"&am={amount}"
+        f"&cu=INR"
+        f"&tn={quote(note)}"
+    )
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=8,
+        border=4,
+    )
+    qr.add_data(upi_uri)
+    qr.make(fit=True)
+
+    qr_image = qr.make_image(
+        fill_color="#0f766e",
+        back_color="white"
+    )
+
+    buffer = BytesIO()
+    qr_image.save(buffer, format="PNG")
+    upi_qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+    return upi_qr_base64, upi_uri, upi_id
+
+
 @login_required
 def invoice_detail(request, pk):
     """
-    Detailed invoice view with dynamically generated QR code.
+    Detailed invoice view with dynamically generated verification & UPI payment QR codes.
     """
     invoice = get_object_or_404(
         Invoice.objects.select_related(
@@ -779,6 +825,7 @@ def invoice_detail(request, pk):
 
     items = invoice.items.select_related("product").all()
     qr_code = generate_invoice_qr(invoice)
+    upi_qr_code, upi_uri, upi_id = generate_upi_qr(invoice)
 
     return render(
         request,
@@ -787,13 +834,16 @@ def invoice_detail(request, pk):
             "invoice": invoice,
             "items": items,
             "qr_code": qr_code,
+            "upi_qr_code": upi_qr_code,
+            "upi_uri": upi_uri,
+            "upi_id": upi_id,
         }
     )
 
 @login_required
 def invoice_pdf(request, pk):
     """
-    Generate and download invoice as PDF with embedded dynamic QR code.
+    Generate and download invoice as PDF with embedded dynamic verification & UPI payment QR code.
     Only the logged-in distributor can access his own invoice.
     """
     invoice = get_object_or_404(
@@ -808,11 +858,15 @@ def invoice_pdf(request, pk):
 
     items = invoice.items.select_related("product").all()
     qr_code = generate_invoice_qr(invoice)
+    upi_qr_code, upi_uri, upi_id = generate_upi_qr(invoice)
 
     context = {
         "invoice": invoice,
         "items": items,
         "qr_code": qr_code,
+        "upi_qr_code": upi_qr_code,
+        "upi_uri": upi_uri,
+        "upi_id": upi_id,
     }
 
     pdf = render_to_pdf(

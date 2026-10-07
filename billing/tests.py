@@ -642,6 +642,59 @@ class InvoiceSystemTests(TestCase):
         self.assertTrue(pdf_bytes.startswith(b'%PDF'))
         self.assertTrue(len(pdf_bytes) > 1000)
 
+    def test_dynamic_upi_payment_qr_code_generation_and_views(self):
+        """Test dynamic UPI Scan & Pay QR generation, upi:// URI format, and views embedding"""
+        from billing.views import generate_upi_qr
+        import base64
+
+        invoice = Invoice.objects.create(
+            invoice_number="INV-20260908-UPITEST",
+            customer=self.customer1,
+            distributor=self.distributor1,
+            subtotal=Decimal("3000.00"),
+            gst_amount=Decimal("540.00"),
+            total_amount=Decimal("3540.00"),
+            status="Pending"
+        )
+        InvoiceItem.objects.create(
+            invoice=invoice,
+            product=self.product1,
+            quantity=6,
+            unit_price=Decimal("500.00"),
+            gst_rate=Decimal("18.00"),
+            subtotal=Decimal("3000.00"),
+            total=Decimal("3540.00")
+        )
+
+        # 1. Test generate_upi_qr output
+        upi_qr_b64, upi_uri, upi_id = generate_upi_qr(invoice)
+        self.assertTrue(upi_uri.startswith("upi://pay?"))
+        self.assertIn("am=3540.00", upi_uri)
+        self.assertIn("cu=INR", upi_uri)
+        self.assertIn("Bill%20INV-20260908-UPITEST", upi_uri)
+        self.assertEqual(upi_id, "9876543210@upi")
+
+        # Verify base64 PNG image
+        decoded_bytes = base64.b64decode(upi_qr_b64)
+        self.assertTrue(decoded_bytes.startswith(b'\x89PNG\r\n\x1a\n'))
+
+        # 2. Test invoice_detail view renders UPI Card & button
+        self.client.login(username="distributor1", password="Password@123")
+        detail_resp = self.client.get(reverse('invoice_detail', kwargs={'pk': invoice.pk}))
+        self.assertEqual(detail_resp.status_code, 200)
+        self.assertIn('upi_qr_code', detail_resp.context)
+        self.assertIn('upi_uri', detail_resp.context)
+        self.assertContains(detail_resp, "UPI Instant Pay")
+        self.assertContains(detail_resp, "9876543210@upi")
+        self.assertContains(detail_resp, "3540.00")
+
+        # 3. Test invoice_pdf contains embedded UPI section
+        pdf_resp = self.client.get(reverse('invoice_pdf', kwargs={'pk': invoice.pk}))
+        self.assertEqual(pdf_resp.status_code, 200)
+        self.assertEqual(pdf_resp['Content-Type'], 'application/pdf')
+        self.assertTrue(pdf_resp.content.startswith(b'%PDF'))
+
+
 
 
 
