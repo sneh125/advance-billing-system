@@ -884,6 +884,89 @@ class CustomerRegistrationAPITests(TestCase):
             self.assertEqual(resp.status_code, 405)
 
 
+class CustomerRegistrationFrontendTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.distributor = User.objects.create_user(
+            username="distributor_ui",
+            email="dist_ui@example.com",
+            password="Password@123",
+            first_name="Distributor Front"
+        )
+
+    def test_customer_register_page_unauthenticated_redirect(self):
+        """Unauthenticated visitor is redirected to login page"""
+        response = self.client.get(reverse("customer_register"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response.url)
+
+    def test_customer_register_page_renders_elements(self):
+        """Authenticated distributor sees the customer registration form with all required fields"""
+        self.client.login(username="distributor_ui", password="Password@123")
+        response = self.client.get(reverse("customer_register"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "billing/customer_register.html")
+        self.assertContains(response, "Customer Registration")
+        self.assertContains(response, 'name="name"')
+        self.assertContains(response, 'name="phone"')
+        self.assertContains(response, 'name="email"')
+        self.assertContains(response, 'name="address"')
+        self.assertContains(response, 'name="city"')
+        self.assertContains(response, 'name="state"')
+        self.assertContains(response, 'name="pincode"')
+        self.assertContains(response, 'name="is_active"')
+        self.assertContains(response, "Save & Register Customer")
+
+    def test_customer_register_post_success(self):
+        """Submitting valid registration form creates Customer and redirects to list"""
+        self.client.login(username="distributor_ui", password="Password@123")
+        response = self.client.post(reverse("customer_register"), {
+            "name": "Manish Malhotra",
+            "phone": "9876543211",
+            "email": "manish@example.com",
+            "address": "701 Fashion Street",
+            "city": "Surat",
+            "state": "Gujarat",
+            "pincode": "395003",
+            "is_active": "on"
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("customer_list"))
+        
+        # Verify in database
+        self.assertTrue(Customer.objects.filter(phone="9876543211", distributor=self.distributor).exists())
+        cust = Customer.objects.get(phone="9876543211")
+        self.assertEqual(cust.name, "Manish Malhotra")
+        self.assertEqual(cust.city, "Surat")
+
+    def test_customer_register_post_validation_errors(self):
+        """Submitting invalid form re-renders form with error messages"""
+        self.client.login(username="distributor_ui", password="Password@123")
+        response = self.client.post(reverse("customer_register"), {
+            "name": "M",        # <3 chars
+            "phone": "invalid",  # not 10 digits
+            "city": "",          # empty
+            "state": "",         # empty
+            "pincode": "00"      # <5 digits
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "billing/customer_register.html")
+        self.assertIn("name", response.context["errors"])
+        self.assertIn("phone", response.context["errors"])
+        self.assertIn("city", response.context["errors"])
+        self.assertIn("state", response.context["errors"])
+        self.assertIn("pincode", response.context["errors"])
+
+    def test_customer_register_routes_alias(self):
+        """Route aliases customer_register, customer_register_alias, customer_register_page resolve properly"""
+        self.client.login(username="distributor_ui", password="Password@123")
+        for r_name in ["customer_register", "customer_register_alias", "customer_register_page"]:
+            resp = self.client.get(reverse(r_name))
+            self.assertEqual(resp.status_code, 200)
+            self.assertTemplateUsed(resp, "billing/customer_register.html")
+
+
+
 
 
 

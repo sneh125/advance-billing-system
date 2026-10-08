@@ -1,0 +1,428 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Registration | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/customer_register.css' %}">
+</head>
+<body>
+
+<div class="dashboard-container">
+
+    <!-- UNIFIED APP HEADER -->
+    <header class="app-shell-header">
+        <div class="app-header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
+                <div class="brand-badge-icon">AB</div>
+                <div class="brand-text-group">
+                    <h1>Advance Billing System</h1>
+                    <span class="brand-tagline">Distributor Cloud Workspace</span>
+                </div>
+            </a>
+
+            <!-- NAVIGATION PILL TABS -->
+            <nav class="app-nav-pills" aria-label="Main Navigation">
+                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
+                    📊 Dashboard
+                </a>
+                <a href="{% url 'customer_list' %}" class="app-nav-link active">
+                    👥 Customers
+                </a>
+                <a href="{% url 'product_list' %}" class="app-nav-link">
+                    📦 Products
+                </a>
+                <a href="{% url 'invoice_list' %}" class="app-nav-link">
+                    🧾 Invoices
+                </a>
+                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
+                    👤 My Profile
+                </a>
+            </nav>
+        </div>
+
+        <div class="app-header-right">
+            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
+                ⚡ + Quick Bill
+            </a>
+            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
+                <div class="user-avatar-circle">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                    <span class="avatar-online-dot"></span>
+                </div>
+                <div class="user-info-text-col">
+                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
+                    <span class="user-role-subtag">Distributor</span>
+                </div>
+            </a>
+            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+                Logout
+            </a>
+            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
+                ☰
+            </button>
+        </div>
+    </header>
+
+    <!-- MOBILE NAV DRAWER -->
+    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
+        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
+        <a href="{% url 'customer_list' %}" class="app-nav-link active">👥 Customers</a>
+        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
+        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
+        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
+        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
+    </nav>
+
+    <!-- MAIN SHELL WRAPPER -->
+    <main class="customer-reg-shell">
+
+        <!-- BREADCRUMB BAR -->
+        <nav class="breadcrumbs-bar" aria-label="Breadcrumb">
+            <a href="{% url 'distributor_dashboard' %}">Dashboard</a>
+            <span class="sep">/</span>
+            <a href="{% url 'customer_list' %}">Customers</a>
+            <span class="sep">/</span>
+            <span class="current">Register Customer</span>
+        </nav>
+
+        <!-- TWO-COLUMN LAYOUT -->
+        <div class="customer-reg-layout">
+
+            <!-- LEFT INFORMATION & PERKS SIDEBAR -->
+            <aside class="reg-sidebar-panel">
+                <div class="sidebar-badge">
+                    👥 Distributor Client Hub
+                </div>
+
+                <h2 class="sidebar-title">
+                    Register New<br>
+                    <span>Client Profile</span>
+                </h2>
+
+                <p class="sidebar-desc">
+                    Provision verified customer accounts with accurate contact and tax location details for instant invoicing and GST compliance.
+                </p>
+
+                <!-- PERKS LIST -->
+                <div class="reg-perks-list">
+                    <div class="reg-perk-card">
+                        <span class="reg-perk-icon">⚡</span>
+                        <div>
+                            <strong>Instant Invoicing</strong>
+                            <small>Registered customers automatically populate in Quick Bill search and billing autocomplete.</small>
+                        </div>
+                    </div>
+
+                    <div class="reg-perk-card">
+                        <span class="reg-perk-icon">🧾</span>
+                        <div>
+                            <strong>GST & Tax Ready</strong>
+                            <small>City, State, and PIN code validation ensures accurate intra/interstate tax invoicing.</small>
+                        </div>
+                    </div>
+
+                    <div class="reg-perk-card">
+                        <span class="reg-perk-icon">🔒</span>
+                        <div>
+                            <strong>Multi-Tenant Isolation</strong>
+                            <small>All customer records belong exclusively to your distributor account.</small>
+                        </div>
+                    </div>
+
+                    <div class="reg-perk-card">
+                        <span class="reg-perk-icon">📱</span>
+                        <div>
+                            <strong>Digital Billing Alerts</strong>
+                            <small>Standard 10-digit mobile number ready for invoice sharing & notifications.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DISTRIBUTOR BADGE IN SIDEBAR -->
+                <div class="distributor-info-card">
+                    <div class="dist-avatar">
+                        {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                    </div>
+                    <div class="dist-meta">
+                        <span class="dist-label">Distributor Account</span>
+                        <span class="dist-name">{{ request.user.first_name|default:request.user.username }}</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- RIGHT REGISTRATION FORM CARD -->
+            <section class="customer-reg-card">
+                
+                <div class="reg-card-header">
+                    <div class="reg-card-title-group">
+                        <h2>👤 Customer Registration Form</h2>
+                        <p>Fill out the required information below to register a new customer profile.</p>
+                    </div>
+                    <div class="reg-mode-tag">
+                        ✨ New Entry
+                    </div>
+                </div>
+
+                <div class="reg-card-body">
+
+                    <!-- SERVER MESSAGES OR ERRORS -->
+                    {% if errors.non_field_error %}
+                    <div class="reg-alert-box error">
+                        ⚠️ {{ errors.non_field_error }}
+                    </div>
+                    {% endif %}
+
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="reg-alert-box {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="POST" id="customerRegisterForm" novalidate>
+                        {% csrf_token %}
+
+                        <!-- SECTION 1: PERSONAL & CONTACT INFORMATION -->
+                        <div class="form-section-header">
+                            👤 1. Identity & Contact Information
+                        </div>
+
+                        <div class="form-grid-2">
+                            <!-- CUSTOMER FULL NAME -->
+                            <div class="form-group-wrap">
+                                <label for="id_name" class="field-label">
+                                    Customer Full Name / Business <span class="required-star">*</span>
+                                </label>
+                                <div class="input-with-icon">
+                                    <input type="text" 
+                                           id="id_name" 
+                                           name="name" 
+                                           class="form-input-control {% if errors.name %}has-error{% endif %}" 
+                                           value="{% if form_data.name %}{{ form_data.name }}{% elif customer %}{{ customer.name }}{% endif %}" 
+                                           placeholder="e.g. Ramesh Patel / Shiv Enterprise" 
+                                           required 
+                                           minlength="3" 
+                                           maxlength="100"
+                                           autofocus>
+                                    <span class="input-icon-glyph">👤</span>
+                                </div>
+                                <span class="field-error-text" id="nameError">{% if errors.name %}{{ errors.name }}{% endif %}</span>
+                            </div>
+
+                            <!-- PHONE NUMBER -->
+                            <div class="form-group-wrap">
+                                <label for="id_phone" class="field-label">
+                                    Mobile Number (10 Digits) <span class="required-star">*</span>
+                                </label>
+                                <div class="input-with-icon">
+                                    <input type="tel" 
+                                           id="id_phone" 
+                                           name="phone" 
+                                           class="form-input-control {% if errors.phone %}has-error{% endif %}" 
+                                           value="{% if form_data.phone %}{{ form_data.phone }}{% elif customer %}{{ customer.phone }}{% endif %}" 
+                                           placeholder="e.g. 9876543210" 
+                                           maxlength="10" 
+                                           required>
+                                    <span class="input-icon-glyph">📱</span>
+                                </div>
+                                <span class="field-error-text" id="phoneError">{% if errors.phone %}{{ errors.phone }}{% endif %}</span>
+                            </div>
+
+                            <!-- EMAIL ADDRESS -->
+                            <div class="form-group-wrap full-width">
+                                <label for="id_email" class="field-label">
+                                    Email Address <span class="optional-hint">(Optional for invoices)</span>
+                                </label>
+                                <div class="input-with-icon">
+                                    <input type="email" 
+                                           id="id_email" 
+                                           name="email" 
+                                           class="form-input-control {% if errors.email %}has-error{% endif %}" 
+                                           value="{% if form_data.email %}{{ form_data.email }}{% elif customer %}{{ customer.email }}{% endif %}" 
+                                           placeholder="e.g. ramesh.patel@example.com" 
+                                           maxlength="150">
+                                    <span class="input-icon-glyph">✉️</span>
+                                </div>
+                                <span class="field-error-text" id="emailError">{% if errors.email %}{{ errors.email }}{% endif %}</span>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 2: BILLING LOCATION & ADDRESS -->
+                        <div class="form-section-header">
+                            📍 2. Billing & Location Details
+                        </div>
+
+                        <div class="form-grid-2">
+                            <!-- STREET ADDRESS -->
+                            <div class="form-group-wrap full-width">
+                                <label for="id_address" class="field-label">
+                                    Street Address / Shop No / Area <span class="optional-hint">(Optional)</span>
+                                </label>
+                                <div class="input-with-icon">
+                                    <textarea id="id_address" 
+                                              name="address" 
+                                              rows="2" 
+                                              class="form-textarea-control" 
+                                              placeholder="e.g. 402, Trade Square, Ring Road">{% if form_data.address %}{{ form_data.address }}{% elif customer %}{{ customer.address }}{% endif %}</textarea>
+                                    <span class="input-icon-glyph" style="top: 14px;">🏢</span>
+                                </div>
+                            </div>
+
+                            <!-- CITY -->
+                            <div class="form-group-wrap">
+                                <label for="id_city" class="field-label">
+                                    City <span class="required-star">*</span>
+                                </label>
+                                <div class="input-with-icon">
+                                    <input type="text" 
+                                           id="id_city" 
+                                           name="city" 
+                                           class="form-input-control {% if errors.city %}has-error{% endif %}" 
+                                           value="{% if form_data.city %}{{ form_data.city }}{% elif customer %}{{ customer.city }}{% endif %}" 
+                                           placeholder="e.g. Ahmedabad" 
+                                           maxlength="50"
+                                           required>
+                                    <span class="input-icon-glyph">🏙️</span>
+                                </div>
+                                <span class="field-error-text" id="cityError">{% if errors.city %}{{ errors.city }}{% endif %}</span>
+                            </div>
+
+                            <!-- STATE -->
+                            <div class="form-group-wrap">
+                                <label for="id_state" class="field-label">
+                                    State <span class="required-star">*</span>
+                                </label>
+                                <div class="input-with-icon">
+                                    <input type="text" 
+                                           id="id_state" 
+                                           name="state" 
+                                           class="form-input-control {% if errors.state %}has-error{% endif %}" 
+                                           value="{% if form_data.state %}{{ form_data.state }}{% elif customer %}{{ customer.state }}{% endif %}" 
+                                           placeholder="e.g. Gujarat" 
+                                           maxlength="50"
+                                           required>
+                                    <span class="input-icon-glyph">🗺️</span>
+                                </div>
+                                <span class="field-error-text" id="stateError">{% if errors.state %}{{ errors.state }}{% endif %}</span>
+                            </div>
+
+                            <!-- PIN CODE -->
+                            <div class="form-group-wrap full-width">
+                                <label for="id_pincode" class="field-label">
+                                    Postal PIN Code (6 Digits) <span class="required-star">*</span>
+                                </label>
+                                <div class="input-with-icon">
+                                    <input type="text" 
+                                           id="id_pincode" 
+                                           name="pincode" 
+                                           class="form-input-control {% if errors.pincode %}has-error{% endif %}" 
+                                           value="{% if form_data.pincode %}{{ form_data.pincode }}{% elif customer %}{{ customer.pincode }}{% endif %}" 
+                                           placeholder="e.g. 380001" 
+                                           maxlength="6" 
+                                           required>
+                                    <span class="input-icon-glyph">📮</span>
+                                </div>
+                                <span class="field-error-text" id="pincodeError">{% if errors.pincode %}{{ errors.pincode }}{% endif %}</span>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 3: ACCOUNT PREFERENCES -->
+                        <div class="form-section-header">
+                            ⚙️ 3. Account Status
+                        </div>
+
+                        <div class="toggle-switch-card">
+                            <div class="toggle-text-col">
+                                <strong>Active Customer Profile</strong>
+                                <small>Active customers are immediately accessible when issuing tax invoices and managing accounts.</small>
+                            </div>
+                            <label class="switch-toggle-label" for="id_is_active">
+                                <input type="checkbox" id="id_is_active" name="is_active" {% if form_data.is_active is not False and customer.is_active is not False %}checked{% endif %}>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- FORM ACTIONS FOOTER -->
+                        <div class="form-actions-footer">
+                            <div class="actions-left">
+                                <button type="submit" class="btn-reg-submit" id="btnSubmitCustomer">
+                                    <span>✓ Save & Register Customer</span>
+                                </button>
+                                <button type="reset" class="btn-reg-reset" onclick="resetFormErrors()">
+                                    ↺ Reset
+                                </button>
+                            </div>
+                            <div class="actions-right">
+                                <a href="{% url 'customer_list' %}" class="btn-reg-cancel">
+                                    ← Back to Customers
+                                </a>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script>
+    // Real-time client-side formatting and validation
+    const phoneInput = document.getElementById('id_phone');
+    const pincodeInput = document.getElementById('id_pincode');
+    const nameInput = document.getElementById('id_name');
+
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            const errSpan = document.getElementById('phoneError');
+            if (this.value.length === 10) {
+                this.classList.remove('has-error');
+                if (errSpan) errSpan.textContent = '';
+            }
+        });
+    }
+
+    if (pincodeInput) {
+        pincodeInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            const errSpan = document.getElementById('pincodeError');
+            if (this.value.length >= 5 && this.value.length <= 6) {
+                this.classList.remove('has-error');
+                if (errSpan) errSpan.textContent = '';
+            }
+        });
+    }
+
+    if (nameInput) {
+        nameInput.addEventListener('input', function() {
+            const errSpan = document.getElementById('nameError');
+            if (this.value.trim().length >= 3) {
+                this.classList.remove('has-error');
+                if (errSpan) errSpan.textContent = '';
+            }
+        });
+    }
+
+    function resetFormErrors() {
+        document.querySelectorAll('.field-error-text').forEach(el => el.textContent = '');
+        document.querySelectorAll('.has-error').forEach(el => el.classList.remove('has-error'));
+    }
+
+    function toggleMobileNav() {
+        const drawer = document.getElementById('mobileNavDrawer');
+        if (drawer) {
+            drawer.classList.toggle('active');
+        }
+    }
+</script>
+
+</body>
+</html>

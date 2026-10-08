@@ -71,9 +71,10 @@ def customer_list(request):
 
 
 @login_required
-def customer_add(request):
+def customer_register_view(request):
     """
-    Create a new customer attached to the logged-in distributor.
+    Front-end view for registering a new customer by the authenticated distributor.
+    Renders the modern customer registration form with real-time feedback and validation.
     """
     errors = {}
     form_data = {}
@@ -86,7 +87,7 @@ def customer_add(request):
         city = request.POST.get("city", "").strip()
         state = request.POST.get("state", "").strip()
         pincode = request.POST.get("pincode", "").strip()
-        is_active = request.POST.get("is_active") == "on"
+        is_active = request.POST.get("is_active") in ["on", "true", True, "1"]
 
         form_data = {
             "name": name,
@@ -104,6 +105,8 @@ def customer_add(request):
             errors["name"] = "Full Name is required."
         elif len(name) < 3:
             errors["name"] = "Name must contain at least 3 characters."
+        elif len(name) > 100:
+            errors["name"] = "Name cannot exceed 100 characters."
 
         if not phone:
             errors["phone"] = "Phone number is required."
@@ -118,9 +121,13 @@ def customer_add(request):
 
         if not city:
             errors["city"] = "City is required."
+        elif len(city) > 50:
+            errors["city"] = "City cannot exceed 50 characters."
 
         if not state:
             errors["state"] = "State is required."
+        elif len(state) > 50:
+            errors["state"] = "State cannot exceed 50 characters."
 
         if not pincode:
             errors["pincode"] = "Pincode is required."
@@ -128,29 +135,33 @@ def customer_add(request):
             errors["pincode"] = "Please enter a valid 6-digit postal pincode."
 
         if not errors:
-            Customer.objects.create(
+            customer = Customer.objects.create(
                 distributor=request.user,
                 name=name,
                 email=email if email else None,
                 phone=phone,
-                address=address,
+                address=address if address else None,
                 city=city,
                 state=state,
                 pincode=pincode,
                 is_active=is_active,
             )
-            messages.success(request, "Customer added successfully.")
+            messages.success(request, f"Customer '{customer.name}' registered successfully.")
             return redirect("customer_list")
 
     return render(
         request,
-        "billing/customer_form.html",
+        "billing/customer_register.html",
         {
             "is_edit": False,
             "errors": errors,
             "form_data": form_data,
         }
     )
+
+# Alias for backward-compatibility
+customer_add = customer_register_view
+
 
 
 @login_required
