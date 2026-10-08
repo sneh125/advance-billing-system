@@ -4,8 +4,10 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
+from django.core import mail
 
 from .models import DistributorProfile, PasswordResetOTP
+from .utils import send_otp_email
 
 
 class AccountAuthenticationTests(TestCase):
@@ -272,6 +274,43 @@ class AccountAuthenticationTests(TestCase):
         )
         self.assertEqual(resp.status_code, 403)
         self.assertIn("does not belong to an Administrator account", resp.json()["message"])
+
+    def test_otp_email_system_dispatch_and_templates(self):
+        """Task 35: Test OTP-based email system for password recovery dispatches formatted email"""
+        # Clear outbox
+        mail.outbox = []
+
+        # Request OTP for distributor
+        response = self.client.post(reverse('forgot_password'), {
+            'email': 'test_dist@example.com'
+        })
+        self.assertEqual(response.status_code, 200)
+
+        # Check an email was sent via Django email system
+        self.assertEqual(len(mail.outbox), 1)
+        sent_email = mail.outbox[0]
+        self.assertIn("test_dist@example.com", sent_email.to)
+        self.assertIn("Password Reset OTP", sent_email.subject)
+
+        # Verify OTP is present in email body
+        otp_record = PasswordResetOTP.objects.filter(email='test_dist@example.com').first()
+        self.assertIsNotNone(otp_record)
+        self.assertIn(otp_record.otp, sent_email.body)
+
+        # Test direct send_otp_email helper for Administrator
+        mail.outbox = []
+        success = send_otp_email(
+            email="admin_audit@billing.local",
+            otp="849201",
+            user_name="SuperAdmin",
+            is_admin=True
+        )
+        self.assertTrue(success)
+        self.assertEqual(len(mail.outbox), 1)
+        admin_email = mail.outbox[0]
+        self.assertIn("Administrator Password Reset OTP", admin_email.subject)
+        self.assertIn("849201", admin_email.body)
+
 
 
 

@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.contrib import messages
 
 from .models import PasswordResetOTP, DistributorProfile
+from .utils import send_otp_email
 
 
 # DISTRIBUTOR REGISTRATION
@@ -319,6 +320,11 @@ def forgot_password(request):
             expires_at=expires_at
         )
 
+        # Send OTP email
+        user_obj = User.objects.filter(email=email).first()
+        user_name = user_obj.first_name if user_obj else "User"
+        send_otp_email(email=email, otp=otp, user_name=user_name, is_admin=False)
+
         print(f"[AUTH] Generated OTP for {email}: {otp}")
 
         return render(
@@ -471,6 +477,11 @@ def resend_otp(request):
         otp=otp,
         expires_at=expires_at
     )
+
+    # Send OTP email
+    user_obj = User.objects.filter(email=email).first()
+    user_name = user_obj.first_name if user_obj else "User"
+    send_otp_email(email=email, otp=otp, user_name=user_name, is_admin=False)
 
     print(f"[AUTH] RESEND OTP for {email}: {otp}")
 
@@ -1035,6 +1046,9 @@ def admin_forgot_password(request):
         otp = generate_otp()
         expires_at = timezone.now() + timedelta(minutes=5)
         PasswordResetOTP.objects.create(email=email, otp=otp, expires_at=expires_at)
+
+        # Send OTP email for Administrator
+        send_otp_email(email=email, otp=otp, user_name=user.first_name, is_admin=True)
 
         print(f"[AUTH-ADMIN] Generated Password Recovery OTP for Admin {email}: {otp}")
 
