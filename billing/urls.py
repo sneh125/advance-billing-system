@@ -6,6 +6,14 @@ urlpatterns = [
     path('customers/add/', views.customer_add, name='customer_add'),
     path('customers/<int:pk>/edit/', views.customer_edit, name='customer_edit'),
     path('customers/<int:pk>/delete/', views.customer_delete, name='customer_delete'),
+
+    # Customer Registration API for Distributor
+    path('api/customers/register/', views.customer_register_api, name='customer_register_api'),
+    path('api/customer/register/', views.customer_register_api, name='api_customer_register'),
+    path('api/distributor/customers/register/', views.customer_register_api, name='api_distributor_customer_register'),
+    path('api/distributor/customer/register/', views.customer_register_api, name='api_distributor_customer_reg'),
+    path('api/customers/', views.customer_register_api, name='api_customers'),
+
     path("products/add/",views.product_add,name="product_add"),
     path("products/",views.product_list,name="product_list"),
     path("products/<int:pk>/edit/",views.product_edit,name="product_edit"),

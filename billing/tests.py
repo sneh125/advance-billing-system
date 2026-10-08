@@ -1,3 +1,5 @@
+import json
+import base64
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -693,6 +695,194 @@ class InvoiceSystemTests(TestCase):
         self.assertEqual(pdf_resp.status_code, 200)
         self.assertEqual(pdf_resp['Content-Type'], 'application/pdf')
         self.assertTrue(pdf_resp.content.startswith(b'%PDF'))
+
+
+class CustomerRegistrationAPITests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.distributor = User.objects.create_user(
+            username="distributor_api",
+            email="dist_api@example.com",
+            password="Password@123",
+            first_name="Distributor API"
+        )
+        self.distributor2 = User.objects.create_user(
+            username="distributor_other",
+            email="dist_other@example.com",
+            password="Password@123",
+            first_name="Other Distributor"
+        )
+
+    def test_customer_register_api_success_json(self):
+        """Authenticated distributor successfully registers customer via JSON"""
+        self.client.login(username="distributor_api", password="Password@123")
+        payload = {
+            "name": "Anil Ambani",
+            "phone": "9876501234",
+            "email": "anil@example.com",
+            "address": "404 Reliance House, SG Highway",
+            "city": "Ahmedabad",
+            "state": "Gujarat",
+            "pincode": "380015",
+            "is_active": True
+        }
+        response = self.client.post(
+            reverse("customer_register_api"),
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 201)
+        res_data = response.json()
+        self.assertEqual(res_data["status"], "success")
+        self.assertEqual(res_data["message"], "Customer registered successfully.")
+        self.assertEqual(res_data["data"]["name"], "Anil Ambani")
+        self.assertEqual(res_data["data"]["phone"], "9876501234")
+        self.assertEqual(res_data["data"]["distributor_id"], self.distributor.id)
+        self.assertEqual(res_data["data"]["city"], "Ahmedabad")
+
+        # Database verification
+        customer = Customer.objects.get(id=res_data["data"]["id"])
+        self.assertEqual(customer.distributor, self.distributor)
+        self.assertEqual(customer.name, "Anil Ambani")
+        self.assertEqual(customer.phone, "9876501234")
+
+    def test_customer_register_api_success_form_data(self):
+        """Authenticated distributor registers customer via standard form POST"""
+        self.client.login(username="distributor_api", password="Password@123")
+        response = self.client.post(
+            reverse("customer_register_api"),
+            {
+                "name": "Bhavik Parekh",
+                "phone": "9123456789",
+                "email": "bhavik@example.com",
+                "address": "12 Shanti Nagar",
+                "city": "Rajkot",
+                "state": "Gujarat",
+                "pincode": "360001",
+                "is_active": "true"
+            }
+        )
+        self.assertEqual(response.status_code, 201)
+        res_data = response.json()
+        self.assertEqual(res_data["status"], "success")
+        self.assertEqual(res_data["data"]["name"], "Bhavik Parekh")
+        self.assertTrue(Customer.objects.filter(phone="9123456789", distributor=self.distributor).exists())
+
+    def test_customer_register_api_with_basic_auth(self):
+        """Unauthenticated client provides HTTP Basic Auth header to register customer"""
+        credentials = base64.b64encode(b"distributor_api:Password@123").decode("utf-8")
+        payload = {
+            "name": "Chetan Bhagat",
+            "phone": "9825098250",
+            "city": "Surat",
+            "state": "Gujarat",
+            "pincode": "395007"
+        }
+        response = self.client.post(
+            reverse("customer_register_api"),
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Basic {credentials}"
+        )
+        self.assertEqual(response.status_code, 201)
+        res_data = response.json()
+        self.assertEqual(res_data["status"], "success")
+        self.assertEqual(res_data["data"]["distributor_id"], self.distributor.id)
+
+    def test_customer_register_api_with_distributor_id_payload(self):
+        """Client specifies distributor_id in payload when unauthenticated"""
+        payload = {
+            "distributor_id": self.distributor2.id,
+            "name": "Dhaval Jani",
+            "phone": "9724097240",
+            "city": "Vadodara",
+            "state": "Gujarat",
+            "pincode": "390001"
+        }
+        response = self.client.post(
+            reverse("customer_register_api"),
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 201)
+        res_data = response.json()
+        self.assertEqual(res_data["data"]["distributor_id"], self.distributor2.id)
+        customer = Customer.objects.get(id=res_data["data"]["id"])
+        self.assertEqual(customer.distributor, self.distributor2)
+
+    def test_customer_register_api_unauthorized(self):
+        """Unauthenticated request without valid distributor credentials returns 401"""
+        payload = {
+            "name": "Ghost Customer",
+            "phone": "9999999999",
+            "city": "Nowhere",
+            "state": "Gujarat",
+            "pincode": "380001"
+        }
+        response = self.client.post(
+            reverse("customer_register_api"),
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 401)
+        res_data = response.json()
+        self.assertEqual(res_data["status"], "error")
+        self.assertIn("Authentication required", res_data["message"])
+
+    def test_customer_register_api_validation_errors(self):
+        """Validation errors return 400 Bad Request with field details"""
+        self.client.login(username="distributor_api", password="Password@123")
+        payload = {
+            "name": "A",             # too short (<3)
+            "phone": "123",           # invalid phone (<10 digits)
+            "email": "invalid-email", # invalid email format
+            "city": "",               # missing city
+            "state": "",              # missing state
+            "pincode": "12"           # invalid pincode (<5 digits)
+        }
+        response = self.client.post(
+            reverse("customer_register_api"),
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        res_data = response.json()
+        self.assertEqual(res_data["status"], "error")
+        self.assertIn("name", res_data["errors"])
+        self.assertIn("phone", res_data["errors"])
+        self.assertIn("email", res_data["errors"])
+        self.assertIn("city", res_data["errors"])
+        self.assertIn("state", res_data["errors"])
+        self.assertIn("pincode", res_data["errors"])
+
+    def test_customer_register_api_method_not_allowed(self):
+        """Non-POST requests return 405 Method Not Allowed"""
+        response = self.client.get(reverse("customer_register_api"))
+        self.assertEqual(response.status_code, 405)
+        res_data = response.json()
+        self.assertEqual(res_data["status"], "error")
+        self.assertIn("Method not allowed", res_data["message"])
+
+    def test_customer_register_api_malformed_json(self):
+        """Malformed JSON payload returns 400 Bad Request"""
+        self.client.login(username="distributor_api", password="Password@123")
+        response = self.client.post(
+            reverse("customer_register_api"),
+            data="{invalid_json:",
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        res_data = response.json()
+        self.assertEqual(res_data["status"], "error")
+        self.assertIn("Malformed JSON", res_data["message"])
+
+    def test_customer_register_api_url_aliases(self):
+        """All supported endpoint paths resolve and respond correctly"""
+        self.client.login(username="distributor_api", password="Password@123")
+        for url_name in ["customer_register_api", "api_customer_register", "api_distributor_customer_register"]:
+            resp = self.client.get(reverse(url_name))
+            self.assertEqual(resp.status_code, 405)
+
 
 
 

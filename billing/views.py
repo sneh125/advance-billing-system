@@ -16,6 +16,12 @@ import qrcode
 import base64
 from io import BytesIO
 
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+
 from .models import Customer, Product, Invoice, InvoiceItem
 from .forms import InvoiceCreateForm
 
@@ -886,3 +892,196 @@ def invoice_pdf(request, pk):
     )
 
     return pdf
+
+
+# ==============================================================================
+# CUSTOMER REGISTRATION API FOR DISTRIBUTOR
+# ==============================================================================
+
+@csrf_exempt
+def customer_register_api(request):
+    """
+    REST API endpoint for registering a new Customer for a Distributor.
+    
+    Accepts POST requests with either JSON (application/json) or Form data
+    (application/x-www-form-urlencoded, multipart/form-data).
+    
+    Authentication / Distributor context:
+      - Authenticated session user (request.user.is_authenticated)
+      - HTTP Basic Authentication header (Authorization: Basic <base64>)
+      - Optional distributor identifier in payload ('distributor_id' or 'distributor_username' or 'distributor')
+    
+    Required Fields:
+      - name: Customer full name (string, min 3 chars, max 100 chars)
+      - phone: 10-digit valid phone number (digits only, length 10)
+      - city: City name (string, max 50 chars)
+      - state: State name (string, max 50 chars)
+      - pincode: 5 or 6 digit postal pincode
+      
+    Optional Fields:
+      - email: Valid email address format
+      - address: Detailed street address (string)
+      - is_active: Boolean status (default: True)
+      
+    Returns:
+      - 201 Created: Customer registered successfully with customer details JSON
+      - 400 Bad Request: Validation failure with field errors
+      - 401 Unauthorized: When caller is not authenticated and no distributor is identified
+      - 405 Method Not Allowed: For non-POST requests
+    """
+    if request.method != "POST":
+        return JsonResponse({
+            "status": "error",
+            "message": "Method not allowed. Only POST requests are supported."
+        }, status=405)
+
+    # Parse payload (supports JSON body and Form data)
+    data = {}
+    if request.content_type == "application/json" and request.body:
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JsonResponse({
+                "status": "error",
+                "message": "Malformed JSON payload in request body."
+            }, status=400)
+    else:
+        data = request.POST.dict()
+
+    # Determine distributor
+    distributor = None
+    if request.user.is_authenticated:
+        distributor = request.user
+    else:
+        # Check HTTP Basic Auth Header
+        auth_header = request.headers.get("Authorization") or request.META.get("HTTP_AUTHORIZATION", "")
+        if auth_header.startswith("Basic "):
+            try:
+                auth_decoded = base64.b64decode(auth_header[6:].strip()).decode("utf-8")
+                u, p = auth_decoded.split(":", 1)
+                user = authenticate(username=u, password=p)
+                if user:
+                    distributor = user
+            except Exception:
+                pass
+
+        # Check distributor payload fields if provided
+        if not distributor:
+            dist_id = data.get("distributor_id") or data.get("distributor") or data.get("distributor_username")
+            if dist_id:
+                if str(dist_id).isdigit():
+                    distributor = User.objects.filter(pk=int(dist_id)).first()
+                if not distributor:
+                    distributor = User.objects.filter(username=str(dist_id)).first()
+                if not distributor:
+                    distributor = User.objects.filter(email=str(dist_id)).first()
+
+    if not distributor:
+        return JsonResponse({
+            "status": "error",
+            "message": "Authentication required. Please login or provide valid distributor credentials."
+        }, status=401)
+
+    # Extract fields
+    name = str(data.get("name", "")).strip()
+    phone = str(data.get("phone", "")).strip()
+    email = str(data.get("email", "")).strip().lower()
+    address = str(data.get("address", "")).strip()
+    city = str(data.get("city", "")).strip()
+    state = str(data.get("state", "")).strip()
+    pincode = str(data.get("pincode", "")).strip()
+
+    # is_active handling
+    raw_active = data.get("is_active", True)
+    if isinstance(raw_active, str):
+        is_active = raw_active.lower() not in ["false", "0", "off", "no"]
+    elif isinstance(raw_active, bool):
+        is_active = raw_active
+    else:
+        is_active = bool(raw_active)
+
+    errors = {}
+
+    # Validation: Name
+    if not name:
+        errors["name"] = "Full Name is required."
+    elif len(name) < 3:
+        errors["name"] = "Name must contain at least 3 characters."
+    elif len(name) > 100:
+        errors["name"] = "Name cannot exceed 100 characters."
+
+    # Validation: Phone
+    if not phone:
+        errors["phone"] = "Phone number is required."
+    elif not phone.isdigit() or len(phone) != 10:
+        errors["phone"] = "Please enter a valid 10-digit phone number."
+
+    # Validation: Email
+    if email:
+        try:
+            validate_email(email)
+        except ValidationError:
+            errors["email"] = "Please enter a valid email address."
+
+    # Validation: City
+    if not city:
+        errors["city"] = "City is required."
+    elif len(city) > 50:
+        errors["city"] = "City cannot exceed 50 characters."
+
+    # Validation: State
+    if not state:
+        errors["state"] = "State is required."
+    elif len(state) > 50:
+        errors["state"] = "State cannot exceed 50 characters."
+
+    # Validation: Pincode
+    if not pincode:
+        errors["pincode"] = "Pincode is required."
+    elif not pincode.isdigit() or len(pincode) < 5 or len(pincode) > 6:
+        errors["pincode"] = "Please enter a valid 5 or 6 digit postal pincode."
+
+    if errors:
+        return JsonResponse({
+            "status": "error",
+            "message": "Validation failed.",
+            "errors": errors
+        }, status=400)
+
+    try:
+        customer = Customer.objects.create(
+            distributor=distributor,
+            name=name,
+            email=email if email else None,
+            phone=phone,
+            address=address if address else None,
+            city=city,
+            state=state,
+            pincode=pincode,
+            is_active=is_active
+        )
+
+        return JsonResponse({
+            "status": "success",
+            "message": "Customer registered successfully.",
+            "data": {
+                "id": customer.id,
+                "name": customer.name,
+                "email": customer.email,
+                "phone": customer.phone,
+                "address": customer.address,
+                "city": customer.city,
+                "state": customer.state,
+                "pincode": customer.pincode,
+                "is_active": customer.is_active,
+                "distributor_id": distributor.id,
+                "distributor_username": distributor.username,
+                "created_at": customer.created_at.isoformat(),
+            }
+        }, status=201)
+
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": f"Server error registering customer: {str(e)}"
+        }, status=500)
