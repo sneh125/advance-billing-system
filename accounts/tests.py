@@ -311,6 +311,143 @@ class AccountAuthenticationTests(TestCase):
         self.assertIn("Administrator Password Reset OTP", admin_email.subject)
         self.assertIn("849201", admin_email.body)
 
+    def test_distributor_registration_validation_edge_cases(self):
+        """Task 36: Test all validation failure edge-cases for distributor registration"""
+        # 1. Name too short
+        r1 = self.client.post(reverse('register'), {
+            'name': 'Al',
+            'email': 'valid@example.com',
+            'phone': '9876543210',
+            'password': 'Password@123',
+            'confirm_password': 'Password@123',
+        })
+        self.assertEqual(r1.status_code, 200)
+        self.assertContains(r1, "Name must contain at least 3 characters")
+
+        # 2. Invalid phone format
+        r2 = self.client.post(reverse('register'), {
+            'name': 'Valid Name',
+            'email': 'valid2@example.com',
+            'phone': '12345',
+            'password': 'Password@123',
+            'confirm_password': 'Password@123',
+        })
+        self.assertEqual(r2.status_code, 200)
+        self.assertContains(r2, "valid 10-digit phone number")
+
+        # 3. Passwords mismatch
+        r3 = self.client.post(reverse('register'), {
+            'name': 'Valid Name',
+            'email': 'valid3@example.com',
+            'phone': '9876543210',
+            'password': 'Password@123',
+            'confirm_password': 'DifferentPassword@123',
+        })
+        self.assertEqual(r3.status_code, 200)
+        self.assertContains(r3, "Passwords do not match")
+
+        # 4. Password too short (< 8 chars)
+        r4 = self.client.post(reverse('register'), {
+            'name': 'Valid Name',
+            'email': 'valid4@example.com',
+            'phone': '9876543210',
+            'password': 'short',
+            'confirm_password': 'short',
+        })
+        self.assertEqual(r4.status_code, 200)
+        self.assertContains(r4, "Password must contain at least 8 characters")
+
+    def test_resend_otp_lifecycle_and_invalidation(self):
+        """Task 36: Test resend OTP generates a new code and invalidates the previous unverified code"""
+        # 1. Initial OTP request
+        self.client.post(reverse('forgot_password'), {'email': 'test_dist@example.com'})
+        first_otp = PasswordResetOTP.objects.filter(email='test_dist@example.com').first().otp
+
+        # 2. Resend OTP
+        mail.outbox = []
+        resp_resend = self.client.post(reverse('resend_otp'), {'email': 'test_dist@example.com'})
+        self.assertEqual(resp_resend.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+
+        # Confirm only 1 unverified OTP exists and has changed
+        otps = PasswordResetOTP.objects.filter(email='test_dist@example.com', is_verified=False)
+        self.assertEqual(otps.count(), 1)
+        second_otp = otps.first().otp
+        self.assertNotEqual(first_otp, second_otp)
+
+        # 3. Old OTP verification must fail
+        resp_old = self.client.post(reverse('verify_otp'), {
+            'email': 'test_dist@example.com',
+            'otp': first_otp
+        })
+        self.assertEqual(resp_old.status_code, 200)
+        self.assertContains(resp_old, "Invalid OTP")
+
+        # 4. New OTP verification must succeed
+        resp_new = self.client.post(reverse('verify_otp'), {
+            'email': 'test_dist@example.com',
+            'otp': second_otp
+        })
+        self.assertEqual(resp_new.status_code, 200)
+        self.assertTrue(resp_new.context['otp_verified'])
+
+    def test_admin_password_recovery_validation_edge_cases(self):
+        """Task 36: Test error handling on wrong OTP, expired OTP and mismatched passwords for Admin"""
+        # Create an admin user
+        admin = User.objects.create_user(
+            username="edge_admin",
+            email="edge_admin@billing.local",
+            password="InitialPassword@123",
+            first_name="Edge Admin"
+        )
+        admin.is_staff = True
+        admin.save()
+
+        # Create expired OTP record
+        PasswordResetOTP.objects.create(
+            email="edge_admin@billing.local",
+            otp="111222",
+            expires_at=timezone.now() - timedelta(minutes=15)
+        )
+
+        # 1. Test wrong OTP rejection
+        r_wrong = self.client.post(
+            reverse('api_admin_verify_otp'),
+            data=json.dumps({"email": "edge_admin@billing.local", "otp": "999999"}),
+            content_type="application/json"
+        )
+        self.assertEqual(r_wrong.status_code, 400)
+        self.assertIn("Invalid OTP", r_wrong.json()["message"])
+
+        # 2. Test expired OTP rejection
+        r_exp = self.client.post(
+            reverse('api_admin_verify_otp'),
+            data=json.dumps({"email": "edge_admin@billing.local", "otp": "111222"}),
+            content_type="application/json"
+        )
+        self.assertEqual(r_exp.status_code, 400)
+        self.assertIn("expired", r_exp.json()["message"])
+
+        # 3. Create verified OTP record and test reset password mismatch
+        PasswordResetOTP.objects.create(
+            email="edge_admin@billing.local",
+            otp="999888",
+            is_verified=True,
+            expires_at=timezone.now() + timedelta(minutes=5)
+        )
+        r_mismatch = self.client.post(
+            reverse('api_admin_reset_password'),
+            data=json.dumps({
+                "email": "edge_admin@billing.local",
+                "password": "Password1@123",
+                "confirm_password": "Password2@456"
+            }),
+            content_type="application/json"
+        )
+        self.assertEqual(r_mismatch.status_code, 400)
+        self.assertIn("Passwords do not match", r_mismatch.json()["message"])
+
+
 
 
 
