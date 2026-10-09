@@ -210,6 +210,8 @@ def customer_edit(request, pk):
             errors["name"] = "Full Name is required."
         elif len(name) < 3:
             errors["name"] = "Name must contain at least 3 characters."
+        elif len(name) > 100:
+            errors["name"] = "Name cannot exceed 100 characters."
 
         if not phone:
             errors["phone"] = "Phone number is required."
@@ -224,9 +226,13 @@ def customer_edit(request, pk):
 
         if not city:
             errors["city"] = "City is required."
+        elif len(city) > 50:
+            errors["city"] = "City cannot exceed 50 characters."
 
         if not state:
             errors["state"] = "State is required."
+        elif len(state) > 50:
+            errors["state"] = "State cannot exceed 50 characters."
 
         if not pincode:
             errors["pincode"] = "Pincode is required."
@@ -460,6 +466,16 @@ def product_edit(request, pk):
                 {
                     "product": product,
                     "error": "Please fill in all required fields."
+                }
+            )
+
+        if len(name) < 2:
+            return render(
+                request,
+                "billing/product_edit.html",
+                {
+                    "product": product,
+                    "error": "Product name must contain at least 2 characters."
                 }
             )
 

@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from decimal import Decimal
 from .models import Customer, Product, Invoice, InvoiceItem
+from .forms import CustomerForm, ProductForm
 
 
 class CustomerManagementTests(TestCase):
@@ -1104,6 +1105,494 @@ class ProductCRUDOperationsTests(TestCase):
         res_delete = self.client.delete(reverse("api_product_detail", kwargs={"pk": prod_id}))
         self.assertEqual(res_delete.status_code, 200)
         self.assertFalse(Product.objects.filter(pk=prod_id).exists())
+
+
+class ValidationAndTestingBothModulesTests(TestCase):
+    """
+    Task 41: Perform validation and testing on both modules.
+    Exhaustive validation test suite covering:
+    1. Customer Module Form & Web UI validation edge-cases
+    2. Customer Module REST API validation & security
+    3. Customer Module Multi-Tenant isolation & unauthorized access
+    4. Product Module Form & Web UI validation edge-cases
+    5. Product Module REST API validation & security
+    6. Product Module Multi-Tenant isolation & unauthorized access
+    7. Cross-Module Data Integrity & Boundary Assurance
+    """
+    def setUp(self):
+        self.client = Client()
+        self.distributor1 = User.objects.create_user(
+            username="dist_val_one",
+            email="distval1@example.com",
+            password="Password@123",
+            first_name="Distributor Valid One"
+        )
+        self.distributor2 = User.objects.create_user(
+            username="dist_val_two",
+            email="distval2@example.com",
+            password="Password@123",
+            first_name="Distributor Valid Two"
+        )
+
+        self.customer1 = Customer.objects.create(
+            distributor=self.distributor1,
+            name="Anand Sharma",
+            email="anand@example.com",
+            phone="9876543210",
+            address="123 Civil Lines",
+            city="Ahmedabad",
+            state="Gujarat",
+            pincode="380001",
+            is_active=True
+        )
+
+        self.product1 = Product.objects.create(
+            distributor=self.distributor1,
+            name="Wireless Mouse",
+            category="Electronics",
+            price=Decimal("499.00"),
+            stock=50,
+            gst_rate=Decimal("18.00"),
+            description="2.4GHz optical mouse"
+        )
+
+    # ---------------------------------------------------------
+    # MODULE 1: CUSTOMER FORM & WEB UI VALIDATION TESTS
+    # ---------------------------------------------------------
+    def test_customer_form_validation(self):
+        """Unit test CustomerForm with valid, invalid phone, short name, and bad pincode"""
+        # Valid form
+        form = CustomerForm(data={
+            "name": "Priya Patel",
+            "email": "priya@example.com",
+            "phone": "9825012345",
+            "address": "45 Lotus Park",
+            "city": "Vadodara",
+            "state": "Gujarat",
+            "pincode": "390001",
+            "is_active": True
+        })
+        self.assertTrue(form.is_valid())
+
+        # Invalid: short name
+        form_short = CustomerForm(data={"name": "AB", "phone": "9825012345", "city": "Surat", "state": "Gujarat", "pincode": "395001"})
+        self.assertFalse(form_short.is_valid())
+        self.assertIn("name", form_short.errors)
+
+        # Invalid: phone with letters
+        form_bad_phone = CustomerForm(data={"name": "Valid Name", "phone": "982501234a", "city": "Surat", "state": "Gujarat", "pincode": "395001"})
+        self.assertFalse(form_bad_phone.is_valid())
+        self.assertIn("phone", form_bad_phone.errors)
+
+        # Invalid: pincode with letters
+        form_bad_pin = CustomerForm(data={"name": "Valid Name", "phone": "9825012345", "city": "Surat", "state": "Gujarat", "pincode": "PIN123"})
+        self.assertFalse(form_bad_pin.is_valid())
+        self.assertIn("pincode", form_bad_pin.errors)
+
+    def test_customer_web_registration_validation_rules(self):
+        """Web UI: Validate required fields, formats, and limits for customer registration"""
+        self.client.login(username="dist_val_one", password="Password@123")
+
+        # 1. Missing required fields
+        res = self.client.post(reverse("customer_register"), {
+            "name": "",
+            "phone": "",
+            "city": "",
+            "state": "",
+            "pincode": ""
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("name", res.context["errors"])
+        self.assertIn("phone", res.context["errors"])
+        self.assertIn("city", res.context["errors"])
+        self.assertIn("state", res.context["errors"])
+        self.assertIn("pincode", res.context["errors"])
+
+        # 2. Invalid phone (9 digits, 11 digits, alpha)
+        for bad_p in ["123456789", "12345678901", "98765abcde"]:
+            res = self.client.post(reverse("customer_register"), {
+                "name": "Kavita Rao",
+                "phone": bad_p,
+                "city": "Rajkot",
+                "state": "Gujarat",
+                "pincode": "360001"
+            })
+            self.assertEqual(res.status_code, 200)
+            self.assertIn("phone", res.context["errors"])
+
+        # 3. Invalid email format
+        res = self.client.post(reverse("customer_register"), {
+            "name": "Kavita Rao",
+            "phone": "9876543219",
+            "email": "not-a-valid-email",
+            "city": "Rajkot",
+            "state": "Gujarat",
+            "pincode": "360001"
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("email", res.context["errors"])
+
+        # 4. Successful registration creates Customer associated to logged-in distributor
+        res_ok = self.client.post(reverse("customer_register"), {
+            "name": "Kavita Rao",
+            "phone": "9876543219",
+            "email": "kavita@example.com",
+            "address": "12 Palace Road",
+            "city": "Rajkot",
+            "state": "Gujarat",
+            "pincode": "360001",
+            "is_active": "on"
+        })
+        self.assertEqual(res_ok.status_code, 302)
+        created = Customer.objects.filter(phone="9876543219").first()
+        self.assertIsNotNone(created)
+        self.assertEqual(created.distributor, self.distributor1)
+
+    def test_customer_web_edit_and_delete_security(self):
+        """Web UI: Test validation on edit, cross-tenant isolation, and safe POST delete"""
+        # 1. Edit with invalid phone fails
+        self.client.login(username="dist_val_one", password="Password@123")
+        res_edit_invalid = self.client.post(reverse("customer_edit", kwargs={"pk": self.customer1.pk}), {
+            "name": "Anand Updated",
+            "phone": "invalid-phone",
+            "city": "Ahmedabad",
+            "state": "Gujarat",
+            "pincode": "380001"
+        })
+        self.assertEqual(res_edit_invalid.status_code, 200)
+        self.customer1.refresh_from_db()
+        self.assertEqual(self.customer1.name, "Anand Sharma")
+
+        # 2. Distributor 2 cannot edit Distributor 1's customer (returns 404)
+        self.client.login(username="dist_val_two", password="Password@123")
+        res_cross_edit = self.client.post(reverse("customer_edit", kwargs={"pk": self.customer1.pk}), {
+            "name": "Hacked Name",
+            "phone": "9876543210",
+            "city": "Ahmedabad",
+            "state": "Gujarat",
+            "pincode": "380001"
+        })
+        self.assertEqual(res_cross_edit.status_code, 404)
+
+        # 3. GET request to delete does not delete
+        self.client.login(username="dist_val_one", password="Password@123")
+        res_get_del = self.client.get(reverse("customer_delete", kwargs={"pk": self.customer1.pk}))
+        self.assertEqual(res_get_del.status_code, 302)
+        self.assertTrue(Customer.objects.filter(pk=self.customer1.pk).exists())
+
+        # 4. Cross-distributor delete returns 404
+        self.client.login(username="dist_val_two", password="Password@123")
+        res_cross_del = self.client.post(reverse("customer_delete", kwargs={"pk": self.customer1.pk}))
+        self.assertEqual(res_cross_del.status_code, 404)
+        self.assertTrue(Customer.objects.filter(pk=self.customer1.pk).exists())
+
+    def test_customer_api_validation_suite(self):
+        """Customer Registration API: Test 401 unauthenticated, 400 validation errors, and 201 success"""
+        # Unauthenticated
+        res_unauth = self.client.post(reverse("customer_register_api"), data={}, content_type="application/json")
+        self.assertEqual(res_unauth.status_code, 401)
+
+        # Authenticated
+        self.client.login(username="dist_val_one", password="Password@123")
+
+        # Missing required fields
+        res_missing = self.client.post(reverse("customer_register_api"), data=json.dumps({}), content_type="application/json")
+        self.assertEqual(res_missing.status_code, 400)
+        self.assertIn("errors", res_missing.json())
+
+        # Invalid formats
+        res_bad = self.client.post(reverse("customer_register_api"), data=json.dumps({
+            "name": "Al",
+            "phone": "123",
+            "email": "bad_email",
+            "city": "",
+            "state": "",
+            "pincode": "99"
+        }), content_type="application/json")
+        self.assertEqual(res_bad.status_code, 400)
+        errors = res_bad.json()["errors"]
+        self.assertIn("name", errors)
+        self.assertIn("phone", errors)
+        self.assertIn("email", errors)
+        self.assertIn("pincode", errors)
+
+        # Valid registration
+        res_ok = self.client.post(reverse("customer_register_api"), data=json.dumps({
+            "name": "Bharat Mehta",
+            "phone": "9898989898",
+            "email": "bharat@example.com",
+            "city": "Bhavnagar",
+            "state": "Gujarat",
+            "pincode": "364001",
+            "is_active": True
+        }), content_type="application/json")
+        self.assertEqual(res_ok.status_code, 201)
+        self.assertEqual(res_ok.json()["status"], "success")
+        self.assertTrue(Customer.objects.filter(phone="9898989898", distributor=self.distributor1).exists())
+
+    # ---------------------------------------------------------
+    # MODULE 2: PRODUCT FORM & WEB UI VALIDATION TESTS
+    # ---------------------------------------------------------
+    def test_product_form_validation(self):
+        """Unit test ProductForm with valid data, short name, zero price, negative stock, and invalid GST"""
+        # Valid form
+        form = ProductForm(data={
+            "name": "Mechanical Keyboard",
+            "category": "Accessories",
+            "price": "3499.00",
+            "stock": 20,
+            "gst_rate": "18.00",
+            "description": "RGB mechanical keyboard"
+        })
+        self.assertTrue(form.is_valid())
+
+        # Invalid: short name (<2 chars)
+        form_short = ProductForm(data={"name": "X", "category": "General", "price": "100.00", "stock": 5, "gst_rate": "18.00"})
+        self.assertFalse(form_short.is_valid())
+        self.assertIn("name", form_short.errors)
+
+        # Invalid: zero or negative price
+        form_zero_price = ProductForm(data={"name": "Item", "category": "General", "price": "0.00", "stock": 5, "gst_rate": "18.00"})
+        self.assertFalse(form_zero_price.is_valid())
+        self.assertIn("price", form_zero_price.errors)
+
+        # Invalid: negative stock
+        form_neg_stock = ProductForm(data={"name": "Item", "category": "General", "price": "50.00", "stock": -3, "gst_rate": "18.00"})
+        self.assertFalse(form_neg_stock.is_valid())
+        self.assertIn("stock", form_neg_stock.errors)
+
+        # Invalid: GST rate > 100
+        form_bad_gst = ProductForm(data={"name": "Item", "category": "General", "price": "50.00", "stock": 10, "gst_rate": "150.00"})
+        self.assertFalse(form_bad_gst.is_valid())
+        self.assertIn("gst_rate", form_bad_gst.errors)
+
+    def test_product_web_add_and_edit_validation_rules(self):
+        """Web UI: Test edge-case inputs when creating and editing products"""
+        self.client.login(username="dist_val_one", password="Password@123")
+
+        # 1. Missing fields
+        res_empty = self.client.post(reverse("product_add"), {"name": ""})
+        self.assertEqual(res_empty.status_code, 200)
+        self.assertIn("error", res_empty.context)
+
+        # 2. Product name < 2 chars
+        res_name = self.client.post(reverse("product_add"), {
+            "name": "A",
+            "category": "Cat",
+            "price": "100.00",
+            "stock": "10",
+            "gst_rate": "18.00"
+        })
+        self.assertEqual(res_name.status_code, 200)
+        self.assertIn("error", res_name.context)
+
+        # 3. Price <= 0 or non-numeric
+        for bad_p in ["0", "-25.00", "not-a-price"]:
+            res_p = self.client.post(reverse("product_add"), {
+                "name": "Valid Product",
+                "category": "Cat",
+                "price": bad_p,
+                "stock": "10",
+                "gst_rate": "18.00"
+            })
+            self.assertEqual(res_p.status_code, 200)
+            self.assertIn("error", res_p.context)
+
+        # 4. Stock < 0 or non-integer
+        for bad_s in ["-1", "5.5", "invalid"]:
+            res_s = self.client.post(reverse("product_add"), {
+                "name": "Valid Product",
+                "category": "Cat",
+                "price": "199.00",
+                "stock": bad_s,
+                "gst_rate": "18.00"
+            })
+            self.assertEqual(res_s.status_code, 200)
+            self.assertIn("error", res_s.context)
+
+        # 5. GST rate < 0 or > 100
+        for bad_g in ["-5", "105", "xyz"]:
+            res_g = self.client.post(reverse("product_add"), {
+                "name": "Valid Product",
+                "category": "Cat",
+                "price": "199.00",
+                "stock": "10",
+                "gst_rate": bad_g
+            })
+            self.assertEqual(res_g.status_code, 200)
+            self.assertIn("error", res_g.context)
+
+        # 6. Valid creation succeeds
+        res_ok = self.client.post(reverse("product_add"), {
+            "name": "HD Webcam",
+            "category": "Cameras",
+            "price": "1499.00",
+            "stock": "15",
+            "gst_rate": "18.00",
+            "description": "1080p full HD webcam"
+        })
+        self.assertEqual(res_ok.status_code, 302)
+        prod = Product.objects.filter(name="HD Webcam").first()
+        self.assertIsNotNone(prod)
+        self.assertEqual(prod.distributor, self.distributor1)
+
+        # 7. Edit with invalid zero price fails
+        res_edit_bad = self.client.post(reverse("product_edit", kwargs={"pk": prod.pk}), {
+            "name": "HD Webcam",
+            "category": "Cameras",
+            "price": "0.00",
+            "stock": "15",
+            "gst_rate": "18.00"
+        })
+        self.assertEqual(res_edit_bad.status_code, 200)
+        self.assertIn("error", res_edit_bad.context)
+        prod.refresh_from_db()
+        self.assertEqual(prod.price, Decimal("1499.00"))
+
+        # 8. Edit with valid values succeeds
+        res_edit_ok = self.client.post(reverse("product_edit", kwargs={"pk": prod.pk}), {
+            "name": "HD Webcam Pro 4K",
+            "category": "Cameras",
+            "price": "1999.00",
+            "stock": "12",
+            "gst_rate": "18.00",
+            "description": "Updated 4K webcam"
+        })
+        self.assertEqual(res_edit_ok.status_code, 302)
+        prod.refresh_from_db()
+        self.assertEqual(prod.name, "HD Webcam Pro 4K")
+        self.assertEqual(prod.price, Decimal("1999.00"))
+
+    def test_product_web_security_and_delete(self):
+        """Web UI: Test multi-tenant isolation on product views and safe delete method"""
+        # 1. Distributor 2 cannot view or edit Distributor 1's product
+        self.client.login(username="dist_val_two", password="Password@123")
+        res_view = self.client.get(reverse("product_detail", kwargs={"pk": self.product1.pk}))
+        self.assertEqual(res_view.status_code, 404)
+
+        res_edit = self.client.get(reverse("product_edit", kwargs={"pk": self.product1.pk}))
+        self.assertEqual(res_edit.status_code, 404)
+
+        # 2. GET request to delete does NOT delete
+        self.client.login(username="dist_val_one", password="Password@123")
+        res_get_del = self.client.get(reverse("product_delete", kwargs={"pk": self.product1.pk}))
+        self.assertEqual(res_get_del.status_code, 302)
+        self.assertTrue(Product.objects.filter(pk=self.product1.pk).exists())
+
+        # 3. Cross-distributor delete returns 404
+        self.client.login(username="dist_val_two", password="Password@123")
+        res_cross_del = self.client.post(reverse("product_delete", kwargs={"pk": self.product1.pk}))
+        self.assertEqual(res_cross_del.status_code, 404)
+        self.assertTrue(Product.objects.filter(pk=self.product1.pk).exists())
+
+        # 4. Valid POST by owner deletes product
+        self.client.login(username="dist_val_one", password="Password@123")
+        res_del = self.client.post(reverse("product_delete", kwargs={"pk": self.product1.pk}))
+        self.assertEqual(res_del.status_code, 302)
+        self.assertFalse(Product.objects.filter(pk=self.product1.pk).exists())
+
+    def test_product_api_validation_suite(self):
+        """Product REST API: Test authentication, malformed payloads, field validations, and CRUD updates"""
+        # 1. Unauthenticated -> 401
+        res_unauth = self.client.post(reverse("api_products"), data={}, content_type="application/json")
+        self.assertEqual(res_unauth.status_code, 401)
+
+        self.client.login(username="dist_val_one", password="Password@123")
+
+        # 2. Malformed JSON -> 400
+        res_malformed = self.client.post(reverse("api_products"), data="{bad json", content_type="application/json")
+        self.assertEqual(res_malformed.status_code, 400)
+
+        # 3. Missing fields -> 400
+        res_missing = self.client.post(reverse("api_products"), data=json.dumps({}), content_type="application/json")
+        self.assertEqual(res_missing.status_code, 400)
+        self.assertIn("errors", res_missing.json())
+
+        # 4. Invalid fields (price <= 0, stock < 0, gst > 100) -> 400
+        res_invalid = self.client.post(reverse("api_products"), data=json.dumps({
+            "name": "Microphone",
+            "category": "Audio",
+            "price": "-10.00",
+            "stock": -5,
+            "gst_rate": 120.00
+        }), content_type="application/json")
+        self.assertEqual(res_invalid.status_code, 400)
+        errs = res_invalid.json()["errors"]
+        self.assertIn("price", errs)
+        self.assertIn("stock", errs)
+        self.assertIn("gst_rate", errs)
+
+        # 5. Successful API create
+        res_create = self.client.post(reverse("api_products"), data=json.dumps({
+            "name": "Condenser Mic",
+            "category": "Audio",
+            "price": "2999.00",
+            "stock": 25,
+            "gst_rate": 18.00,
+            "description": "Studio recording microphone"
+        }), content_type="application/json")
+        self.assertEqual(res_create.status_code, 201)
+        new_prod_id = res_create.json()["data"]["id"]
+
+        # 6. API Update with invalid price returns 400
+        res_upd_bad = self.client.post(
+            reverse("api_product_detail", kwargs={"pk": new_prod_id}),
+            data=json.dumps({"price": "-50.00"}),
+            content_type="application/json"
+        )
+        self.assertEqual(res_upd_bad.status_code, 400)
+
+        # 7. Cross-distributor API access returns 404
+        self.client.login(username="dist_val_two", password="Password@123")
+        res_cross_get = self.client.get(reverse("api_product_detail", kwargs={"pk": new_prod_id}))
+        self.assertEqual(res_cross_get.status_code, 404)
+
+    # ---------------------------------------------------------
+    # CROSS-MODULE INTEGRATION & TENANT INTEGRITY
+    # ---------------------------------------------------------
+    def test_both_modules_multi_tenant_isolation_integrity(self):
+        """Verify that customer and product listings strictly isolate data between distributors"""
+        # Create records for Distributor 2
+        cust2 = Customer.objects.create(
+            distributor=self.distributor2,
+            name="Deepak Joshi",
+            email="deepak@example.com",
+            phone="9123456789",
+            city="Surat",
+            state="Gujarat",
+            pincode="395002"
+        )
+        prod2 = Product.objects.create(
+            distributor=self.distributor2,
+            name="Laser Printer",
+            category="Printers",
+            price=Decimal("15999.00"),
+            stock=8,
+            gst_rate=Decimal("18.00")
+        )
+
+        # Logged in as Distributor 1
+        self.client.login(username="dist_val_one", password="Password@123")
+
+        # Customer List: should contain Customer 1 but NOT Customer 2
+        res_cust_list = self.client.get(reverse("customer_list"))
+        self.assertEqual(res_cust_list.status_code, 200)
+        self.assertContains(res_cust_list, "Anand Sharma")
+        self.assertNotContains(res_cust_list, "Deepak Joshi")
+
+        # Product List: should contain Product 1 but NOT Product 2
+        res_prod_list = self.client.get(reverse("product_list"))
+        self.assertEqual(res_prod_list.status_code, 200)
+        self.assertContains(res_prod_list, "Wireless Mouse")
+        self.assertNotContains(res_prod_list, "Laser Printer")
+
+        # Search isolation in both modules
+        res_search_cust = self.client.get(reverse("customer_list") + "?q=Deepak")
+        self.assertNotContains(res_search_cust, "Deepak Joshi")
+
+        res_search_prod = self.client.get(reverse("product_list") + "?q=Printer")
+        self.assertNotContains(res_search_prod, "Laser Printer")
+
 
 
 
