@@ -569,6 +569,26 @@ def product_delete(request, pk):
     return redirect("product_list")
 
 
+@login_required
+def product_detail(request, pk):
+    """
+    Read / View single product details with distributor ownership verification.
+    """
+    product = get_object_or_404(
+        Product,
+        pk=pk,
+        distributor=request.user
+    )
+    return render(
+        request,
+        "billing/product_detail.html",
+        {
+            "product": product
+        }
+    )
+
+
+
 def generate_invoice_number(user):
     """
     Generate a clean sequential invoice number: INV-YYYYMMDD-0001
@@ -1096,3 +1116,252 @@ def customer_register_api(request):
             "status": "error",
             "message": f"Server error registering customer: {str(e)}"
         }, status=500)
+
+
+# ==============================================================================
+# PRODUCT CRUD REST API ENDPOINTS
+# ==============================================================================
+
+@csrf_exempt
+def product_api_list_create(request):
+    """
+    REST API endpoint for Product CRUD (List & Create).
+    GET: Return JSON list of distributor's products.
+    POST: Create a new product with full validations.
+    """
+    distributor = None
+    if request.user.is_authenticated:
+        distributor = request.user
+    else:
+        auth_header = request.headers.get("Authorization") or request.META.get("HTTP_AUTHORIZATION", "")
+        if auth_header.startswith("Basic "):
+            try:
+                auth_decoded = base64.b64decode(auth_header[6:].strip()).decode("utf-8")
+                u, p = auth_decoded.split(":", 1)
+                user = authenticate(username=u, password=p)
+                if user:
+                    distributor = user
+            except Exception:
+                pass
+        if not distributor:
+            dist_id = request.GET.get("distributor_id") or request.GET.get("distributor")
+            if dist_id:
+                if str(dist_id).isdigit():
+                    distributor = User.objects.filter(pk=int(dist_id)).first()
+                if not distributor:
+                    distributor = User.objects.filter(username=str(dist_id)).first()
+
+    if not distributor:
+        return JsonResponse({"status": "error", "message": "Authentication required."}, status=401)
+
+    if request.method == "GET":
+        products = Product.objects.filter(distributor=distributor).order_by("-created_at")
+        data = [{
+            "id": p.id,
+            "name": p.name,
+            "category": p.category,
+            "price": str(p.price),
+            "stock": p.stock,
+            "gst_rate": str(p.gst_rate),
+            "description": p.description,
+            "created_at": p.created_at.isoformat(),
+        } for p in products]
+        return JsonResponse({"status": "success", "count": len(data), "data": data}, status=200)
+
+    elif request.method == "POST":
+        data = {}
+        if request.content_type == "application/json" and request.body:
+            try:
+                data = json.loads(request.body.decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                return JsonResponse({"status": "error", "message": "Malformed JSON payload."}, status=400)
+        else:
+            data = request.POST.dict()
+
+        name = str(data.get("name", "")).strip()
+        category = str(data.get("category", "")).strip()
+        price = data.get("price")
+        stock = data.get("stock")
+        gst_rate = data.get("gst_rate")
+        description = str(data.get("description", "")).strip()
+
+        errors = {}
+        if not name:
+            errors["name"] = "Product name is required."
+        elif len(name) < 2:
+            errors["name"] = "Product name must contain at least 2 characters."
+
+        if not category:
+            errors["category"] = "Category is required."
+
+        if price is None or price == "":
+            errors["price"] = "Price is required."
+        else:
+            try:
+                price_val = Decimal(str(price))
+                if price_val <= 0:
+                    errors["price"] = "Price must be greater than 0."
+            except (InvalidOperation, ValueError):
+                errors["price"] = "Invalid price format."
+
+        if stock is None or stock == "":
+            errors["stock"] = "Stock is required."
+        else:
+            try:
+                stock_val = int(stock)
+                if stock_val < 0:
+                    errors["stock"] = "Stock cannot be negative."
+            except ValueError:
+                errors["stock"] = "Stock must be an integer."
+
+        if gst_rate is None or gst_rate == "":
+            errors["gst_rate"] = "GST rate is required."
+        else:
+            try:
+                gst_val = Decimal(str(gst_rate))
+                if gst_val < 0 or gst_val > 100:
+                    errors["gst_rate"] = "GST rate must be between 0 and 100."
+            except (InvalidOperation, ValueError):
+                errors["gst_rate"] = "Invalid GST rate format."
+
+        if errors:
+            return JsonResponse({"status": "error", "message": "Validation failed.", "errors": errors}, status=400)
+
+        product = Product.objects.create(
+            distributor=distributor,
+            name=name,
+            category=category,
+            price=price_val,
+            stock=stock_val,
+            gst_rate=gst_val,
+            description=description
+        )
+        return JsonResponse({
+            "status": "success",
+            "message": "Product created successfully.",
+            "data": {
+                "id": product.id,
+                "name": product.name,
+                "category": product.category,
+                "price": str(product.price),
+                "stock": product.stock,
+                "gst_rate": str(product.gst_rate),
+                "description": product.description,
+            }
+        }, status=201)
+
+    return JsonResponse({"status": "error", "message": "Method not allowed."}, status=405)
+
+
+@csrf_exempt
+def product_api_detail(request, pk):
+    """
+    REST API endpoint for Product CRUD (Read, Update, Delete single item).
+    """
+    distributor = None
+    if request.user.is_authenticated:
+        distributor = request.user
+    else:
+        auth_header = request.headers.get("Authorization") or request.META.get("HTTP_AUTHORIZATION", "")
+        if auth_header.startswith("Basic "):
+            try:
+                auth_decoded = base64.b64decode(auth_header[6:].strip()).decode("utf-8")
+                u, p = auth_decoded.split(":", 1)
+                user = authenticate(username=u, password=p)
+                if user:
+                    distributor = user
+            except Exception:
+                pass
+
+    if not distributor:
+        return JsonResponse({"status": "error", "message": "Authentication required."}, status=401)
+
+    product = Product.objects.filter(pk=pk, distributor=distributor).first()
+    if not product:
+        return JsonResponse({"status": "error", "message": "Product not found or access denied."}, status=404)
+
+    if request.method == "GET":
+        return JsonResponse({
+            "status": "success",
+            "data": {
+                "id": product.id,
+                "name": product.name,
+                "category": product.category,
+                "price": str(product.price),
+                "stock": product.stock,
+                "gst_rate": str(product.gst_rate),
+                "description": product.description,
+                "created_at": product.created_at.isoformat(),
+            }
+        }, status=200)
+
+    elif request.method in ["PUT", "PATCH", "POST"]:
+        data = {}
+        if request.content_type == "application/json" and request.body:
+            try:
+                data = json.loads(request.body.decode("utf-8"))
+            except Exception:
+                return JsonResponse({"status": "error", "message": "Malformed JSON payload."}, status=400)
+        else:
+            data = request.POST.dict()
+
+        if "name" in data:
+            name = str(data["name"]).strip()
+            if len(name) < 2:
+                return JsonResponse({"status": "error", "errors": {"name": "Min length 2 chars."}}, status=400)
+            product.name = name
+
+        if "category" in data:
+            product.category = str(data["category"]).strip()
+
+        if "price" in data:
+            try:
+                p_val = Decimal(str(data["price"]))
+                if p_val <= 0:
+                    return JsonResponse({"status": "error", "errors": {"price": "Must be > 0."}}, status=400)
+                product.price = p_val
+            except Exception:
+                return JsonResponse({"status": "error", "errors": {"price": "Invalid price."}}, status=400)
+
+        if "stock" in data:
+            try:
+                s_val = int(data["stock"])
+                if s_val < 0:
+                    return JsonResponse({"status": "error", "errors": {"stock": "Cannot be negative."}}, status=400)
+                product.stock = s_val
+            except Exception:
+                return JsonResponse({"status": "error", "errors": {"stock": "Must be integer."}}, status=400)
+
+        if "gst_rate" in data:
+            try:
+                g_val = Decimal(str(data["gst_rate"]))
+                if g_val < 0 or g_val > 100:
+                    return JsonResponse({"status": "error", "errors": {"gst_rate": "Must be 0-100."}}, status=400)
+                product.gst_rate = g_val
+            except Exception:
+                return JsonResponse({"status": "error", "errors": {"gst_rate": "Invalid GST rate."}}, status=400)
+
+        if "description" in data:
+            product.description = str(data["description"]).strip()
+
+        product.save()
+        return JsonResponse({
+            "status": "success",
+            "message": "Product updated successfully.",
+            "data": {
+                "id": product.id,
+                "name": product.name,
+                "category": product.category,
+                "price": str(product.price),
+                "stock": product.stock,
+                "gst_rate": str(product.gst_rate),
+                "description": product.description,
+            }
+        }, status=200)
+
+    elif request.method == "DELETE":
+        p_name = product.name
+        product.delete()
+        return JsonResponse({"status": "success", "message": f"Product '{p_name}' deleted successfully."}, status=200)
+
+    return JsonResponse({"status": "error", "message": "Method not allowed."}, status=405)

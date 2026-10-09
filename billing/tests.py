@@ -966,6 +966,147 @@ class CustomerRegistrationFrontendTests(TestCase):
             self.assertTemplateUsed(resp, "billing/customer_register.html")
 
 
+class ProductCRUDOperationsTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.distributor = User.objects.create_user(
+            username="dist_product_crud",
+            email="prod_crud@example.com",
+            password="Password@123",
+            first_name="Product Tester"
+        )
+        self.distributor2 = User.objects.create_user(
+            username="dist_other_prod",
+            email="other_prod@example.com",
+            password="Password@123",
+            first_name="Other Tester"
+        )
+
+    def test_web_product_create(self):
+        """Web UI: Create new product"""
+        self.client.login(username="dist_product_crud", password="Password@123")
+        response = self.client.post(reverse("product_add"), {
+            "name": "Bluetooth Speaker",
+            "category": "Audio",
+            "price": "1299.00",
+            "stock": "25",
+            "gst_rate": "18.00",
+            "description": "Portable waterproof speaker",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Product.objects.filter(name="Bluetooth Speaker", distributor=self.distributor).exists())
+
+    def test_web_product_detail_and_isolation(self):
+        """Web UI: Read product details and verify multi-tenant isolation"""
+        prod = Product.objects.create(
+            distributor=self.distributor,
+            name="Smart Watch",
+            category="Wearables",
+            price=Decimal("2499.00"),
+            stock=15,
+            gst_rate=Decimal("18.00"),
+            description="Fitness tracker with AMOLED display"
+        )
+        self.client.login(username="dist_product_crud", password="Password@123")
+        response = self.client.get(reverse("product_detail", kwargs={"pk": prod.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "billing/product_detail.html")
+        self.assertContains(response, "Smart Watch")
+        self.assertContains(response, "2499.00")
+
+        # Distributor 2 cannot view distributor 1's product
+        self.client.login(username="dist_other_prod", password="Password@123")
+        response2 = self.client.get(reverse("product_detail", kwargs={"pk": prod.pk}))
+        self.assertEqual(response2.status_code, 404)
+
+    def test_web_product_update(self):
+        """Web UI: Update product details"""
+        prod = Product.objects.create(
+            distributor=self.distributor,
+            name="USB Cable",
+            category="Accessories",
+            price=Decimal("199.00"),
+            stock=100,
+            gst_rate=Decimal("18.00")
+        )
+        self.client.login(username="dist_product_crud", password="Password@123")
+        response = self.client.post(reverse("product_edit", kwargs={"pk": prod.pk}), {
+            "name": "USB-C Fast Cable",
+            "category": "Accessories",
+            "price": "249.00",
+            "stock": "80",
+            "gst_rate": "18.00",
+            "description": "Braided 65W fast charging cable"
+        })
+        self.assertEqual(response.status_code, 302)
+        prod.refresh_from_db()
+        self.assertEqual(prod.name, "USB-C Fast Cable")
+        self.assertEqual(prod.price, Decimal("249.00"))
+
+    def test_web_product_delete(self):
+        """Web UI: Delete product safely via POST"""
+        prod = Product.objects.create(
+            distributor=self.distributor,
+            name="Delete Me",
+            category="Temp",
+            price=Decimal("50.00"),
+            stock=5,
+            gst_rate=Decimal("5.00")
+        )
+        self.client.login(username="dist_product_crud", password="Password@123")
+        response = self.client.post(reverse("product_delete", kwargs={"pk": prod.pk}))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Product.objects.filter(pk=prod.pk).exists())
+
+    def test_api_product_crud_lifecycle(self):
+        """REST API: Product CRUD full lifecycle (Create, Read, Update, Delete)"""
+        self.client.login(username="dist_product_crud", password="Password@123")
+
+        # 1. API Create
+        create_payload = {
+            "name": "Gaming Mousepad",
+            "category": "Gaming",
+            "price": "399.00",
+            "stock": 40,
+            "gst_rate": "18.00",
+            "description": "XL extended desk mat"
+        }
+        res_create = self.client.post(
+            reverse("api_products"),
+            data=json.dumps(create_payload),
+            content_type="application/json"
+        )
+        self.assertEqual(res_create.status_code, 201)
+        res_data = res_create.json()
+        self.assertEqual(res_data["status"], "success")
+        prod_id = res_data["data"]["id"]
+
+        # 2. API List
+        res_list = self.client.get(reverse("api_products"))
+        self.assertEqual(res_list.status_code, 200)
+        self.assertGreaterEqual(res_list.json()["count"], 1)
+
+        # 3. API Read Single
+        res_read = self.client.get(reverse("api_product_detail", kwargs={"pk": prod_id}))
+        self.assertEqual(res_read.status_code, 200)
+        self.assertEqual(res_read.json()["data"]["name"], "Gaming Mousepad")
+
+        # 4. API Update
+        res_update = self.client.post(
+            reverse("api_product_detail", kwargs={"pk": prod_id}),
+            data=json.dumps({"price": "449.00", "stock": 35}),
+            content_type="application/json"
+        )
+        self.assertEqual(res_update.status_code, 200)
+        self.assertEqual(res_update.json()["data"]["price"], "449.00")
+
+        # 5. API Delete
+        res_delete = self.client.delete(reverse("api_product_detail", kwargs={"pk": prod_id}))
+        self.assertEqual(res_delete.status_code, 200)
+        self.assertFalse(Product.objects.filter(pk=prod_id).exists())
+
+
+
 
 
 

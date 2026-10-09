@@ -19,8 +19,13 @@ urlpatterns = [
 
     path("products/add/",views.product_add,name="product_add"),
     path("products/",views.product_list,name="product_list"),
+    path("products/<int:pk>/",views.product_detail,name="product_detail"),
     path("products/<int:pk>/edit/",views.product_edit,name="product_edit"),
     path("products/<int:pk>/delete/",views.product_delete,name="product_delete"),
+
+    # Product CRUD REST API
+    path("api/products/", views.product_api_list_create, name="api_products"),
+    path("api/products/<int:pk>/", views.product_api_detail, name="api_product_detail"),
     path("invoices/", views.invoice_list, name="invoice_list"),
     path("invoices/create/", views.invoice_create, name="invoice_create"),
     path("invoices/<int:pk>/", views.invoice_detail, name="invoice_detail"),
