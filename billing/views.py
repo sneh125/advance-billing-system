@@ -384,23 +384,32 @@ def product_add(request):
 
 @login_required
 def product_list(request):
-
+    """
+    Product Management Dashboard & List View with live inventory KPI metrics,
+    search filtering, pagination, and multi-tenant isolation.
+    """
     query = request.GET.get("q", "").strip()
 
-    products = Product.objects.filter(
-        distributor=request.user
-    ).order_by("-created_at")
+    base_qs = Product.objects.filter(distributor=request.user)
+
+    # Real-time inventory metrics
+    total_products = base_qs.count()
+    low_stock_count = base_qs.filter(stock__gt=0, stock__lte=10).count()
+    out_of_stock_count = base_qs.filter(stock=0).count()
+    in_stock_count = base_qs.filter(stock__gt=10).count()
+    total_inventory_value = sum((p.price * p.stock) for p in base_qs)
+
+    products = base_qs.order_by("-created_at")
 
     if query:
         products = products.filter(
             models.Q(name__icontains=query) |
-            models.Q(category__icontains=query)
+            models.Q(category__icontains=query) |
+            models.Q(description__icontains=query)
         )
 
     paginator = Paginator(products, 10)
-
     page_number = request.GET.get("page")
-
     page_obj = paginator.get_page(page_number)
 
     return render(
@@ -410,8 +419,15 @@ def product_list(request):
             "products": page_obj,
             "page_obj": page_obj,
             "query": query,
+            "search_query": query,
+            "total_products": total_products,
+            "low_stock_count": low_stock_count,
+            "out_of_stock_count": out_of_stock_count,
+            "in_stock_count": in_stock_count,
+            "total_inventory_value": total_inventory_value,
         }
     )
+
 
 @login_required
 def product_edit(request, pk):

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product Inventory | Advance Billing System</title>
     <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     <link rel="stylesheet" href="{% static 'css/product_list.css' %}">
     <link rel="stylesheet" href="{% static 'css/customers.css' %}">
 </head>
@@ -105,6 +106,53 @@
             </div>
         </div>
 
+        <!-- PRODUCT INVENTORY KPI METRICS -->
+        <section class="stats-row" aria-label="Inventory Metrics" style="margin-bottom: 20px;">
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon teal">📦</div>
+                    <span class="stat-trend-tag">Catalog</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Total Products</span>
+                    <div class="stat-value">{{ total_products|default:"0" }}</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon blue">💰</div>
+                    <span class="stat-trend-tag">Asset Value</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Inventory Valuation</span>
+                    <div class="stat-value">₹{{ total_inventory_value|default:"0"|floatformat:2 }}</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon orange">⚠️</div>
+                    <span class="stat-trend-tag" style="background: var(--warning-bg); color: var(--warning-text);">Reorder Alert</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Low Stock (≤10)</span>
+                    <div class="stat-value" style="color: var(--warning-text);">{{ low_stock_count|default:"0" }}</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon red" style="background: #fee2e2; color: #dc2626;">✕</div>
+                    <span class="stat-trend-tag" style="background: #fee2e2; color: #dc2626;">Critical</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Out of Stock</span>
+                    <div class="stat-value" style="color: var(--danger);">{{ out_of_stock_count|default:"0" }}</div>
+                </div>
+            </div>
+        </section>
+
         <!-- SEARCH & FILTER BAR -->
         <div class="search-filter-card">
             <form method="GET" action="{% url 'product_list' %}" class="search-form-wrap">
@@ -140,7 +188,9 @@
                         <tr>
                             <td>
                                 <div style="display: flex; flex-direction: column; gap: 2px;">
-                                    <strong style="font-size: 14.5px; color: var(--text-main);">{{ product.name }}</strong>
+                                    <a href="{% url 'product_detail' product.pk %}" style="font-size: 14.5px; font-weight: 700; color: var(--text-main); text-decoration: none;" title="View Product Details">
+                                        {{ product.name }}
+                                    </a>
                                     {% if product.description %}
                                     <small style="color: var(--text-muted); font-size: 12px;">{{ product.description|truncatechars:45 }}</small>
                                     {% endif %}
@@ -166,6 +216,9 @@
                             </td>
                             <td style="text-align: right;">
                                 <div class="action-buttons-wrap">
+                                    <a href="{% url 'product_detail' product.pk %}" class="btn-table-edit" style="background: var(--slate-100); color: var(--text-secondary); border-color: var(--border-color);" title="View Details">
+                                        👁️ View
+                                    </a>
                                     <a href="{% url 'product_edit' product.pk %}" class="btn-table-edit" title="Edit Product">
                                         ✏️ Edit
                                     </a>
@@ -179,6 +232,7 @@
                     </tbody>
                 </table>
             </div>
+
 
             <!-- PAGINATION -->
             {% if products.has_other_pages %}
