@@ -1,0 +1,306 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Date Range Reports | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/invoices.css' %}">
+    <link rel="stylesheet" href="{% static 'css/customers.css' %}">
+    <link rel="stylesheet" href="{% static 'css/invoice_report.css' %}">
+</head>
+<body>
+
+<div class="invoice-page-layout">
+
+    <!-- UNIFIED APP HEADER -->
+    <header class="app-shell-header">
+        <div class="app-header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
+                <div class="brand-badge-icon">AB</div>
+                <div class="brand-text-group">
+                    <h1>Advance Billing System</h1>
+                    <span class="brand-tagline">Distributor Cloud Workspace</span>
+                </div>
+            </a>
+
+            <!-- NAVIGATION PILL TABS -->
+            <nav class="app-nav-pills" aria-label="Main Navigation">
+                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
+                <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
+                <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
+                <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
+                <a href="{% url 'invoice_report' %}" class="app-nav-link active" style="color: var(--primary); font-weight: 800;">📅 Date Reports</a>
+                <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
+            </nav>
+        </div>
+
+        <div class="app-header-right">
+            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
+                ⚡ + Quick Bill
+            </a>
+            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
+                <div class="user-avatar-circle">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                    <span class="avatar-online-dot"></span>
+                </div>
+                <div class="user-info-text-col">
+                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
+                    <span class="user-role-subtag">Distributor</span>
+                </div>
+            </a>
+            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+                Logout
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN REPORT PAGE CONTENT -->
+    <main class="invoice-page-content">
+
+        <!-- HEADER ROW -->
+        <div class="page-header-row">
+            <div class="page-title-wrap">
+                <h2>Invoice Report Generator</h2>
+                <p>Filter invoices by custom date range, status, and customer to analyze business revenue and settlement.</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <a href="{% url 'invoice_list' %}" class="btn-filter-reset">
+                    ← Back to Invoices Directory
+                </a>
+            </div>
+        </div>
+
+        <!-- REPORT GENERATION FILTER FORM CARD -->
+        <div class="report-filter-card">
+            <div class="report-filter-header">
+                <h3>🔍 Report Filter Criteria</h3>
+                <div class="report-presets-row">
+                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 700;">Quick Presets:</span>
+                    <button type="button" class="preset-chip" onclick="setPreset('today')">Today</button>
+                    <button type="button" class="preset-chip" onclick="setPreset('last7')">Last 7 Days</button>
+                    <button type="button" class="preset-chip" onclick="setPreset('thisMonth')">This Month</button>
+                    <button type="button" class="preset-chip" onclick="resetDates()">Clear Dates</button>
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+            <div class="report-form-error">
+                <span>⚠️</span>
+                <div>
+                    {% for error in form.non_field_errors %}
+                    <p style="margin: 0;">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <form method="GET" action="{% url 'invoice_report' %}" id="reportFilterForm">
+                <div class="report-form-grid">
+                    <!-- START DATE -->
+                    <div class="report-form-group">
+                        <label for="startDate">From Date</label>
+                        {{ form.start_date }}
+                        {% if form.start_date.errors %}
+                        <small style="color: #b91c1c;">{{ form.start_date.errors.0 }}</small>
+                        {% endif %}
+                    </div>
+
+                    <!-- END DATE -->
+                    <div class="report-form-group">
+                        <label for="endDate">To Date</label>
+                        {{ form.end_date }}
+                        {% if form.end_date.errors %}
+                        <small style="color: #b91c1c;">{{ form.end_date.errors.0 }}</small>
+                        {% endif %}
+                    </div>
+
+                    <!-- STATUS -->
+                    <div class="report-form-group">
+                        <label for="statusSelect">Payment Status</label>
+                        {{ form.status }}
+                    </div>
+
+                    <!-- CUSTOMER -->
+                    <div class="report-form-group">
+                        <label for="customerSelect">Customer</label>
+                        {{ form.customer }}
+                    </div>
+                </div>
+
+                <div class="report-actions-row">
+                    <a href="{% url 'invoice_report' %}" class="btn-filter-reset">
+                        ↺ Reset
+                    </a>
+                    <button type="submit" class="btn-filter-submit">
+                        📊 Generate Filtered Report
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- REPORT RESULTS LEDGER TABLE -->
+        <div class="invoices-table-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--slate-100); flex-wrap: wrap; gap: 12px;">
+                <div style="font-size: 15px; font-weight: 800; color: var(--text-main);">
+                    Filtered Results
+                    {% if start_date or end_date %}
+                    <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">
+                        (From: {{ start_date|default:"Beginning" }} To: {{ end_date|default:"Present" }})
+                    </span>
+                    {% endif %}
+                </div>
+                <span class="search-stats-badge">
+                    🧾 {{ total_invoices_count }} Matching Invoice{{ total_invoices_count|pluralize }}
+                </span>
+            </div>
+
+            <div class="table-responsive-wrapper">
+                <table class="saas-data-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice Number</th>
+                            <th>Customer Details</th>
+                            <th>Date & Time</th>
+                            <th>Products Summary</th>
+                            <th style="text-align: right;">Taxable (₹)</th>
+                            <th style="text-align: right;">GST (₹)</th>
+                            <th style="text-align: right;">Total Bill</th>
+                            <th style="text-align: center;">Status</th>
+                            <th style="text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'invoice_detail' invoice.pk %}" class="invoice-number-link">
+                                    {{ invoice.invoice_number }}
+                                </a>
+                            </td>
+                            <td>
+                                <div class="customer-info-cell">
+                                    <span class="customer-name-title">{{ invoice.customer.name }}</span>
+                                    <span class="customer-contact-sub">{{ invoice.customer.phone }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="date-time-cell">
+                                    <span class="date-main">{{ invoice.invoice_date|date:"d M Y" }}</span>
+                                    <span class="time-sub">{{ invoice.invoice_date|date:"h:i A" }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="product-summary-cell" title="{{ invoice.product_summary }}">
+                                    <span class="product-summary-text">{{ invoice.product_summary|default:"Standard Invoice Items" }}</span>
+                                    <span class="item-count-chip">{{ invoice.product_count|default:1 }} item{{ invoice.product_count|pluralize }}</span>
+                                </div>
+                            </td>
+                            <td style="text-align: right; font-size: 13.5px; color: var(--text-secondary);">
+                                ₹{{ invoice.subtotal|floatformat:2 }}
+                            </td>
+                            <td style="text-align: right; font-size: 13.5px; color: #0284c7;">
+                                ₹{{ invoice.gst_amount|floatformat:2 }}
+                            </td>
+                            <td style="text-align: right;">
+                                <span class="total-bill-amount">₹{{ invoice.total_amount|floatformat:2 }}</span>
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="invoice-status-pill {% if invoice.status == 'Paid' %}status-paid{% else %}status-pending{% endif %}">
+                                    {{ invoice.status }}
+                                </span>
+                            </td>
+                            <td style="text-align: center;">
+                                <div class="action-buttons-wrap" style="justify-content: center;">
+                                    <a href="{% url 'invoice_detail' invoice.pk %}" class="btn-action-view" title="View Full Bill">
+                                        👁️ View
+                                    </a>
+                                    <a href="{% url 'invoice_pdf' invoice.pk %}" class="btn-action-view" style="color: #dc2626; border-color: #fecaca; background: #fef2f2;" title="Download PDF">
+                                        📄 PDF
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9">
+                                <div class="empty-state-card">
+                                    <div class="empty-state-icon">📅</div>
+                                    <h3>No Invoices Found in Selected Range</h3>
+                                    <p>Try adjusting your date filters, payment status, or customer criteria to view matching records.</p>
+                                    <a href="{% url 'invoice_report' %}" class="btn-primary-add" style="margin-top: 12px;">
+                                        Reset Date Range
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION -->
+            {% if invoices.has_other_pages %}
+            <div class="pagination-wrapper">
+                <span class="pagination-summary">
+                    Showing Page <strong>{{ invoices.number }}</strong> of <strong>{{ invoices.paginator.num_pages }}</strong>
+                </span>
+                <div class="pagination-links-row">
+                    {% if invoices.has_previous %}
+                    <a href="?start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&status={{ selected_status }}&customer={{ selected_customer.id|default:'' }}&page={{ invoices.previous_page_number }}" class="page-link-btn">← Prev</a>
+                    {% endif %}
+
+                    <span class="page-link-btn active">{{ invoices.number }}</span>
+
+                    {% if invoices.has_next %}
+                    <a href="?start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&status={{ selected_status }}&customer={{ selected_customer.id|default:'' }}&page={{ invoices.next_page_number }}" class="page-link-btn">Next →</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </main>
+
+</div>
+
+<script>
+function formatDate(d) {
+    let month = '' + (d.getMonth() + 1);
+    let day = '' + d.getDate();
+    let year = d.getFullYear();
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+    return [year, month, day].join('-');
+}
+
+function setPreset(type) {
+    const today = new Date();
+    const startInput = document.getElementById('startDate');
+    const endInput = document.getElementById('endDate');
+
+    if (type === 'today') {
+        const dStr = formatDate(today);
+        startInput.value = dStr;
+        endInput.value = dStr;
+    } else if (type === 'last7') {
+        const d7 = new Date();
+        d7.setDate(today.getDate() - 7);
+        startInput.value = formatDate(d7);
+        endInput.value = formatDate(today);
+    } else if (type === 'thisMonth') {
+        const dMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        startInput.value = formatDate(dMonth);
+        endInput.value = formatDate(today);
+    }
+}
+
+function resetDates() {
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+}
+</script>
+
+</body>
+</html>

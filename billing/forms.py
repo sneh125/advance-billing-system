@@ -114,3 +114,68 @@ class InvoiceCreateForm(forms.ModelForm):
             self.fields['customer'].queryset = Customer.objects.none()
 
         self.fields['customer'].empty_label = "-- Select Verified Customer --"
+
+
+class InvoiceReportFilterForm(forms.Form):
+    """
+    Task 43: Form for generating reports by filtering invoices with date range,
+    payment status, and optional customer selection.
+    """
+    start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control',
+            'id': 'startDate',
+        }),
+        label="From Date"
+    )
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control',
+            'id': 'endDate',
+        }),
+        label="To Date"
+    )
+    status = forms.ChoiceField(
+        required=False,
+        choices=[
+            ('', '-- All Statuses --'),
+            ('Paid', 'Paid'),
+            ('Pending', 'Pending'),
+        ],
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'statusSelect',
+        }),
+        label="Payment Status"
+    )
+    customer = forms.ModelChoiceField(
+        queryset=Customer.objects.none(),
+        required=False,
+        empty_label="-- All Customers --",
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'customerSelect',
+        }),
+        label="Customer"
+    )
+
+    def __init__(self, *args, **kwargs):
+        distributor = kwargs.pop('distributor', None)
+        super().__init__(*args, **kwargs)
+        if distributor:
+            self.fields['customer'].queryset = Customer.objects.filter(
+                distributor=distributor
+            ).order_by('name')
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+
+        if start_date and end_date and start_date > end_date:
+            raise forms.ValidationError("From Date cannot be later than To Date.")
+        return cleaned_data

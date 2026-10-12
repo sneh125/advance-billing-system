@@ -38,6 +38,9 @@
                 <a href="{% url 'invoice_list' %}" class="app-nav-link active">
                     🧾 Invoices
                 </a>
+                <a href="{% url 'invoice_report' %}" class="app-nav-link">
+                    📅 Date Reports
+                </a>
                 <a href="{% url 'distributor_profile' %}" class="app-nav-link">
                     👤 My Profile
                 </a>
@@ -98,7 +101,10 @@
                 <h2>Tax Invoices Directory</h2>
                 <p>Track all generated invoices, customer billing records, GST breakdowns, and download PDFs.</p>
             </div>
-            <div>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <a href="{% url 'invoice_report' %}" class="btn-table-edit" style="background: var(--slate-100); color: var(--text-main); font-weight: 700; border: 1px solid var(--border-color); text-decoration: none; padding: 10px 18px; border-radius: var(--radius-lg); display: inline-flex; align-items: center; gap: 6px;">
+                    📅 Date Range Report
+                </a>
                 <a href="{% url 'invoice_create' %}" class="btn-primary-add">
                     + Generate New Bill
                 </a>

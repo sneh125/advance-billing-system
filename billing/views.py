@@ -23,7 +23,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
 from .models import Customer, Product, Invoice, InvoiceItem
-from .forms import InvoiceCreateForm
+from .forms import InvoiceCreateForm, InvoiceReportFilterForm
 
 
 @login_required
@@ -791,6 +791,72 @@ def invoice_list(request):
         "total_invoices": total_invoices,
         "total_billed": total_billed,
     })
+
+
+@login_required
+def invoice_report(request):
+    """
+    Task 43: Report generation view for filtering invoices by date range.
+    Builds the report generation form supporting start_date, end_date,
+    payment status, and customer filters, with multi-tenant isolation.
+    """
+    distributor = request.user
+    form = InvoiceReportFilterForm(request.GET or None, distributor=distributor)
+
+    invoices_qs = (
+        Invoice.objects.filter(distributor=distributor)
+        .select_related("customer")
+        .prefetch_related("items__product")
+        .order_by("-invoice_date")
+    )
+
+    start_date = None
+    end_date = None
+    selected_status = ""
+    selected_customer = None
+
+    if form.is_valid():
+        start_date = form.cleaned_data.get("start_date")
+        end_date = form.cleaned_data.get("end_date")
+        selected_status = form.cleaned_data.get("status")
+        selected_customer = form.cleaned_data.get("customer")
+
+        if start_date:
+            invoices_qs = invoices_qs.filter(invoice_date__date__gte=start_date)
+        if end_date:
+            invoices_qs = invoices_qs.filter(invoice_date__date__lte=end_date)
+        if selected_status:
+            invoices_qs = invoices_qs.filter(status__iexact=selected_status)
+        if selected_customer:
+            invoices_qs = invoices_qs.filter(customer=selected_customer)
+
+    # Attach product summary
+    for inv in invoices_qs:
+        item_list = list(inv.items.all())
+        inv.product_count = len(item_list)
+        inv.product_summary = ", ".join(f"{item.product.name} (x{item.quantity})" for item in item_list)
+
+    total_invoices_count = invoices_qs.count()
+    total_amount_collected = sum(inv.total_amount for inv in invoices_qs)
+    total_tax_collected = sum(inv.gst_amount for inv in invoices_qs)
+
+    paginator = Paginator(invoices_qs, 15)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "form": form,
+        "invoices": page_obj,
+        "page_obj": page_obj,
+        "start_date": start_date,
+        "end_date": end_date,
+        "selected_status": selected_status,
+        "selected_customer": selected_customer,
+        "total_invoices_count": total_invoices_count,
+        "total_amount_collected": total_amount_collected,
+        "total_tax_collected": total_tax_collected,
+    }
+    return render(request, "billing/invoice_report.html", context)
 
 
 def generate_invoice_qr(invoice):

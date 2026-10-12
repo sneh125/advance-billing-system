@@ -4,8 +4,9 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
 from decimal import Decimal
+from datetime import date, timedelta
 from .models import Customer, Product, Invoice, InvoiceItem
-from .forms import CustomerForm, ProductForm
+from .forms import CustomerForm, ProductForm, InvoiceReportFilterForm
 
 
 class CustomerManagementTests(TestCase):
@@ -1592,6 +1593,173 @@ class ValidationAndTestingBothModulesTests(TestCase):
 
         res_search_prod = self.client.get(reverse("product_list") + "?q=Printer")
         self.assertNotContains(res_search_prod, "Laser Printer")
+
+
+class InvoiceReportGenerationFormTests(TestCase):
+    """
+    Task 43: Build a report generation form for filtering invoices by date range.
+    Tests form validation, date range querying, multi-tenancy, and template elements.
+    """
+    def setUp(self):
+        self.client = Client()
+
+        self.distributor1 = User.objects.create_user(
+            username="dist_report_one",
+            email="distrep1@example.com",
+            password="Password@123",
+            first_name="Report Tester One"
+        )
+        self.distributor2 = User.objects.create_user(
+            username="dist_report_two",
+            email="distrep2@example.com",
+            password="Password@123",
+            first_name="Report Tester Two"
+        )
+
+        self.customer1 = Customer.objects.create(
+            distributor=self.distributor1,
+            name="Rahul Sharma",
+            email="rahul@example.com",
+            phone="9876501234",
+            city="Ahmedabad",
+            state="Gujarat",
+            pincode="380001"
+        )
+        self.customer2 = Customer.objects.create(
+            distributor=self.distributor2,
+            name="Amit Shah",
+            email="amit@example.com",
+            phone="9876505678",
+            city="Surat",
+            state="Gujarat",
+            pincode="395001"
+        )
+
+        self.product1 = Product.objects.create(
+            distributor=self.distributor1,
+            name="Wireless Barcode Scanner",
+            category="Hardware",
+            price=Decimal("2500.00"),
+            stock=30,
+            gst_rate=Decimal("18.00")
+        )
+
+        # Invoices for Distributor 1
+        self.inv1 = Invoice.objects.create(
+            invoice_number="INV-REP-001",
+            distributor=self.distributor1,
+            customer=self.customer1,
+            subtotal=Decimal("2500.00"),
+            gst_amount=Decimal("450.00"),
+            total_amount=Decimal("2950.00"),
+            status="Paid"
+        )
+        self.inv2 = Invoice.objects.create(
+            invoice_number="INV-REP-002",
+            distributor=self.distributor1,
+            customer=self.customer1,
+            subtotal=Decimal("5000.00"),
+            gst_amount=Decimal("900.00"),
+            total_amount=Decimal("5900.00"),
+            status="Pending"
+        )
+
+        # Invoice for Distributor 2 (for multi-tenant isolation check)
+        self.inv3 = Invoice.objects.create(
+            invoice_number="INV-REP-003",
+            distributor=self.distributor2,
+            customer=self.customer2,
+            subtotal=Decimal("1000.00"),
+            gst_amount=Decimal("180.00"),
+            total_amount=Decimal("1180.00"),
+            status="Paid"
+        )
+
+    def test_report_filter_form_validation(self):
+        """Test InvoiceReportFilterForm valid range and invalid range (start > end)"""
+        # Valid date range
+        valid_form = InvoiceReportFilterForm(data={
+            "start_date": "2026-01-01",
+            "end_date": "2026-12-31",
+            "status": "Paid"
+        }, distributor=self.distributor1)
+        self.assertTrue(valid_form.is_valid())
+
+        # Invalid date range: start_date > end_date
+        invalid_form = InvoiceReportFilterForm(data={
+            "start_date": "2026-12-31",
+            "end_date": "2026-01-01",
+        }, distributor=self.distributor1)
+        self.assertFalse(invalid_form.is_valid())
+        self.assertIn("From Date cannot be later than To Date.", invalid_form.non_field_errors())
+
+    def test_report_view_unauthenticated_redirect(self):
+        """Unauthenticated user accessing invoice_report redirects to login"""
+        res = self.client.get(reverse("invoice_report"))
+        self.assertEqual(res.status_code, 302)
+        self.assertIn("/login/", res.url)
+
+    def test_report_view_renders_form_elements(self):
+        """Authenticated distributor sees the report generation form and inputs"""
+        self.client.login(username="dist_report_one", password="Password@123")
+        res = self.client.get(reverse("invoice_report"))
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "billing/invoice_report.html")
+
+        # Check form elements in response
+        self.assertContains(res, "Invoice Report Generator")
+        self.assertContains(res, 'name="start_date"')
+        self.assertContains(res, 'name="end_date"')
+        self.assertContains(res, 'name="status"')
+        self.assertContains(res, 'name="customer"')
+        self.assertContains(res, "Generate Filtered Report")
+        self.assertContains(res, "Quick Presets")
+
+    def test_report_filtering_by_date_range(self):
+        """Filter invoices by valid date range"""
+        self.client.login(username="dist_report_one", password="Password@123")
+        today_str = date.today().strftime("%Y-%m-%d")
+
+        # Filter for today: both inv1 and inv2 were created today
+        res = self.client.get(reverse("invoice_report"), {
+            "start_date": today_str,
+            "end_date": today_str
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "INV-REP-001")
+        self.assertContains(res, "INV-REP-002")
+
+        # Filter for past date range: should return empty
+        past_str = (date.today() - timedelta(days=60)).strftime("%Y-%m-%d")
+        res_past = self.client.get(reverse("invoice_report"), {
+            "start_date": past_str,
+            "end_date": past_str
+        })
+        self.assertEqual(res_past.status_code, 200)
+        self.assertContains(res_past, "No Invoices Found in Selected Range")
+
+    def test_report_filtering_by_status_and_customer(self):
+        """Filter invoices by payment status and customer"""
+        self.client.login(username="dist_report_one", password="Password@123")
+
+        # Filter status="Paid"
+        res_paid = self.client.get(reverse("invoice_report"), {"status": "Paid"})
+        self.assertEqual(res_paid.status_code, 200)
+        self.assertContains(res_paid, "INV-REP-001")
+        self.assertNotContains(res_paid, "INV-REP-002")
+
+        # Filter status="Pending"
+        res_pending = self.client.get(reverse("invoice_report"), {"status": "Pending"})
+        self.assertEqual(res_pending.status_code, 200)
+        self.assertContains(res_pending, "INV-REP-002")
+
+    def test_report_multi_tenant_isolation(self):
+        """Distributor 1 cannot see Distributor 2's invoices in generated report"""
+        self.client.login(username="dist_report_one", password="Password@123")
+        res = self.client.get(reverse("invoice_report"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "INV-REP-001")
+        self.assertNotContains(res, "INV-REP-003")
 
 
 
