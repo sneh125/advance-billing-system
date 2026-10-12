@@ -1798,6 +1798,37 @@ class InvoiceReportGenerationFormTests(TestCase):
         self.assertEqual(res.context["pending_amount"], 0)
         self.assertContains(res, "0")
 
+    def test_invoice_report_pdf_unauthenticated_redirect(self):
+        """Task 45: Unauthenticated access to report PDF redirects to login"""
+        res = self.client.get(reverse("invoice_report_pdf"))
+        self.assertEqual(res.status_code, 302)
+        self.assertIn("/login/", res.url)
+
+    def test_invoice_report_pdf_generation_success(self):
+        """Task 45: Authenticated distributor can download report as PDF using xhtml2pdf"""
+        self.client.login(username="dist_report_one", password="Password@123")
+        res = self.client.get(reverse("invoice_report_pdf"))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res["Content-Type"], "application/pdf")
+        self.assertIn("Invoice_Report_", res["Content-Disposition"])
+        self.assertTrue(res.content.startswith(b"%PDF-"))
+
+    def test_invoice_report_pdf_with_filters(self):
+        """Task 45: Report PDF generation works with date range and status filters"""
+        self.client.login(username="dist_report_one", password="Password@123")
+        self.inv1.refresh_from_db()
+        inv_date_str = self.inv1.invoice_date.strftime("%Y-%m-%d")
+
+        res = self.client.get(reverse("invoice_report_pdf"), {
+            "start_date": inv_date_str,
+            "end_date": inv_date_str,
+            "status": "Paid",
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res["Content-Type"], "application/pdf")
+        self.assertTrue(res.content.startswith(b"%PDF-"))
+
+
 
 
 

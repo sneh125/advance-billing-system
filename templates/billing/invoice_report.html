@@ -65,7 +65,10 @@
                 <h2>Invoice Report Generator</h2>
                 <p>Filter invoices by custom date range, status, and customer to analyze business revenue and settlement.</p>
             </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <a href="{% url 'invoice_report_pdf' %}?{{ request.GET.urlencode }}" class="btn-download-pdf-report" id="btnDownloadReportPdf" title="Download filtered report as PDF using xhtml2pdf">
+                    📄 Download Report (PDF)
+                </a>
                 <a href="{% url 'invoice_list' %}" class="btn-filter-reset">
                     ← Back to Invoices Directory
                 </a>
@@ -199,9 +202,14 @@
                     </span>
                     {% endif %}
                 </div>
-                <span class="search-stats-badge">
-                    🧾 {{ total_invoices_count }} Matching Invoice{{ total_invoices_count|pluralize }}
-                </span>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <span class="search-stats-badge">
+                        🧾 {{ total_invoices_count }} Matching Invoice{{ total_invoices_count|pluralize }}
+                    </span>
+                    <a href="{% url 'invoice_report_pdf' %}?{{ request.GET.urlencode }}" class="btn-action-view" style="color: #dc2626; border-color: #fecaca; background: #fef2f2; text-decoration: none; padding: 6px 14px; border-radius: var(--radius-md);" title="Export Filtered Report to PDF">
+                        📥 Download PDF
+                    </a>
+                </div>
             </div>
 
             <div class="table-responsive-wrapper">

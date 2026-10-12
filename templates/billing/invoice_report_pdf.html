@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice Summary Report</title>
+    <style>
+        @page {
+            size: a4 landscape;
+            margin: 1.2cm;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #0f172a;
+            font-size: 9pt;
+            line-height: 1.4;
+        }
+
+        /* HEADER */
+        .report-header {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .brand-name {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #0f766e;
+        }
+
+        .brand-sub {
+            font-size: 8pt;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .report-title {
+            font-size: 15pt;
+            font-weight: bold;
+            color: #0f172a;
+            text-align: right;
+        }
+
+        .report-meta-text {
+            font-size: 8pt;
+            color: #475569;
+            text-align: right;
+        }
+
+        .divider {
+            border-bottom: 1.5pt solid #0f766e;
+            margin: 8px 0 14px 0;
+        }
+
+        /* FILTER CRITERIA SUMMARY */
+        .filter-meta-table {
+            width: 100%;
+            margin-bottom: 14px;
+            background-color: #f8fafc;
+            border: 0.5pt solid #e2e8f0;
+            padding: 8px;
+        }
+
+        .filter-meta-cell {
+            font-size: 8.5pt;
+            color: #334155;
+        }
+
+        /* KPI SUMMARY TABLE */
+        .kpi-table {
+            width: 100%;
+            margin-bottom: 16px;
+            border-collapse: collapse;
+        }
+
+        .kpi-cell {
+            border: 0.5pt solid #cbd5e1;
+            padding: 8px 10px;
+            text-align: center;
+            background-color: #f1f5f9;
+        }
+
+        .kpi-label {
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 3px;
+        }
+
+        .kpi-val {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        /* DATA TABLE */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .data-table th {
+            background-color: #0f766e;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 8pt;
+            padding: 6px 8px;
+            border: 0.5pt solid #0f766e;
+            text-transform: uppercase;
+        }
+
+        .data-table td {
+            font-size: 8pt;
+            padding: 5px 8px;
+            border: 0.5pt solid #e2e8f0;
+            vertical-align: middle;
+        }
+
+        .row-alt {
+            background-color: #f8fafc;
+        }
+
+        .status-paid {
+            color: #16a34a;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            color: #d97706;
+            font-weight: bold;
+        }
+
+        /* FOOTER TOTALS */
+        .total-row {
+            background-color: #e2e8f0;
+            font-weight: bold;
+        }
+
+        .total-row td {
+            border-top: 1.5pt solid #0f766e;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- REPORT HEADER -->
+    <table class="report-header">
+        <tr>
+            <td style="vertical-align: top; width: 60%;">
+                <div class="brand-name">ADVANCE BILLING SYSTEM</div>
+                <div class="brand-sub">Distributor Financial & Invoice Statement</div>
+                <div style="font-size: 8.5pt; color: #334155; margin-top: 4px;">
+                    <strong>Distributor:</strong> {{ distributor.first_name|default:distributor.username }} |
+                    <strong>Email:</strong> {{ distributor.email|default:"N/A" }}
+                </div>
+            </td>
+            <td style="vertical-align: top; width: 40%; text-align: right;">
+                <div class="report-title">INVOICE REPORT</div>
+                <div class="report-meta-text">
+                    <strong>Generated:</strong> {{ generated_at|date:"d M Y, h:i A" }}<br>
+                    <strong>Range:</strong> {{ start_date|default:"All Time" }} to {{ end_date|default:"Present" }}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="divider"></div>
+
+    <!-- KPI SUMMARY STRIP -->
+    <table class="kpi-table">
+        <tr>
+            <td class="kpi-cell" style="width: 20%;">
+                <div class="kpi-label">Total Invoices</div>
+                <div class="kpi-val">{{ total_invoices_count }}</div>
+            </td>
+            <td class="kpi-cell" style="width: 20%;">
+                <div class="kpi-label">Total Billed</div>
+                <div class="kpi-val" style="color: #0f766e;">Rs. {{ total_amount_collected|floatformat:2 }}</div>
+            </td>
+            <td class="kpi-cell" style="width: 20%;">
+                <div class="kpi-label">Paid Collection</div>
+                <div class="kpi-val" style="color: #16a34a;">Rs. {{ paid_amount|floatformat:2 }}</div>
+            </td>
+            <td class="kpi-cell" style="width: 20%;">
+                <div class="kpi-label">Pending Dues</div>
+                <div class="kpi-val" style="color: #d97706;">Rs. {{ pending_amount|floatformat:2 }}</div>
+            </td>
+            <td class="kpi-cell" style="width: 20%;">
+                <div class="kpi-label">GST Tax Collected</div>
+                <div class="kpi-val" style="color: #0284c7;">Rs. {{ total_tax_collected|floatformat:2 }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- INVOICE LEDGER TABLE -->
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 8%; text-align: center;">#</th>
+                <th style="width: 14%; text-align: left;">Invoice No</th>
+                <th style="width: 20%; text-align: left;">Customer</th>
+                <th style="width: 12%; text-align: center;">Date</th>
+                <th style="width: 12%; text-align: right;">Subtotal (Rs.)</th>
+                <th style="width: 10%; text-align: right;">GST (Rs.)</th>
+                <th style="width: 14%; text-align: right;">Total (Rs.)</th>
+                <th style="width: 10%; text-align: center;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in invoices %}
+            <tr class="{% if forloop.counter|divisibleby:2 %}row-alt{% endif %}">
+                <td style="text-align: center; color: #64748b;">{{ forloop.counter }}</td>
+                <td style="font-weight: bold; color: #0f766e;">{{ inv.invoice_number }}</td>
+                <td>
+                    <strong>{{ inv.customer.name }}</strong>
+                    {% if inv.customer.phone %}<br><span style="font-size: 7pt; color: #64748b;">{{ inv.customer.phone }}</span>{% endif %}
+                </td>
+                <td style="text-align: center;">{{ inv.invoice_date|date:"d M Y" }}</td>
+                <td style="text-align: right;">{{ inv.subtotal|floatformat:2 }}</td>
+                <td style="text-align: right; color: #0284c7;">{{ inv.gst_amount|floatformat:2 }}</td>
+                <td style="text-align: right; font-weight: bold;">{{ inv.total_amount|floatformat:2 }}</td>
+                <td style="text-align: center;">
+                    <span class="{% if inv.status == 'Paid' %}status-paid{% else %}status-pending{% endif %}">
+                        {{ inv.status }}
+                    </span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 20px; color: #64748b;">
+                    No invoices found matching the selected filter criteria.
+                </td>
+            </tr>
+            {% endfor %}
+
+            <!-- TOTALS ROW -->
+            {% if invoices %}
+            <tr class="total-row">
+                <td colspan="4" style="text-align: right; text-transform: uppercase;">Total Cumulative (Rs.):</td>
+                <td style="text-align: right;">{{ total_subtotal_amount|floatformat:2 }}</td>
+                <td style="text-align: right; color: #0284c7;">{{ total_tax_collected|floatformat:2 }}</td>
+                <td style="text-align: right; color: #0f766e; font-weight: bold;">{{ total_amount_collected|floatformat:2 }}</td>
+                <td style="text-align: center;">-</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <div style="font-size: 7.5pt; color: #94a3b8; text-align: center; margin-top: 15px;">
+        This document is an automatically generated business report from Advance Billing System Cloud Portal.
+    </div>
+
+</body>
+</html>

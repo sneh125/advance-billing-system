@@ -156,6 +156,29 @@
     color: var(--text-main);
 }
 
+.btn-download-pdf-report {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #dc2626;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: var(--radius-lg);
+    border: 1px solid #b91c1c;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+    transition: var(--transition-fast);
+}
+
+.btn-download-pdf-report:hover {
+    background: #b91c1c;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+}
+
 /* ERROR ALERT BOX */
 .report-form-error {
     background: #fef2f2;

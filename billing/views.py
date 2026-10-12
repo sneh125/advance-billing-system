@@ -873,6 +873,88 @@ def invoice_report(request):
     return render(request, "billing/invoice_report.html", context)
 
 
+@login_required
+def invoice_report_pdf(request):
+    """
+    Task 45: Provide an option to download report as a PDF using xhtml2pdf.
+    Renders the filtered invoice report with date range and KPI summary.
+    """
+    distributor = request.user
+    form = InvoiceReportFilterForm(request.GET or None, distributor=distributor)
+
+    invoices_qs = (
+        Invoice.objects.filter(distributor=distributor)
+        .select_related("customer")
+        .prefetch_related("items__product")
+        .order_by("-invoice_date")
+    )
+
+    start_date = None
+    end_date = None
+    selected_status = ""
+    selected_customer = None
+
+    if form.is_valid():
+        start_date = form.cleaned_data.get("start_date")
+        end_date = form.cleaned_data.get("end_date")
+        selected_status = form.cleaned_data.get("status")
+        selected_customer = form.cleaned_data.get("customer")
+
+        if start_date:
+            invoices_qs = invoices_qs.filter(invoice_date__date__gte=start_date)
+        if end_date:
+            invoices_qs = invoices_qs.filter(invoice_date__date__lte=end_date)
+        if selected_status:
+            invoices_qs = invoices_qs.filter(status__iexact=selected_status)
+        if selected_customer:
+            invoices_qs = invoices_qs.filter(customer=selected_customer)
+
+    total_invoices_count = invoices_qs.count()
+    total_amount_collected = sum(inv.total_amount for inv in invoices_qs)
+    total_tax_collected = sum(inv.gst_amount for inv in invoices_qs)
+    total_subtotal_amount = sum(inv.subtotal for inv in invoices_qs)
+
+    paid_invoices_qs = [inv for inv in invoices_qs if (inv.status or "").lower() == "paid"]
+    pending_invoices_qs = [inv for inv in invoices_qs if (inv.status or "").lower() == "pending"]
+
+    paid_count = len(paid_invoices_qs)
+    pending_count = len(pending_invoices_qs)
+    paid_amount = sum(inv.total_amount for inv in paid_invoices_qs)
+    pending_amount = sum(inv.total_amount for inv in pending_invoices_qs)
+
+    for inv in invoices_qs:
+        item_list = list(inv.items.all())
+        inv.product_count = len(item_list)
+        inv.product_summary = ", ".join(f"{item.product.name} (x{item.quantity})" for item in item_list)
+
+    context = {
+        "distributor": distributor,
+        "invoices": invoices_qs,
+        "start_date": start_date,
+        "end_date": end_date,
+        "selected_status": selected_status,
+        "selected_customer": selected_customer,
+        "total_invoices_count": total_invoices_count,
+        "total_amount_collected": total_amount_collected,
+        "total_tax_collected": total_tax_collected,
+        "total_subtotal_amount": total_subtotal_amount,
+        "paid_count": paid_count,
+        "pending_count": pending_count,
+        "paid_amount": paid_amount,
+        "pending_amount": pending_amount,
+        "generated_at": timezone.now(),
+    }
+
+    pdf = render_to_pdf("billing/invoice_report_pdf.html", context)
+    if pdf is None:
+        messages.error(request, "Failed to generate report PDF. Please try again.")
+        return redirect("invoice_report")
+
+    filename = f"Invoice_Report_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    pdf["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return pdf
+
+
 def generate_invoice_qr(invoice):
     """
     Generate QR code containing important invoice information.
