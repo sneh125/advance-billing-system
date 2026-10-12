@@ -171,6 +171,91 @@
     gap: 10px;
 }
 
+/* SUMMARY METRICS KPI CARDS (TASK 44) */
+.report-summary-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.report-metric-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-fast);
+}
+
+.report-metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--slate-300);
+}
+
+.metric-icon-bubble {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    background: var(--slate-100);
+    flex-shrink: 0;
+}
+
+.metric-info-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.metric-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.metric-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-main);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.metric-value.text-primary {
+    color: var(--primary);
+}
+
+.metric-value.text-success {
+    color: #16a34a;
+}
+
+.metric-value.text-warning {
+    color: #d97706;
+}
+
+.metric-value.text-info {
+    color: #0284c7;
+}
+
+.metric-subtext {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
 /* RESPONSIVE LAYOUT */
 @media (max-width: 1024px) {
     .report-form-grid {

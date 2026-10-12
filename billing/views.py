@@ -839,6 +839,15 @@ def invoice_report(request):
     total_invoices_count = invoices_qs.count()
     total_amount_collected = sum(inv.total_amount for inv in invoices_qs)
     total_tax_collected = sum(inv.gst_amount for inv in invoices_qs)
+    total_subtotal_amount = sum(inv.subtotal for inv in invoices_qs)
+
+    paid_invoices_qs = [inv for inv in invoices_qs if (inv.status or "").lower() == "paid"]
+    pending_invoices_qs = [inv for inv in invoices_qs if (inv.status or "").lower() == "pending"]
+
+    paid_count = len(paid_invoices_qs)
+    pending_count = len(pending_invoices_qs)
+    paid_amount = sum(inv.total_amount for inv in paid_invoices_qs)
+    pending_amount = sum(inv.total_amount for inv in pending_invoices_qs)
 
     paginator = Paginator(invoices_qs, 15)
     page_number = request.GET.get("page")
@@ -855,6 +864,11 @@ def invoice_report(request):
         "total_invoices_count": total_invoices_count,
         "total_amount_collected": total_amount_collected,
         "total_tax_collected": total_tax_collected,
+        "total_subtotal_amount": total_subtotal_amount,
+        "paid_count": paid_count,
+        "pending_count": pending_count,
+        "paid_amount": paid_amount,
+        "pending_amount": pending_amount,
     }
     return render(request, "billing/invoice_report.html", context)
 

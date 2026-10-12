@@ -1718,12 +1718,13 @@ class InvoiceReportGenerationFormTests(TestCase):
     def test_report_filtering_by_date_range(self):
         """Filter invoices by valid date range"""
         self.client.login(username="dist_report_one", password="Password@123")
-        today_str = date.today().strftime("%Y-%m-%d")
+        self.inv1.refresh_from_db()
+        inv_date_str = self.inv1.invoice_date.strftime("%Y-%m-%d")
 
-        # Filter for today: both inv1 and inv2 were created today
+        # Filter for invoice date: both inv1 and inv2 match
         res = self.client.get(reverse("invoice_report"), {
-            "start_date": today_str,
-            "end_date": today_str
+            "start_date": inv_date_str,
+            "end_date": inv_date_str
         })
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "INV-REP-001")
@@ -1760,6 +1761,43 @@ class InvoiceReportGenerationFormTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "INV-REP-001")
         self.assertNotContains(res, "INV-REP-003")
+
+    def test_report_summary_metrics_total_invoices_and_amount_collected(self):
+        """Task 44: Verify display of total number of invoices and amount collected within selected range"""
+        self.client.login(username="dist_report_one", password="Password@123")
+        res = self.client.get(reverse("invoice_report"))
+        self.assertEqual(res.status_code, 200)
+
+        # Total 2 invoices for dist_report_one: inv1 (2950.00, Paid) + inv2 (5900.00, Pending) = 8850.00
+        self.assertEqual(res.context["total_invoices_count"], 2)
+        self.assertAlmostEqual(float(res.context["total_amount_collected"]), 8850.00)
+        self.assertAlmostEqual(float(res.context["paid_amount"]), 2950.00)
+        self.assertAlmostEqual(float(res.context["pending_amount"]), 5900.00)
+
+        # Check rendered HTML
+        self.assertContains(res, "Total Invoices")
+        self.assertContains(res, "summaryTotalInvoices")
+        self.assertContains(res, "Total Amount")
+        self.assertContains(res, "8850.00")
+        self.assertContains(res, "2950.00")
+
+    def test_report_summary_metrics_update_with_date_range_filter(self):
+        """Task 44: Verify metrics adapt when filtering by date range"""
+        self.client.login(username="dist_report_one", password="Password@123")
+        past_str = (date.today() - timedelta(days=60)).strftime("%Y-%m-%d")
+
+        # Range in past with 0 invoices
+        res = self.client.get(reverse("invoice_report"), {
+            "start_date": past_str,
+            "end_date": past_str,
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context["total_invoices_count"], 0)
+        self.assertEqual(res.context["total_amount_collected"], 0)
+        self.assertEqual(res.context["paid_amount"], 0)
+        self.assertEqual(res.context["pending_amount"], 0)
+        self.assertContains(res, "0")
+
 
 
 

@@ -140,6 +140,54 @@
             </form>
         </div>
 
+        <!-- SUMMARY METRICS KPI CARDS (TASK 44) -->
+        <div class="report-summary-metrics-grid">
+            <div class="report-metric-card metric-invoices">
+                <div class="metric-icon-bubble">🧾</div>
+                <div class="metric-info-col">
+                    <span class="metric-label">Total Invoices</span>
+                    <span class="metric-value" id="summaryTotalInvoices">{{ total_invoices_count }}</span>
+                    <span class="metric-subtext">Within Selected Range</span>
+                </div>
+            </div>
+
+            <div class="report-metric-card metric-amount">
+                <div class="metric-icon-bubble">💰</div>
+                <div class="metric-info-col">
+                    <span class="metric-label">Total Amount</span>
+                    <span class="metric-value text-primary" id="summaryTotalAmount">₹{{ total_amount_collected|floatformat:2 }}</span>
+                    <span class="metric-subtext">Cumulative Billed Value</span>
+                </div>
+            </div>
+
+            <div class="report-metric-card metric-paid">
+                <div class="metric-icon-bubble">✅</div>
+                <div class="metric-info-col">
+                    <span class="metric-label">Amount Collected (Paid)</span>
+                    <span class="metric-value text-success" id="summaryPaidAmount">₹{{ paid_amount|floatformat:2 }}</span>
+                    <span class="metric-subtext">{{ paid_count }} Paid Invoice{{ paid_count|pluralize }}</span>
+                </div>
+            </div>
+
+            <div class="report-metric-card metric-pending">
+                <div class="metric-icon-bubble">⏳</div>
+                <div class="metric-info-col">
+                    <span class="metric-label">Pending Collection</span>
+                    <span class="metric-value text-warning" id="summaryPendingAmount">₹{{ pending_amount|floatformat:2 }}</span>
+                    <span class="metric-subtext">{{ pending_count }} Pending Invoice{{ pending_count|pluralize }}</span>
+                </div>
+            </div>
+
+            <div class="report-metric-card metric-tax">
+                <div class="metric-icon-bubble">🏛️</div>
+                <div class="metric-info-col">
+                    <span class="metric-label">GST Tax Collected</span>
+                    <span class="metric-value text-info" id="summaryTaxAmount">₹{{ total_tax_collected|floatformat:2 }}</span>
+                    <span class="metric-subtext">Net Taxable: ₹{{ total_subtotal_amount|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+
         <!-- REPORT RESULTS LEDGER TABLE -->
         <div class="invoices-table-card">
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--slate-100); flex-wrap: wrap; gap: 12px;">
