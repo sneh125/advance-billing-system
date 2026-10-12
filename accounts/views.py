@@ -1,9 +1,11 @@
 import secrets
 import json
 from datetime import timedelta
+from decimal import Decimal
+import csv
 
 from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -588,17 +590,145 @@ def reset_password(request):
 
 @login_required
 def admin_dashboard(request):
-
+    """
+    Dedicated Admin Dashboard with Comprehensive System Reports & Analytics Suite.
+    Aggregates real-time financial metrics, GST tax audit, distributor performance summaries,
+    inventory catalog valuation, and CSV export capability.
+    """
     if not request.user.is_staff:
+        return redirect("distributor_dashboard")
 
-        return redirect(
-            "distributor_dashboard"
-        )
+    from billing.models import Customer, Product, Invoice
 
-    return render(
-        request,
-        "admin/dashboard.html"
-    )
+    period = request.GET.get("period", "all").strip().lower()
+    now = timezone.now()
+
+    invoices_qs = Invoice.objects.select_related("customer", "distributor").all()
+    customers_qs = Customer.objects.select_related("distributor").all()
+    products_qs = Product.objects.select_related("distributor").all()
+    distributors_qs = User.objects.filter(is_staff=False).select_related("distributor_profile").order_by("-date_joined")
+
+    # Time-based filtering
+    if period == "today":
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        invoices_filtered = invoices_qs.filter(invoice_date__gte=start_date)
+    elif period == "week":
+        start_date = now - timedelta(days=7)
+        invoices_filtered = invoices_qs.filter(invoice_date__gte=start_date)
+    elif period == "month":
+        start_date = now - timedelta(days=30)
+        invoices_filtered = invoices_qs.filter(invoice_date__gte=start_date)
+    else:
+        period = "all"
+        invoices_filtered = invoices_qs
+
+    # Optional CSV Export
+    if request.GET.get("export") == "csv":
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="admin_sales_report_{period}_{now.strftime("%Y%m%d")}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["Invoice Number", "Date", "Distributor", "Customer", "Subtotal (INR)", "GST (INR)", "Total Amount (INR)", "Status"])
+        for inv in invoices_filtered.order_by("-created_at"):
+            writer.writerow([
+                inv.invoice_number,
+                inv.invoice_date.strftime("%Y-%m-%d %H:%M"),
+                inv.distributor.username,
+                inv.customer.name,
+                f"{inv.subtotal:.2f}",
+                f"{inv.gst_amount:.2f}",
+                f"{inv.total_amount:.2f}",
+                inv.status
+            ])
+        return response
+
+    # 1. Financial & Revenue Report Aggregations
+    total_invoices_count = invoices_filtered.count()
+    gross_revenue = sum(inv.total_amount for inv in invoices_filtered)
+    total_tax_collected = sum(inv.gst_amount for inv in invoices_filtered)
+    net_taxable_subtotal = sum(inv.subtotal for inv in invoices_filtered)
+
+    paid_invoices_qs = invoices_filtered.filter(status__iexact="Paid")
+    paid_invoices_count = paid_invoices_qs.count()
+    paid_revenue = sum(inv.total_amount for inv in paid_invoices_qs)
+
+    pending_invoices_qs = invoices_filtered.filter(status__iexact="Pending")
+    pending_invoices_count = pending_invoices_qs.count()
+    pending_revenue = sum(inv.total_amount for inv in pending_invoices_qs)
+
+    avg_invoice_value = (gross_revenue / total_invoices_count) if total_invoices_count > 0 else Decimal("0.00")
+
+    # Ratio calculation for paid vs pending progress bar
+    paid_percentage = 0
+    pending_percentage = 0
+    if gross_revenue > 0:
+        paid_percentage = round((float(paid_revenue) / float(gross_revenue)) * 100, 1)
+        pending_percentage = round((float(pending_revenue) / float(gross_revenue)) * 100, 1)
+
+    # 2. Distributor Performance Report
+    distributor_reports = []
+    for dist in distributors_qs:
+        dist_inv = invoices_filtered.filter(distributor=dist)
+        dist_rev = sum(i.total_amount for i in dist_inv)
+        dist_cust_count = customers_qs.filter(distributor=dist).count()
+        dist_prod_count = products_qs.filter(distributor=dist).count()
+        phone = dist.distributor_profile.phone if hasattr(dist, "distributor_profile") else ""
+        distributor_reports.append({
+            "user": dist,
+            "phone": phone,
+            "invoice_count": dist_inv.count(),
+            "revenue": dist_rev,
+            "customer_count": dist_cust_count,
+            "product_count": dist_prod_count,
+            "is_active": dist.is_active,
+        })
+    distributor_reports.sort(key=lambda x: x["revenue"], reverse=True)
+
+    # 3. Inventory & Catalog Stock Health
+    total_products_count = products_qs.count()
+    low_stock_products_count = products_qs.filter(stock__gt=0, stock__lte=10).count()
+    out_of_stock_products_count = products_qs.filter(stock=0).count()
+    in_stock_products_count = products_qs.filter(stock__gt=10).count()
+    total_inventory_valuation = sum((p.price * p.stock) for p in products_qs)
+
+    # 4. Customer Directory Totals
+    total_customers_count = customers_qs.count()
+    active_customers_count = customers_qs.filter(is_active=True).count()
+
+    # 5. Recent Invoices Ledger (latest 10)
+    recent_invoices = invoices_filtered.order_by("-created_at")[:10]
+
+    context = {
+        "period": period,
+        # Financial Reports
+        "gross_revenue": gross_revenue,
+        "total_tax_collected": total_tax_collected,
+        "net_taxable_subtotal": net_taxable_subtotal,
+        "total_invoices_count": total_invoices_count,
+        "paid_invoices_count": paid_invoices_count,
+        "paid_revenue": paid_revenue,
+        "pending_invoices_count": pending_invoices_count,
+        "pending_revenue": pending_revenue,
+        "avg_invoice_value": avg_invoice_value,
+        "paid_percentage": paid_percentage,
+        "pending_percentage": pending_percentage,
+        # System Overview KPIs
+        "total_distributors_count": distributors_qs.count(),
+        "active_distributors_count": distributors_qs.filter(is_active=True).count(),
+        "total_customers_count": total_customers_count,
+        "active_customers_count": active_customers_count,
+        # Stock & Inventory
+        "total_products_count": total_products_count,
+        "low_stock_products_count": low_stock_products_count,
+        "out_of_stock_products_count": out_of_stock_products_count,
+        "in_stock_products_count": in_stock_products_count,
+        "total_inventory_valuation": total_inventory_valuation,
+        # Detailed Tables
+        "distributor_reports": distributor_reports,
+        "recent_invoices": recent_invoices,
+    }
+
+    return render(request, "admin/dashboard.html", context)
+
 
 
 # DISTRIBUTOR DASHBOARD

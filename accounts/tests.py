@@ -6,8 +6,10 @@ from django.urls import reverse
 from django.utils import timezone
 from django.core import mail
 
+from decimal import Decimal
 from .models import DistributorProfile, PasswordResetOTP
 from .utils import send_otp_email
+from billing.models import Customer, Product, Invoice
 
 
 class AccountAuthenticationTests(TestCase):
@@ -446,6 +448,141 @@ class AccountAuthenticationTests(TestCase):
         )
         self.assertEqual(r_mismatch.status_code, 400)
         self.assertIn("Passwords do not match", r_mismatch.json()["message"])
+
+
+class AdminDashboardReportsTests(TestCase):
+    """
+    Task 42: Create a dedicated "Reports" section in the admin dashboard.
+    Tests reporting suite metrics, period filtering, access controls, and CSV export.
+    """
+    def setUp(self):
+        self.client = Client()
+
+        # Admin user
+        self.admin = User.objects.create_user(
+            username="reports_admin",
+            email="reports_admin@billing.local",
+            password="AdminPassword@123",
+            first_name="Reports Admin",
+            is_staff=True
+        )
+
+        # Distributor user
+        self.distributor = User.objects.create_user(
+            username="reports_dist",
+            email="reports_dist@billing.local",
+            password="DistPassword@123",
+            first_name="Reports Distributor",
+            is_staff=False
+        )
+        DistributorProfile.objects.create(
+            user=self.distributor,
+            phone="9876543210"
+        )
+
+        # Customer & Product
+        self.customer = Customer.objects.create(
+            distributor=self.distributor,
+            name="Vikas Khanna",
+            email="vikas@example.com",
+            phone="9876543201",
+            city="Mumbai",
+            state="Maharashtra",
+            pincode="400001"
+        )
+
+        self.product = Product.objects.create(
+            distributor=self.distributor,
+            name="Pro Wireless Earbuds",
+            category="Audio",
+            price=Decimal("1999.00"),
+            stock=45,
+            gst_rate=Decimal("18.00")
+        )
+
+        # Invoices: 1 Paid, 1 Pending
+        self.inv1 = Invoice.objects.create(
+            invoice_number="INV-20261009-0001",
+            distributor=self.distributor,
+            customer=self.customer,
+            subtotal=Decimal("1000.00"),
+            gst_amount=Decimal("180.00"),
+            total_amount=Decimal("1180.00"),
+            status="Paid"
+        )
+
+        self.inv2 = Invoice.objects.create(
+            invoice_number="INV-20261009-0002",
+            distributor=self.distributor,
+            customer=self.customer,
+            subtotal=Decimal("2000.00"),
+            gst_amount=Decimal("360.00"),
+            total_amount=Decimal("2360.00"),
+            status="Pending"
+        )
+
+    def test_reports_access_control(self):
+        """Unauthenticated redirects to login; non-staff redirects to distributor_dashboard"""
+        # Unauthenticated
+        res_unauth = self.client.get(reverse("admin_dashboard"))
+        self.assertEqual(res_unauth.status_code, 302)
+        self.assertIn("/login/", res_unauth.url)
+
+        # Non-staff distributor
+        self.client.login(username="reports_dist", password="DistPassword@123")
+        res_non_staff = self.client.get(reverse("admin_dashboard"))
+        self.assertEqual(res_non_staff.status_code, 302)
+        self.assertRedirects(res_non_staff, reverse("distributor_dashboard"))
+
+    def test_admin_reports_metrics_and_template_elements(self):
+        """Admin can access reports section with verified live metrics and UI elements"""
+        self.client.login(username="reports_admin", password="AdminPassword@123")
+        response = self.client.get(reverse("admin_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "admin/dashboard.html")
+
+        # Verify HTML section elements
+        self.assertContains(response, 'id="reports-section"')
+        self.assertContains(response, "Dedicated System Reports & Analytics")
+        self.assertContains(response, "Executive Business Intelligence")
+        self.assertContains(response, "Invoice Settlement Ratio")
+        self.assertContains(response, "Catalog Valuation & Stock Health")
+        self.assertContains(response, "Distributor Performance & Revenue Rankings")
+        self.assertContains(response, "Recent System Transactions & Invoice Audit")
+
+        # Verify accurate calculated context metrics
+        ctx = response.context
+        self.assertEqual(ctx["gross_revenue"], Decimal("3540.00"))
+        self.assertEqual(ctx["total_tax_collected"], Decimal("540.00"))
+        self.assertEqual(ctx["net_taxable_subtotal"], Decimal("3000.00"))
+        self.assertEqual(ctx["total_invoices_count"], 2)
+        self.assertEqual(ctx["paid_invoices_count"], 1)
+        self.assertEqual(ctx["pending_invoices_count"], 1)
+        self.assertEqual(ctx["paid_revenue"], Decimal("1180.00"))
+        self.assertEqual(ctx["pending_revenue"], Decimal("2360.00"))
+        self.assertEqual(ctx["total_products_count"], 1)
+        self.assertEqual(ctx["total_customers_count"], 1)
+
+    def test_admin_reports_period_filters(self):
+        """Verify period query params (?period=all, month, week, today) resolve properly"""
+        self.client.login(username="reports_admin", password="AdminPassword@123")
+        for period_key in ["all", "month", "week", "today"]:
+            res = self.client.get(reverse("admin_dashboard") + f"?period={period_key}")
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(res.context["period"], period_key)
+
+    def test_admin_reports_csv_export(self):
+        """Verify CSV export endpoint generates proper attachment with headers and records"""
+        self.client.login(username="reports_admin", password="AdminPassword@123")
+        response = self.client.get(reverse("admin_dashboard") + "?export=csv")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/csv")
+        self.assertIn("attachment; filename=", response["Content-Disposition"])
+        content = response.content.decode("utf-8")
+        self.assertIn("Invoice Number,Date,Distributor,Customer,Subtotal (INR),GST (INR),Total Amount (INR),Status", content)
+        self.assertIn("INV-20261009-0001", content)
+        self.assertIn("INV-20261009-0002", content)
+
 
 
 

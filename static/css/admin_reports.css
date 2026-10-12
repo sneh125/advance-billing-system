@@ -1,0 +1,399 @@
+/* ==========================================================================
+   ADVANCE BILLING SYSTEM — DEDICATED ADMIN REPORTS SECTION STYLESHEET
+   ========================================================================== */
+
+/* REPORTS CONTAINER & CARD WRAPPER */
+.admin-reports-section {
+    background: #ffffff;
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    padding: 32px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    margin-top: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-reports-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #f43f5e 0%, #be123c 50%, #0ea5e9 100%);
+}
+
+/* REPORTS HEADER */
+.reports-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--slate-200);
+    padding-bottom: 22px;
+}
+
+.reports-header-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 650px;
+}
+
+.reports-header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    color: #e11d48;
+    border-radius: var(--radius-full);
+    font-size: 11.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: fit-content;
+}
+
+.reports-header-title-wrap h2 {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--slate-900);
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+
+.reports-header-title-wrap p {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    line-height: 1.45;
+    margin: 0;
+}
+
+.reports-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* PERIOD FILTER PILLS */
+.period-filter-group {
+    display: inline-flex;
+    background: var(--slate-100);
+    padding: 4px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--slate-200);
+    gap: 2px;
+}
+
+.period-pill-btn {
+    padding: 6px 14px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--text-muted);
+    transition: var(--transition-fast);
+}
+
+.period-pill-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.period-pill-btn.active {
+    background: #ffffff;
+    color: #e11d48;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ACTION BUTTONS */
+.btn-report-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid var(--slate-300);
+    background: #ffffff;
+    color: var(--slate-700);
+    transition: var(--transition-fast);
+}
+
+.btn-report-action:hover {
+    background: var(--slate-50);
+    border-color: var(--slate-400);
+    transform: translateY(-1px);
+}
+
+.btn-report-action.primary {
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+}
+
+.btn-report-action.primary:hover {
+    box-shadow: 0 6px 16px rgba(225, 29, 72, 0.45);
+}
+
+/* REPORTS FINANCIAL METRICS GRID */
+.report-financial-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+}
+
+.report-metric-tile {
+    background: var(--slate-50);
+    border-radius: var(--radius-xl);
+    padding: 20px 22px;
+    border: 1px solid var(--slate-200);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: var(--transition-fast);
+}
+
+.report-metric-tile:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.report-metric-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.report-metric-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--slate-500);
+}
+
+.report-metric-icon {
+    font-size: 18px;
+}
+
+.report-metric-value {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--slate-900);
+    line-height: 1.15;
+    letter-spacing: -0.5px;
+}
+
+.report-metric-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* TWO-COLUMN REPORTS CONTENT LAYOUT */
+.reports-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.report-card-panel {
+    background: #ffffff;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--slate-200);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.report-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--slate-100);
+    padding-bottom: 14px;
+}
+
+.report-panel-header h3 {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--slate-900);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.report-panel-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    background: var(--slate-100);
+    color: var(--slate-600);
+}
+
+/* REPORT TABLES */
+.report-table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--slate-200);
+}
+
+.report-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+}
+
+.report-data-table thead {
+    background: var(--slate-100);
+    color: var(--slate-700);
+    font-weight: 700;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.report-data-table th,
+.report-data-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--slate-200);
+}
+
+.report-data-table tbody tr:hover {
+    background: var(--slate-50);
+}
+
+.report-data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* BADGES */
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.status-pill.paid {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.status-pill.pending {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.status-pill.active {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.status-pill.danger {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* PROGRESS SUMMARY BAR */
+.ratio-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ratio-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--slate-700);
+}
+
+.ratio-progress-track {
+    height: 10px;
+    background: #f1f5f9;
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    display: flex;
+}
+
+.ratio-progress-fill-paid {
+    background: #10b981;
+    height: 100%;
+}
+
+.ratio-progress-fill-pending {
+    background: #f59e0b;
+    height: 100%;
+}
+
+/* PRINT MEDIA STYLES */
+@media print {
+    body {
+        background: #ffffff !important;
+    }
+    .app-shell-header,
+    .welcome-banner,
+    .reports-header-controls,
+    .cards,
+    .section-title-wrap {
+        display: none !important;
+    }
+    .admin-reports-section {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .report-table-responsive {
+        border: 1px solid #000 !important;
+    }
+}
+
+/* RESPONSIVE BREAKPOINTS */
+@media (max-width: 1024px) {
+    .report-financial-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .reports-two-col {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-reports-section {
+        padding: 20px 16px;
+    }
+    .report-financial-grid {
+        grid-template-columns: 1fr;
+    }
+    .reports-header-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
