@@ -894,6 +894,11 @@ def invoice_report_pdf(request):
     selected_status = ""
     selected_customer = None
 
+    if request.GET and not form.is_valid():
+        error_msg = form.non_field_errors()[0] if form.non_field_errors() else "Invalid date filter selection."
+        messages.error(request, error_msg)
+        return redirect("invoice_report")
+
     if form.is_valid():
         start_date = form.cleaned_data.get("start_date")
         end_date = form.cleaned_data.get("end_date")

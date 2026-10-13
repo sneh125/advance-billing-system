@@ -356,6 +356,52 @@ function resetDates() {
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
 }
+
+// Task 46: Client-side validation to prevent empty date selection or invalid ranges
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('reportFilterForm');
+    if (filterForm) {
+        filterForm.addEventListener('submit', function(e) {
+            const startVal = document.getElementById('startDate').value.trim();
+            const endVal = document.getElementById('endDate').value.trim();
+            const statusSelect = document.getElementById('statusSelect');
+            const customerSelect = document.getElementById('customerSelect');
+            const statusVal = statusSelect ? statusSelect.value.trim() : '';
+            const customerVal = customerSelect ? customerSelect.value.trim() : '';
+
+            // If user clicked submit with completely empty filters
+            if (!startVal && !endVal && !statusVal && !customerVal) {
+                e.preventDefault();
+                alert('Please select both From Date and To Date to generate the report.');
+                document.getElementById('startDate').focus();
+                return false;
+            }
+
+            // If one date is chosen and the other is empty
+            if (startVal && !endVal) {
+                e.preventDefault();
+                alert('To Date is required when From Date is selected. Please select a valid end date.');
+                document.getElementById('endDate').focus();
+                return false;
+            }
+
+            if (!startVal && endVal) {
+                e.preventDefault();
+                alert('From Date is required when To Date is selected. Please select a valid start date.');
+                document.getElementById('startDate').focus();
+                return false;
+            }
+
+            // If range is inverted
+            if (startVal && endVal && startVal > endVal) {
+                e.preventDefault();
+                alert('Invalid date range: From Date cannot be later than To Date.');
+                document.getElementById('startDate').focus();
+                return false;
+            }
+        });
+    }
+});
 </script>
 
 </body>

@@ -1828,6 +1828,69 @@ class InvoiceReportGenerationFormTests(TestCase):
         self.assertEqual(res["Content-Type"], "application/pdf")
         self.assertTrue(res.content.startswith(b"%PDF-"))
 
+    # =========================================================================
+    # TASK 46: Validation to prevent empty date selection or invalid ranges
+    # =========================================================================
+
+    def test_report_form_empty_date_selection_validation(self):
+        """Task 46: Submitting date filter form with empty dates raises validation error"""
+        form = InvoiceReportFilterForm({
+            "start_date": "",
+            "end_date": "",
+            "status": "",
+            "customer": "",
+        }, distributor=self.distributor1)
+        self.assertFalse(form.is_valid())
+        self.assertIn("Please select both From Date and To Date", form.non_field_errors()[0])
+
+    def test_report_form_missing_start_date_validation(self):
+        """Task 46: Specifying To Date without From Date raises validation error"""
+        form = InvoiceReportFilterForm({
+            "start_date": "",
+            "end_date": "2026-05-10",
+        }, distributor=self.distributor1)
+        self.assertFalse(form.is_valid())
+        self.assertIn("From Date is required when To Date is provided", form.non_field_errors()[0])
+
+    def test_report_form_missing_end_date_validation(self):
+        """Task 46: Specifying From Date without To Date raises validation error"""
+        form = InvoiceReportFilterForm({
+            "start_date": "2026-05-01",
+            "end_date": "",
+        }, distributor=self.distributor1)
+        self.assertFalse(form.is_valid())
+        self.assertIn("To Date is required when From Date is provided", form.non_field_errors()[0])
+
+    def test_report_form_invalid_date_range_validation(self):
+        """Task 46: Specifying From Date later than To Date raises validation error"""
+        form = InvoiceReportFilterForm({
+            "start_date": "2026-05-20",
+            "end_date": "2026-05-10",
+        }, distributor=self.distributor1)
+        self.assertFalse(form.is_valid())
+        self.assertIn("From Date cannot be later than To Date", form.non_field_errors()[0])
+
+    def test_report_view_renders_validation_error_on_invalid_range(self):
+        """Task 46: GET request to invoice_report with inverted dates displays error banner"""
+        self.client.login(username="dist_report_one", password="Password@123")
+        res = self.client.get(reverse("invoice_report"), {
+            "start_date": "2026-05-20",
+            "end_date": "2026-05-10",
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "From Date cannot be later than To Date")
+        self.assertContains(res, "report-form-error")
+
+    def test_invoice_report_pdf_redirects_on_invalid_date_range(self):
+        """Task 46: GET request to invoice_report_pdf with invalid range redirects to report page with error"""
+        self.client.login(username="dist_report_one", password="Password@123")
+        res = self.client.get(reverse("invoice_report_pdf"), {
+            "start_date": "2026-05-20",
+            "end_date": "2026-05-10",
+        })
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse("invoice_report"))
+
 
 
 

@@ -176,6 +176,26 @@ class InvoiceReportFilterForm(forms.Form):
         start_date = cleaned_data.get('start_date')
         end_date = cleaned_data.get('end_date')
 
+        # Task 46: Validation to prevent empty date selection or invalid ranges
+        has_date_keys = 'start_date' in self.data or 'end_date' in self.data
+
+        if has_date_keys:
+            raw_start = str(self.data.get('start_date', '')).strip()
+            raw_end = str(self.data.get('end_date', '')).strip()
+            raw_status = str(self.data.get('status', '')).strip()
+            raw_customer = str(self.data.get('customer', '')).strip()
+
+            # Prevent submitting empty dates when generating report without other filters
+            if not raw_start and not raw_end:
+                if not raw_status and not raw_customer:
+                    raise forms.ValidationError("Please select both From Date and To Date to generate the report.")
+            elif not raw_start and raw_end:
+                raise forms.ValidationError("From Date is required when To Date is provided. Please select a valid start date.")
+            elif raw_start and not raw_end:
+                raise forms.ValidationError("To Date is required when From Date is provided. Please select a valid end date.")
+
         if start_date and end_date and start_date > end_date:
             raise forms.ValidationError("From Date cannot be later than To Date.")
+
         return cleaned_data
+
