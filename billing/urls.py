@@ -34,4 +34,12 @@ urlpatterns = [
     path("invoices/report/pdf/", views.invoice_report_pdf, name="invoices_report_pdf"),
     path("invoices/<int:pk>/", views.invoice_detail, name="invoice_detail"),
     path("invoices/<int:pk>/pdf/", views.invoice_pdf, name="invoice_pdf"),
+
+    # Task 47 & 48: QR Code Decoder (UI and REST API endpoints)
+    path("qr/decode/", views.qr_decoder_view, name="qr_decoder"),
+    path("tools/qr-decoder/", views.qr_decoder_view, name="tools_qr_decoder"),
+    path("api/qr/decode/", views.qr_decoder_api, name="qr_decoder_api"),
+    path("api/qr-decode/", views.qr_decoder_api, name="api_qr_decode_alias"),
+    path("api/decode-qr/", views.qr_decoder_api, name="api_decode_qr"),
 ]
+

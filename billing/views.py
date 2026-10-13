@@ -1,4 +1,4 @@
-from .utils import render_to_pdf
+from .utils import render_to_pdf, decode_qr_image
 from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -1564,3 +1564,166 @@ def product_api_detail(request, pk):
         return JsonResponse({"status": "success", "message": f"Product '{p_name}' deleted successfully."}, status=200)
 
     return JsonResponse({"status": "error", "message": "Method not allowed."}, status=405)
+
+
+@login_required
+def qr_decoder_view(request):
+    """
+    Task 47 & 48: Interactive frontend view for uploading QR code images and decoding them.
+    Supports file uploads, drag & drop, and base64 preview, utilizing pyzbar and Pillow.
+    """
+    result = None
+    matched_invoice = None
+
+    if request.method == "POST":
+        uploaded_image = (
+            request.FILES.get("qr_image") or
+            request.FILES.get("file") or
+            request.FILES.get("image")
+        )
+        base64_data = request.POST.get("image_base64", "").strip()
+
+        if not uploaded_image and not base64_data:
+            messages.error(request, "Please select or upload a QR code image to decode.")
+            return render(request, "billing/qr_decoder.html", {
+                "result": None,
+                "matched_invoice": None,
+            })
+
+        try:
+            if uploaded_image:
+                if uploaded_image.size > 10 * 1024 * 1024:
+                    messages.error(request, "Uploaded image file size must not exceed 10MB.")
+                    return render(request, "billing/qr_decoder.html", {
+                        "result": None,
+                        "matched_invoice": None,
+                    })
+                decode_res = decode_qr_image(uploaded_image)
+            else:
+                if "," in base64_data:
+                    base64_data = base64_data.split(",", 1)[1]
+                img_bytes = base64.b64decode(base64_data)
+                decode_res = decode_qr_image(BytesIO(img_bytes))
+
+            result = decode_res
+            if decode_res.get("success"):
+                inv_data = decode_res.get("parsed", {}).get("invoice_data", {})
+                inv_num = inv_data.get("invoice")
+                if inv_num:
+                    matched_invoice = Invoice.objects.filter(
+                        invoice_number__iexact=inv_num,
+                        distributor=request.user
+                    ).select_related("customer").first()
+
+                messages.success(request, f"QR code decoded successfully ({decode_res.get('code_type', 'QRCODE')})!")
+            else:
+                messages.error(request, decode_res.get("error", "No QR code could be detected in this image."))
+
+        except Exception as e:
+            messages.error(request, f"Error processing uploaded image: {str(e)}")
+
+    return render(request, "billing/qr_decoder.html", {
+        "result": result,
+        "matched_invoice": matched_invoice,
+    })
+
+
+@csrf_exempt
+def qr_decoder_api(request):
+    """
+    Task 47 & 48: Dedicated REST API endpoint for decoding QR codes from uploaded images.
+    Accepts multipart/form-data or application/json payloads with image file or base64.
+    """
+    if request.method != "POST":
+        return JsonResponse({
+            "status": "error",
+            "message": "Method not allowed. Use POST to upload an image."
+        }, status=405)
+
+    uploaded_file = (
+        request.FILES.get("file") or
+        request.FILES.get("image") or
+        request.FILES.get("qr_image") or
+        request.FILES.get("qr_code")
+    )
+
+    image_source = None
+
+    if uploaded_file:
+        if uploaded_file.size > 10 * 1024 * 1024:
+            return JsonResponse({
+                "status": "error",
+                "message": "File size exceeds 10MB limit."
+            }, status=400)
+        image_source = uploaded_file
+    elif request.content_type == "application/json" and request.body:
+        try:
+            body_json = json.loads(request.body.decode("utf-8"))
+            b64_str = body_json.get("image_base64") or body_json.get("image") or body_json.get("data")
+            if b64_str:
+                if "," in b64_str:
+                    b64_str = b64_str.split(",", 1)[1]
+                image_bytes = base64.b64decode(b64_str)
+                image_source = BytesIO(image_bytes)
+        except Exception:
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid JSON or corrupted base64 image data."
+            }, status=400)
+    elif request.POST.get("image_base64"):
+        try:
+            b64_str = request.POST.get("image_base64")
+            if "," in b64_str:
+                b64_str = b64_str.split(",", 1)[1]
+            image_bytes = base64.b64decode(b64_str)
+            image_source = BytesIO(image_bytes)
+        except Exception:
+            return JsonResponse({
+                "status": "error",
+                "message": "Corrupted base64 image data in POST payload."
+            }, status=400)
+
+    if not image_source:
+        return JsonResponse({
+            "status": "error",
+            "message": "No image file provided. Please upload an image file using field 'file', 'image', or 'qr_image'."
+        }, status=400)
+
+    # Decode QR code using pyzbar/Pillow
+    decode_res = decode_qr_image(image_source)
+
+    if not decode_res.get("success"):
+        return JsonResponse({
+            "status": "error",
+            "message": decode_res.get("error", "No QR code detected.")
+        }, status=422)
+
+    # Attach matched invoice in database if exists
+    matched_data = None
+    inv_data = decode_res.get("parsed", {}).get("invoice_data", {})
+    inv_num = inv_data.get("invoice")
+    if inv_num:
+        qs = Invoice.objects.filter(invoice_number__iexact=inv_num)
+        if request.user.is_authenticated:
+            qs = qs.filter(distributor=request.user)
+        inv_match = qs.select_related("customer").first()
+        if inv_match:
+            matched_data = {
+                "id": inv_match.id,
+                "invoice_number": inv_match.invoice_number,
+                "customer_name": inv_match.customer.name,
+                "total_amount": str(inv_match.total_amount),
+                "status": inv_match.status,
+                "url": f"/invoices/{inv_match.id}/",
+            }
+
+    return JsonResponse({
+        "status": "success",
+        "message": "QR code decoded successfully.",
+        "data": {
+            "raw_text": decode_res.get("raw_data"),
+            "code_type": decode_res.get("code_type"),
+            "parsed": decode_res.get("parsed"),
+            "matched_invoice": matched_data
+        }
+    }, status=200)

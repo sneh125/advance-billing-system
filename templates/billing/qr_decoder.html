@@ -1,0 +1,323 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Decoder & Scanner | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/invoices.css' %}">
+    <link rel="stylesheet" href="{% static 'css/qr_decoder.css' %}">
+</head>
+<body>
+
+<div class="invoice-page-layout">
+
+    <!-- UNIFIED APP HEADER -->
+    <header class="app-shell-header">
+        <div class="app-header-left">
+            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
+                <div class="brand-badge-icon">AB</div>
+                <div class="brand-text-group">
+                    <h1>Advance Billing System</h1>
+                    <span class="brand-tagline">Distributor Cloud Workspace</span>
+                </div>
+            </a>
+
+            <!-- NAVIGATION PILL TABS -->
+            <nav class="app-nav-pills" aria-label="Main Navigation">
+                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
+                <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
+                <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
+                <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
+                <a href="{% url 'invoice_report' %}" class="app-nav-link">📅 Date Reports</a>
+                <a href="{% url 'qr_decoder' %}" class="app-nav-link active" style="color: var(--primary); font-weight: 800;">📷 QR Decoder</a>
+                <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
+            </nav>
+        </div>
+
+        <div class="app-header-right">
+            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
+                ⚡ + Quick Bill
+            </a>
+            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
+                <div class="user-avatar-circle">
+                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                    <span class="avatar-online-dot"></span>
+                </div>
+                <div class="user-info-text-col">
+                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
+                    <span class="user-role-subtag">Distributor</span>
+                </div>
+            </a>
+            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+                Logout
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN QR DECODER CONTENT -->
+    <main class="qr-decoder-content">
+
+        <!-- HEADER ROW -->
+        <div class="qr-header-row">
+            <div class="qr-header-title">
+                <h2>QR Code Decoder & Verification Tool</h2>
+                <p>Upload any bill image, invoice slip, or QR barcode to instantly extract decoded payload and verify ledger records.</p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a href="{% url 'invoice_list' %}" class="btn-filter-reset">
+                    ← Back to Invoices
+                </a>
+            </div>
+        </div>
+
+        <!-- NOTIFICATION MESSAGES -->
+        {% if messages %}
+        <div style="margin-bottom: 24px;">
+            {% for message in messages %}
+            <div class="{% if message.tags == 'success' %}report-form-error{% else %}report-form-error{% endif %}"
+                 style="{% if message.tags == 'success' %}background: #ecfdf5; border-color: #a7f3d0; color: #065f46;{% endif %}">
+                <span>{% if message.tags == 'success' %}✅{% else %}⚠️{% endif %}</span>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- 2-COLUMN WORKSPACE GRID -->
+        <div class="qr-decoder-grid">
+
+            <!-- LEFT CARD: UPLOAD IMAGE FORM -->
+            <div class="qr-card">
+                <div class="qr-card-header">
+                    <h3>📤 Upload QR Code Image</h3>
+                    <span class="badge-pill-cyan">pyzbar Decoder</span>
+                </div>
+
+                <form method="POST" action="{% url 'qr_decoder' %}" enctype="multipart/form-data" id="qrUploadForm">
+                    {% csrf_token %}
+
+                    <!-- DROPZONE CONTAINER -->
+                    <div class="qr-dropzone" id="qrDropzone" onclick="document.getElementById('qrFileInput').click()">
+                        <div class="dropzone-icon">📷</div>
+                        <h4>Drop your QR code image here</h4>
+                        <p>or click to browse from device (PNG, JPG, JPEG, WEBP, BMP)</p>
+                        <input type="file" name="qr_image" id="qrFileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+                    </div>
+
+                    <!-- PREVIEW CONTAINER (HIDDEN UNTIL FILE CHOSEN) -->
+                    <div id="imagePreviewContainer" style="display: none; margin-top: 18px; text-align: center;">
+                        <img id="imagePreview" src="" alt="Selected QR Image" style="max-height: 220px; max-width: 100%; border-radius: var(--radius-lg); border: 1px solid var(--slate-200); box-shadow: var(--shadow-sm);">
+                        <div style="margin-top: 8px;">
+                            <button type="button" class="preset-chip" onclick="clearSelectedFile()">✕ Remove & Choose Another</button>
+                        </div>
+                    </div>
+
+                    <!-- SUBMIT BUTTON -->
+                    <div style="margin-top: 24px;">
+                        <button type="submit" class="btn-filter-submit" style="width: 100%; justify-content: center;" id="btnSubmitDecode">
+                            🔍 Decode & Read QR Code
+                        </button>
+                    </div>
+                </form>
+
+                <!-- REST API DEVELOPER INFO -->
+                <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--slate-100);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">REST API Endpoint</span>
+                        <code style="font-size: 12px; background: var(--slate-100); padding: 3px 8px; border-radius: 4px; color: var(--primary);">POST /api/qr/decode/</code>
+                    </div>
+                    <p style="font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                        Accepts standard <code>multipart/form-data</code> with field <code>file</code> or <code>image</code>, or raw JSON with <code>image_base64</code> payload.
+                    </p>
+                </div>
+            </div>
+
+            <!-- RIGHT CARD: DECODED RESULTS & ANALYSIS -->
+            <div class="qr-card">
+                <div class="qr-card-header">
+                    <h3>📊 Decoded QR Code Information</h3>
+                    {% if result and result.success %}
+                    <span class="badge-pill-cyan" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0;">Success</span>
+                    {% elif result %}
+                    <span class="badge-pill-cyan" style="background: #fef2f2; color: #b91c1c; border-color: #fecaca;">Failed</span>
+                    {% else %}
+                    <span class="badge-pill-cyan" style="background: var(--slate-100); color: var(--slate-600); border-color: var(--slate-200);">Waiting Upload</span>
+                    {% endif %}
+                </div>
+
+                {% if result and result.success %}
+                <!-- SUCCESS RESULTS DISPLAY -->
+                <div class="qr-results-wrapper">
+
+                    <!-- CODE TYPE & DETECTION BADGES -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+                        <span class="search-stats-badge" style="background: var(--primary-50); color: var(--primary-700);">
+                            Code Type: {{ result.code_type|default:"QRCODE" }}
+                        </span>
+                        {% if result.parsed.is_invoice %}
+                        <span class="search-stats-badge" style="background: #ecfdf5; color: #065f46;">
+                            🧾 Verified Invoice QR
+                        </span>
+                        {% elif result.parsed.is_upi %}
+                        <span class="search-stats-badge" style="background: #eff6ff; color: #1e40af;">
+                            💳 UPI Payment QR
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- MATCHED INVOICE BANNER IF FOUND IN DB -->
+                    {% if matched_invoice %}
+                    <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                            <strong style="color: #15803d; font-size: 15px;">✓ Matched Database Invoice Found!</strong>
+                            <a href="{% url 'invoice_detail' matched_invoice.pk %}" class="btn-filter-submit" style="padding: 6px 14px; font-size: 12.5px; text-decoration: none;">
+                                👁️ Open Invoice Record
+                            </a>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 13px; color: #1e293b;">
+                            <div><strong>Invoice:</strong> {{ matched_invoice.invoice_number }}</div>
+                            <div><strong>Customer:</strong> {{ matched_invoice.customer.name }}</div>
+                            <div><strong>Date:</strong> {{ matched_invoice.invoice_date|date:"d M Y" }}</div>
+                            <div><strong>Total Amount:</strong> ₹{{ matched_invoice.total_amount|floatformat:2 }}</div>
+                            <div><strong>Status:</strong> <span class="invoice-status-pill {% if matched_invoice.status == 'Paid' %}status-paid{% else %}status-pending{% endif %}">{{ matched_invoice.status }}</span></div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- PARSED INVOICE PAYLOAD TABLE -->
+                    {% if result.parsed.is_invoice and result.parsed.invoice_data %}
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="font-size: 14px; font-weight: 800; color: var(--slate-800); margin: 0 0 10px 0;">Parsed Fields:</h4>
+                        <table class="saas-data-table" style="font-size: 13px;">
+                            <tbody>
+                                {% for key, val in result.parsed.invoice_data.items %}
+                                <tr>
+                                    <td style="font-weight: 700; width: 35%; text-transform: capitalize; color: var(--slate-600);">{{ key }}</td>
+                                    <td style="font-weight: 600; color: var(--slate-900);">{{ val }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    <!-- PARSED UPI PAYLOAD -->
+                    {% if result.parsed.is_upi and result.parsed.upi_data %}
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="font-size: 14px; font-weight: 800; color: var(--slate-800); margin: 0 0 10px 0;">UPI Payment Fields:</h4>
+                        <table class="saas-data-table" style="font-size: 13px;">
+                            <tbody>
+                                <tr>
+                                    <td style="font-weight: 700; width: 35%; color: var(--slate-600);">Payee Address (VPA)</td>
+                                    <td style="font-weight: 600; color: var(--slate-900);">{{ result.parsed.upi_data.payee_address }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 700; color: var(--slate-600);">Payee Name</td>
+                                    <td style="font-weight: 600; color: var(--slate-900);">{{ result.parsed.upi_data.payee_name }}</td>
+                                </tr>
+                                {% if result.parsed.upi_data.amount %}
+                                <tr>
+                                    <td style="font-weight: 700; color: var(--slate-600);">Amount</td>
+                                    <td style="font-weight: 700; color: var(--primary);">₹{{ result.parsed.upi_data.amount }}</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    <!-- RAW DECODED TEXT -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <h4 style="font-size: 14px; font-weight: 800; color: var(--slate-800); margin: 0;">Raw QR Content:</h4>
+                            <button type="button" class="preset-chip" onclick="copyRawText()">📋 Copy Text</button>
+                        </div>
+                        <pre id="rawDecodedText" style="background: var(--slate-900); color: #38bdf8; padding: 16px; border-radius: var(--radius-lg); font-size: 12.5px; line-height: 1.5; overflow-x: auto; font-family: monospace; white-space: pre-wrap; margin: 0;">{{ result.raw_data }}</pre>
+                    </div>
+                </div>
+
+                {% else %}
+                <!-- EMPTY / AWAITING STATE -->
+                <div style="text-align: center; padding: 48px 24px; color: var(--text-muted);">
+                    <div style="font-size: 48px; margin-bottom: 14px;">📭</div>
+                    <h4 style="font-size: 16px; font-weight: 700; color: var(--slate-800); margin: 0 0 6px 0;">No QR Code Decoded Yet</h4>
+                    <p style="font-size: 13.5px; max-width: 380px; margin: 0 auto; line-height: 1.5;">
+                        Upload a photo, screenshot, or graphic file containing a QR code on the left to view decoded contents and invoice metadata here.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </main>
+
+</div>
+
+<!-- INTERACTIVE SCRIPTS -->
+<script>
+function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            document.getElementById('imagePreview').src = evt.target.result;
+            document.getElementById('imagePreviewContainer').style.display = 'block';
+            document.getElementById('qrDropzone').style.borderColor = 'var(--primary)';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function clearSelectedFile() {
+    const fileInput = document.getElementById('qrFileInput');
+    fileInput.value = '';
+    document.getElementById('imagePreviewContainer').style.display = 'none';
+    document.getElementById('imagePreview').src = '';
+    document.getElementById('qrDropzone').style.borderColor = 'var(--slate-300)';
+}
+
+function copyRawText() {
+    const textEl = document.getElementById('rawDecodedText');
+    if (textEl) {
+        navigator.clipboard.writeText(textEl.innerText).then(() => {
+            alert('Decoded QR text copied to clipboard!');
+        });
+    }
+}
+
+// Drag and drop events
+const dropzone = document.getElementById('qrDropzone');
+if (dropzone) {
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.style.borderColor = 'var(--primary)';
+            dropzone.style.background = 'var(--primary-50)';
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.style.borderColor = 'var(--slate-300)';
+            dropzone.style.background = 'var(--slate-50)';
+        }, false);
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+            document.getElementById('qrFileInput').files = files;
+            handleFileSelect({ target: { files: files } });
+        }
+    }, false);
+}
+</script>
+
+</body>
+</html>

@@ -1892,6 +1892,144 @@ class InvoiceReportGenerationFormTests(TestCase):
         self.assertRedirects(res, reverse("invoice_report"))
 
 
+class QRCodeDecoderTests(TestCase):
+    """
+    Task 47 & 48: Tests for QR code decoder endpoint and decoding functionality.
+    """
+
+    def setUp(self):
+        import io
+        import qrcode
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        self.distributor = User.objects.create_user(
+            username="dist_qr_tester",
+            email="qr@tester.com",
+            password="Password@123"
+        )
+        self.customer = Customer.objects.create(
+            distributor=self.distributor,
+            name="Alpha Corp",
+            phone="9876543210",
+            email="alpha@corp.com"
+        )
+        self.invoice = Invoice.objects.create(
+            invoice_number="INV-QR-TEST-001",
+            distributor=self.distributor,
+            customer=self.customer,
+            subtotal=Decimal("1000.00"),
+            gst_amount=Decimal("180.00"),
+            total_amount=Decimal("1180.00"),
+            status="Paid"
+        )
+
+        # Generate a valid test QR image in memory
+        qr_text = (
+            f"Invoice: {self.invoice.invoice_number}\n"
+            f"Customer: {self.customer.name}\n"
+            f"Amount: 1180.00\n"
+            f"Status: Paid"
+        )
+        img = qrcode.make(qr_text)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        self.valid_qr_bytes = buf.getvalue()
+
+        self.valid_qr_uploaded_file = SimpleUploadedFile(
+            "sample_qr.png",
+            self.valid_qr_bytes,
+            content_type="image/png"
+        )
+
+    def test_qr_decoder_view_unauthenticated_redirect(self):
+        """Task 47: Unauthenticated access to /qr/decode/ redirects to login"""
+        res = self.client.get(reverse("qr_decoder"))
+        self.assertEqual(res.status_code, 302)
+        self.assertIn("/login/", res.url)
+
+    def test_qr_decoder_view_authenticated_get(self):
+        """Task 47: Authenticated distributor can access QR decoder page"""
+        self.client.login(username="dist_qr_tester", password="Password@123")
+        res = self.client.get(reverse("qr_decoder"))
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "billing/qr_decoder.html")
+        self.assertContains(res, "QR Code Decoder")
+        self.assertContains(res, "Upload QR Code Image")
+
+    def test_qr_decoder_view_post_no_image_error(self):
+        """Task 47: Submitting QR decoder form without an image displays error message"""
+        self.client.login(username="dist_qr_tester", password="Password@123")
+        res = self.client.post(reverse("qr_decoder"), {})
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Please select or upload a QR code image to decode.")
+
+    def test_qr_decoder_view_post_valid_image(self):
+        """Task 47 & 48: Submitting a valid QR code image successfully decodes and displays details"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username="dist_qr_tester", password="Password@123")
+
+        uploaded = SimpleUploadedFile("test_bill_qr.png", self.valid_qr_bytes, content_type="image/png")
+        res = self.client.post(reverse("qr_decoder"), {"qr_image": uploaded})
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "QR code decoded successfully")
+        self.assertContains(res, "INV-QR-TEST-001")
+        self.assertContains(res, "Alpha Corp")
+
+    def test_qr_decoder_api_method_not_allowed(self):
+        """Task 47: GET request to /api/qr/decode/ returns 405 Method Not Allowed"""
+        res = self.client.get(reverse("qr_decoder_api"))
+        self.assertEqual(res.status_code, 405)
+        data = res.json()
+        self.assertEqual(data["status"], "error")
+
+    def test_qr_decoder_api_no_image_bad_request(self):
+        """Task 47: POST request to /api/qr/decode/ without image returns 400 Bad Request"""
+        res = self.client.post(reverse("qr_decoder_api"), {})
+        self.assertEqual(res.status_code, 400)
+        data = res.json()
+        self.assertEqual(data["status"], "error")
+        self.assertIn("No image file provided", data["message"])
+
+    def test_qr_decoder_api_multipart_upload_success(self):
+        """Task 47 & 48: Uploading QR code image via multipart/form-data decodes payload using pyzbar"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        uploaded = SimpleUploadedFile("bill_qr.png", self.valid_qr_bytes, content_type="image/png")
+
+        res = self.client.post(reverse("qr_decoder_api"), {"file": uploaded})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertIn("raw_text", data["data"])
+        self.assertIn("INV-QR-TEST-001", data["data"]["raw_text"])
+        self.assertEqual(data["data"]["code_type"], "QRCODE")
+
+    def test_qr_decoder_api_base64_json_success(self):
+        """Task 47 & 48: Uploading base64 image via JSON body decodes payload"""
+        b64_str = base64.b64encode(self.valid_qr_bytes).decode("utf-8")
+        payload = json.dumps({"image_base64": f"data:image/png;base64,{b64_str}"})
+
+        res = self.client.post(
+            reverse("qr_decoder_api"),
+            data=payload,
+            content_type="application/json"
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertIn("INV-QR-TEST-001", data["data"]["raw_text"])
+
+    def test_qr_decoder_api_invalid_image_format(self):
+        """Task 47: Uploading non-image file returns 422 Unprocessable Entity"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        bad_file = SimpleUploadedFile("fake.txt", b"This is plain text, not an image.", content_type="text/plain")
+
+        res = self.client.post(reverse("qr_decoder_api"), {"file": bad_file})
+        self.assertEqual(res.status_code, 422)
+        data = res.json()
+        self.assertEqual(data["status"], "error")
+
+
+
 
 
 
