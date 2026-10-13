@@ -2028,6 +2028,54 @@ class QRCodeDecoderTests(TestCase):
         data = res.json()
         self.assertEqual(data["status"], "error")
 
+    def test_read_qr_code_data_using_pyzbar_direct(self):
+        """Task 48: Use pyzbar library to read QR code data from image bytes/file"""
+        import io
+        from billing.utils import read_qr_code_data
+
+        buf = io.BytesIO(self.valid_qr_bytes)
+        decode_res = read_qr_code_data(buf)
+
+        self.assertTrue(decode_res["success"])
+        self.assertIn("INV-QR-TEST-001", decode_res["raw_data"])
+        self.assertEqual(decode_res["code_type"], "QRCODE")
+        self.assertTrue(decode_res["parsed"]["is_invoice"])
+        self.assertEqual(decode_res["parsed"]["invoice_data"]["invoice"], "INV-QR-TEST-001")
+
+    def test_read_qr_code_data_upi_payload_using_pyzbar(self):
+        """Task 48: Use pyzbar to read and decode a UPI payment QR code"""
+        import io
+        import qrcode
+        from billing.utils import read_qr_code_data
+
+        upi_string = "upi://pay?pa=store@icici&pn=SuperStore&am=2450.00&tn=INV-8899"
+        img = qrcode.make(upi_string)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+
+        decode_res = read_qr_code_data(buf)
+        self.assertTrue(decode_res["success"])
+        self.assertTrue(decode_res["parsed"]["is_upi"])
+        self.assertEqual(decode_res["parsed"]["upi_data"]["payee_address"], "store@icici")
+        self.assertEqual(decode_res["parsed"]["upi_data"]["amount"], "2450.00")
+
+    def test_read_qr_code_data_blank_image_returns_error(self):
+        """Task 48: Image without QR code returns graceful detection error"""
+        from PIL import Image
+        import io
+        from billing.utils import read_qr_code_data
+
+        blank = Image.new("RGB", (200, 200), color="white")
+        buf = io.BytesIO()
+        blank.save(buf, format="PNG")
+        buf.seek(0)
+
+        decode_res = read_qr_code_data(buf)
+        self.assertFalse(decode_res["success"])
+        self.assertIn("No QR code detected", decode_res["error"])
+
+
 
 
 
