@@ -1608,12 +1608,12 @@ def qr_decoder_view(request):
             result = decode_res
             if decode_res.get("success"):
                 inv_data = decode_res.get("parsed", {}).get("invoice_data", {})
-                inv_num = inv_data.get("invoice")
+                inv_num = inv_data.get("invoice_number") or inv_data.get("invoice")
                 if inv_num:
                     matched_invoice = Invoice.objects.filter(
                         invoice_number__iexact=inv_num,
                         distributor=request.user
-                    ).select_related("customer").first()
+                    ).select_related("customer").prefetch_related("items__product").first()
 
                 messages.success(request, f"QR code decoded successfully ({decode_res.get('code_type', 'QRCODE')})!")
             else:
@@ -1701,7 +1701,7 @@ def qr_decoder_api(request):
     # Attach matched invoice in database if exists
     matched_data = None
     inv_data = decode_res.get("parsed", {}).get("invoice_data", {})
-    inv_num = inv_data.get("invoice")
+    inv_num = inv_data.get("invoice_number") or inv_data.get("invoice")
     if inv_num:
         qs = Invoice.objects.filter(invoice_number__iexact=inv_num)
         if request.user.is_authenticated:

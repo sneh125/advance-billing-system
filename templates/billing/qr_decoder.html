@@ -167,39 +167,138 @@
                         {% endif %}
                     </div>
 
-                    <!-- MATCHED INVOICE BANNER IF FOUND IN DB -->
-                    {% if matched_invoice %}
-                    <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
-                            <strong style="color: #15803d; font-size: 15px;">✓ Matched Database Invoice Found!</strong>
-                            <a href="{% url 'invoice_detail' matched_invoice.pk %}" class="btn-filter-submit" style="padding: 6px 14px; font-size: 12.5px; text-decoration: none;">
-                                👁️ Open Invoice Record
-                            </a>
+                    <!-- PARSED INVOICE INFORMATION CARD (TASK 49) -->
+                    {% if result.parsed.is_invoice or matched_invoice %}
+                    <div class="parsed-invoice-card" id="parsedInvoiceInfo">
+                        <div class="parsed-card-title">
+                            🧾 Parsed Invoice Information
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 13px; color: #1e293b;">
-                            <div><strong>Invoice:</strong> {{ matched_invoice.invoice_number }}</div>
-                            <div><strong>Customer:</strong> {{ matched_invoice.customer.name }}</div>
-                            <div><strong>Date:</strong> {{ matched_invoice.invoice_date|date:"d M Y" }}</div>
-                            <div><strong>Total Amount:</strong> ₹{{ matched_invoice.total_amount|floatformat:2 }}</div>
-                            <div><strong>Status:</strong> <span class="invoice-status-pill {% if matched_invoice.status == 'Paid' %}status-paid{% else %}status-pending{% endif %}">{{ matched_invoice.status }}</span></div>
-                        </div>
-                    </div>
-                    {% endif %}
 
-                    <!-- PARSED INVOICE PAYLOAD TABLE -->
-                    {% if result.parsed.is_invoice and result.parsed.invoice_data %}
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="font-size: 14px; font-weight: 800; color: var(--slate-800); margin: 0 0 10px 0;">Parsed Fields:</h4>
-                        <table class="saas-data-table" style="font-size: 13px;">
-                            <tbody>
-                                {% for key, val in result.parsed.invoice_data.items %}
-                                <tr>
-                                    <td style="font-weight: 700; width: 35%; text-transform: capitalize; color: var(--slate-600);">{{ key }}</td>
-                                    <td style="font-weight: 600; color: var(--slate-900);">{{ val }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                        <div class="parsed-grid">
+                            <div class="parsed-grid-item">
+                                <div class="parsed-item-label">Invoice Number</div>
+                                <div class="parsed-item-val" style="color: var(--primary); font-family: monospace;">
+                                    {% if matched_invoice %}
+                                        {{ matched_invoice.invoice_number }}
+                                    {% else %}
+                                        {{ result.parsed.invoice_data.invoice_number|default:result.parsed.invoice_data.invoice|default:"N/A" }}
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="parsed-grid-item">
+                                <div class="parsed-item-label">Customer Name</div>
+                                <div class="parsed-item-val">
+                                    {% if matched_invoice %}
+                                        {{ matched_invoice.customer.name }}
+                                    {% else %}
+                                        {{ result.parsed.invoice_data.customer_name|default:result.parsed.invoice_data.customer|default:"N/A" }}
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="parsed-grid-item">
+                                <div class="parsed-item-label">Total Bill Amount</div>
+                                <div class="parsed-item-val" style="color: #16a34a; font-size: 16px;">
+                                    {% if result.parsed.invoice_data.total_amount %}
+                                        ₹{{ result.parsed.invoice_data.total_amount }}
+                                    {% elif result.parsed.invoice_data.total %}
+                                        ₹{{ result.parsed.invoice_data.total }}
+                                    {% elif matched_invoice %}
+                                        ₹{{ matched_invoice.total_amount|floatformat:2 }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="parsed-grid-item">
+                                <div class="parsed-item-label">Invoice Date</div>
+                                <div class="parsed-item-val">
+                                    {% if result.parsed.invoice_data.date %}
+                                        {{ result.parsed.invoice_data.date }}
+                                    {% elif matched_invoice %}
+                                        {{ matched_invoice.invoice_date|date:"d M Y" }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if result.parsed.invoice_data.products or matched_invoice %}
+                            <div class="parsed-grid-item">
+                                <div class="parsed-item-label">Items Count</div>
+                                <div class="parsed-item-val">
+                                    {% if result.parsed.invoice_data.products %}
+                                        {{ result.parsed.invoice_data.products }}
+                                    {% elif matched_invoice %}
+                                        {{ matched_invoice.items.count }}
+                                    {% else %}
+                                        1
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if result.parsed.invoice_data.status or matched_invoice %}
+                            <div class="parsed-grid-item">
+                                <div class="parsed-item-label">Payment Status</div>
+                                <div class="parsed-item-val">
+                                    {% if matched_invoice and matched_invoice.status == 'Paid' or result.parsed.invoice_data.status == 'Paid' %}
+                                        <span class="invoice-status-pill status-paid">Paid</span>
+                                    {% else %}
+                                        <span class="invoice-status-pill status-pending">{{ result.parsed.invoice_data.status|default:"Pending" }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- MATCHED INVOICE BANNER & ACTIONS -->
+                        {% if matched_invoice %}
+                        <div class="matched-invoice-banner">
+                            <div>
+                                <strong style="color: #0369a1; font-size: 13.5px;">✓ Linked with Database Record</strong>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                                    Customer Contact: {{ matched_invoice.customer.phone|default:"No phone" }} | Subtotal: ₹{{ matched_invoice.subtotal|floatformat:2 }} | GST: ₹{{ matched_invoice.gst_amount|floatformat:2 }}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <a href="{% url 'invoice_detail' matched_invoice.pk %}" class="btn-view-invoice">
+                                    👁️ View Full Invoice
+                                </a>
+                                <a href="{% url 'invoice_pdf' matched_invoice.pk %}" class="btn-view-invoice" style="background: #dc2626;" target="_blank">
+                                    📄 PDF
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- ITEM SUMMARY TABLE IF MATCHED -->
+                        {% if matched_invoice.items.all %}
+                        <div style="margin-top: 14px;">
+                            <table class="saas-data-table" style="font-size: 12px; margin-top: 8px;">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th style="text-align: center;">Qty</th>
+                                        <th style="text-align: right;">Rate (₹)</th>
+                                        <th style="text-align: right;">Total (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in matched_invoice.items.all %}
+                                    <tr>
+                                        <td><strong>{{ item.product.name }}</strong></td>
+                                        <td style="text-align: center;">{{ item.quantity }}</td>
+                                        <td style="text-align: right;">{{ item.unit_price|floatformat:2 }}</td>
+                                        <td style="text-align: right; font-weight: 700;">{{ item.total_price|floatformat:2 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                        {% endif %}
                     </div>
                     {% endif %}
 

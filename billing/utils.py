@@ -120,14 +120,44 @@ def read_qr_code_data(image_input):
         "rect": rect_dict,
     }
 
-    # 1. Check if it is an Invoice QR (format: "Invoice: INV-...\nCustomer: ...")
-    if "Invoice:" in raw_data and "Customer:" in raw_data:
+    # 1. Check if it is an Invoice QR (format: key:value pairs, JSON, or contains invoice identifiers)
+    import json
+    parsed_as_json = False
+    try:
+        data_json = json.loads(raw_data)
+        if isinstance(data_json, dict) and any(k.lower() in ["invoice", "invoice_number", "customer", "bill", "total"] for k in data_json.keys()):
+            parsed_info["is_invoice"] = True
+            inv_dict = {k.strip().lower(): str(v).strip() for k, v in data_json.items()}
+            inv_dict["invoice_number"] = inv_dict.get("invoice") or inv_dict.get("invoice_number") or inv_dict.get("inv") or ""
+            inv_dict["customer_name"] = inv_dict.get("customer") or inv_dict.get("customer_name") or ""
+            inv_dict["total_amount"] = inv_dict.get("total") or inv_dict.get("total_amount") or inv_dict.get("amount") or ""
+            inv_dict["date"] = inv_dict.get("date") or inv_dict.get("invoice_date") or ""
+            inv_dict["products"] = inv_dict.get("products") or inv_dict.get("product_count") or inv_dict.get("items") or ""
+            inv_dict["status"] = inv_dict.get("status") or ""
+            parsed_info["invoice_data"] = inv_dict
+            parsed_as_json = True
+    except Exception:
+        pass
+
+    if not parsed_as_json and ("invoice:" in raw_data.lower() or "customer:" in raw_data.lower() or "inv-" in raw_data.upper()):
         parsed_info["is_invoice"] = True
         inv_details = {}
         for line in raw_data.splitlines():
             if ":" in line:
                 k, v = line.split(":", 1)
                 inv_details[k.strip().lower()] = v.strip()
+            elif "=" in line:
+                k, v = line.split("=", 1)
+                inv_details[k.strip().lower()] = v.strip()
+
+        # Normalize common invoice field names
+        inv_details["invoice_number"] = inv_details.get("invoice") or inv_details.get("invoice_number") or inv_details.get("inv") or ""
+        inv_details["customer_name"] = inv_details.get("customer") or inv_details.get("customer_name") or ""
+        inv_details["total_amount"] = inv_details.get("total") or inv_details.get("total_amount") or inv_details.get("amount") or ""
+        inv_details["date"] = inv_details.get("date") or inv_details.get("invoice_date") or ""
+        inv_details["products"] = inv_details.get("products") or inv_details.get("product_count") or inv_details.get("items") or ""
+        inv_details["status"] = inv_details.get("status") or ""
+
         parsed_info["invoice_data"] = inv_details
 
     # 2. Check if it is a UPI URI

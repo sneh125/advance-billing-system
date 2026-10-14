@@ -2075,6 +2075,53 @@ class QRCodeDecoderTests(TestCase):
         self.assertFalse(decode_res["success"])
         self.assertIn("No QR code detected", decode_res["error"])
 
+    def test_parse_and_render_invoice_information_on_page(self):
+        """Task 49: Parse decoded data and render formatted invoice information card on the page"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username="dist_qr_tester", password="Password@123")
+
+        uploaded = SimpleUploadedFile("bill_qr.png", self.valid_qr_bytes, content_type="image/png")
+        res = self.client.post(reverse("qr_decoder"), {"qr_image": uploaded})
+
+        self.assertEqual(res.status_code, 200)
+        # Check rendered parsed invoice section
+        self.assertContains(res, "parsedInvoiceInfo")
+        self.assertContains(res, "Parsed Invoice Information")
+        self.assertContains(res, "INV-QR-TEST-001")
+        self.assertContains(res, "Alpha Corp")
+        self.assertContains(res, "1180.00")
+        self.assertContains(res, "Linked with Database Record")
+        self.assertContains(res, "View Full Invoice")
+
+    def test_parse_and_render_external_invoice_qr(self):
+        """Task 49: Parse external invoice QR payload and render clean data grid"""
+        import io
+        import qrcode
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username="dist_qr_tester", password="Password@123")
+
+        external_qr_text = (
+            "Invoice: INV-EXT-9988\n"
+            "Customer: Beta Ltd\n"
+            "Total: 4500.00\n"
+            "Date: 12 Oct 2026\n"
+            "Status: Pending"
+        )
+        img = qrcode.make(external_qr_text)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+
+        uploaded = SimpleUploadedFile("external_qr.png", buf.getvalue(), content_type="image/png")
+        res = self.client.post(reverse("qr_decoder"), {"qr_image": uploaded})
+
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "parsedInvoiceInfo")
+        self.assertContains(res, "INV-EXT-9988")
+        self.assertContains(res, "Beta Ltd")
+        self.assertContains(res, "4500.00")
+
+
 
 
 
