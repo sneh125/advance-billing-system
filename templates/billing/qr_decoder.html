@@ -72,14 +72,22 @@
             </div>
         </div>
 
-        <!-- NOTIFICATION MESSAGES -->
+        <!-- FLOATING TOAST NOTIFICATION CONTAINER (TASK 51) -->
+        <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+        <!-- NOTIFICATION MESSAGES & ALERT BANNERS (TASK 51) -->
         {% if messages %}
-        <div style="margin-bottom: 24px;">
+        <div style="margin-bottom: 24px;" id="pageAlertBannerContainer">
             {% for message in messages %}
-            <div class="{% if message.tags == 'success' %}report-form-error{% else %}report-form-error{% endif %}"
-                 style="{% if message.tags == 'success' %}background: #ecfdf5; border-color: #a7f3d0; color: #065f46;{% endif %}">
-                <span>{% if message.tags == 'success' %}✅{% else %}⚠️{% endif %}</span>
-                <span>{{ message }}</span>
+            <div class="qr-alert-banner {% if message.tags == 'success' %}qr-alert-success{% else %}qr-alert-error{% endif %}"
+                 id="{% if message.tags == 'success' %}successAlertBanner{% else %}errorAlertBanner{% endif %}"
+                 role="alert">
+                <span class="qr-alert-icon">{% if message.tags == 'success' %}✅{% else %}⚠️{% endif %}</span>
+                <div class="qr-alert-body">
+                    <h5 class="qr-alert-title">{% if message.tags == 'success' %}Success Outcome{% else %}Attention Required{% endif %}</h5>
+                    <p class="qr-alert-text">{{ message }}</p>
+                </div>
+                <button type="button" class="qr-alert-dismiss" onclick="this.closest('.qr-alert-banner').remove()" aria-label="Dismiss">✕</button>
             </div>
             {% endfor %}
         </div>
@@ -382,16 +390,87 @@
 
 </div>
 
-<!-- INTERACTIVE SCRIPTS -->
+<!-- INTERACTIVE SCRIPTS & TOAST NOTIFICATION CONTROLLER (TASK 51) -->
 <script>
+/**
+ * Toast Notification Controller (Task 51)
+ * Displays rich animated toast cards for both success and error outcomes.
+ */
+function showToast(type, title, message, duration = 4500) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    const toastType = type === 'success' ? 'toast-success' : (type === 'error' ? 'toast-error' : 'toast-info');
+    const toastIcon = type === 'success' ? '✅' : (type === 'error' ? '⚠️' : 'ℹ️');
+    const toastId = 'toast-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+
+    toast.className = `app-toast ${toastType}`;
+    toast.id = toastId;
+    toast.setAttribute('role', 'alert');
+
+    toast.innerHTML = `
+        <div class="toast-icon">${toastIcon}</div>
+        <div class="toast-content">
+            <h5 class="toast-title">${title}</h5>
+            <p class="toast-message">${message}</p>
+        </div>
+        <button type="button" class="toast-close-btn" aria-label="Close notification" onclick="dismissToast('${toastId}')">✕</button>
+        <div class="toast-progress" style="animation-duration: ${duration}ms;"></div>
+    `;
+
+    container.appendChild(toast);
+
+    let dismissTimeout = setTimeout(() => {
+        dismissToast(toastId);
+    }, duration);
+
+    // Pause dismissal on hover
+    toast.addEventListener('mouseenter', () => {
+        clearTimeout(dismissTimeout);
+        const progress = toast.querySelector('.toast-progress');
+        if (progress) progress.style.animationPlayState = 'paused';
+    });
+
+    toast.addEventListener('mouseleave', () => {
+        dismissTimeout = setTimeout(() => {
+            dismissToast(toastId);
+        }, 1500);
+        const progress = toast.querySelector('.toast-progress');
+        if (progress) progress.style.animationPlayState = 'running';
+    });
+}
+
+function dismissToast(toastId) {
+    const el = document.getElementById(toastId);
+    if (!el) return;
+    el.classList.add('toast-hiding');
+    setTimeout(() => {
+        if (el && el.parentNode) {
+            el.remove();
+        }
+    }, 300);
+}
+
 function handleFileSelect(e) {
     const file = e.target.files[0];
     if (file) {
+        if (file.size === 0) {
+            showToast('error', 'Empty File', 'The selected file is 0 bytes. Please select a valid image.');
+            clearSelectedFile();
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            showToast('error', 'File Too Large', 'Uploaded image size must not exceed 10MB.');
+            clearSelectedFile();
+            return;
+        }
         const reader = new FileReader();
         reader.onload = function(evt) {
             document.getElementById('imagePreview').src = evt.target.result;
             document.getElementById('imagePreviewContainer').style.display = 'block';
             document.getElementById('qrDropzone').style.borderColor = 'var(--primary)';
+            showToast('info', 'Image Selected', file.name + ' ready to decode.');
         };
         reader.readAsDataURL(file);
     }
@@ -399,17 +478,22 @@ function handleFileSelect(e) {
 
 function clearSelectedFile() {
     const fileInput = document.getElementById('qrFileInput');
-    fileInput.value = '';
-    document.getElementById('imagePreviewContainer').style.display = 'none';
-    document.getElementById('imagePreview').src = '';
-    document.getElementById('qrDropzone').style.borderColor = 'var(--slate-300)';
+    if (fileInput) fileInput.value = '';
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    if (previewContainer) previewContainer.style.display = 'none';
+    const previewImg = document.getElementById('imagePreview');
+    if (previewImg) previewImg.src = '';
+    const dropzoneEl = document.getElementById('qrDropzone');
+    if (dropzoneEl) dropzoneEl.style.borderColor = 'var(--slate-300)';
 }
 
 function copyRawText() {
     const textEl = document.getElementById('rawDecodedText');
     if (textEl) {
         navigator.clipboard.writeText(textEl.innerText).then(() => {
-            alert('Decoded QR text copied to clipboard!');
+            showToast('success', 'Copied to Clipboard', 'Decoded QR payload text copied successfully.');
+        }).catch(() => {
+            showToast('info', 'Copy QR Text', textEl.innerText.substring(0, 50));
         });
     }
 }
@@ -444,6 +528,32 @@ if (dropzone) {
         }
     }, false);
 }
+
+// Client-side form submission validation
+const qrForm = document.getElementById('qrUploadForm');
+if (qrForm) {
+    qrForm.addEventListener('submit', function(e) {
+        const fileInput = document.getElementById('qrFileInput');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            e.preventDefault();
+            showToast('error', 'Missing QR Image', 'Please select or drag a QR code image before submitting.');
+        }
+    });
+}
+
+// Auto-display server-side messages as toast notifications on page load
+document.addEventListener('DOMContentLoaded', function() {
+    {% if messages %}
+    {% for message in messages %}
+    showToast(
+        "{% if message.tags == 'success' %}success{% else %}error{% endif %}",
+        "{% if message.tags == 'success' %}Success Outcome{% else %}Notice / Error{% endif %}",
+        "{{ message|escapejs }}",
+        5000
+    );
+    {% endfor %}
+    {% endif %}
+});
 </script>
 
 </body>

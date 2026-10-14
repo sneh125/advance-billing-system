@@ -2176,6 +2176,43 @@ class QRCodeDecoderTests(TestCase):
         self.assertContains(res, "invalidQrErrorBox")
         self.assertContains(res, "Helpful Tips to Scan Successfully")
 
+    def test_toast_and_alert_on_success_outcome(self):
+        """Task 51: Successful QR decode renders success alert banner and triggers success toast notification"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username="dist_qr_tester", password="Password@123")
+
+        uploaded = SimpleUploadedFile("bill_qr.png", self.valid_qr_bytes, content_type="image/png")
+        res = self.client.post(reverse("qr_decoder"), {"qr_image": uploaded})
+
+        self.assertEqual(res.status_code, 200)
+        # Verify floating toast container and success alert banner
+        self.assertContains(res, 'id="toastContainer"')
+        self.assertContains(res, 'id="successAlertBanner"')
+        self.assertContains(res, "qr-alert-success")
+        self.assertContains(res, "Success Outcome")
+        self.assertContains(res, "QR code decoded successfully")
+        # Verify JavaScript showToast call
+        self.assertContains(res, 'showToast(')
+        self.assertContains(res, '"success"')
+
+    def test_toast_and_alert_on_error_outcome(self):
+        """Task 51: Failed QR decode renders error alert banner and triggers error toast notification"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username="dist_qr_tester", password="Password@123")
+
+        bad_file = SimpleUploadedFile("corrupted.png", b"not-a-valid-image", content_type="image/png")
+        res = self.client.post(reverse("qr_decoder"), {"qr_image": bad_file})
+
+        self.assertEqual(res.status_code, 200)
+        # Verify floating toast container and error alert banner
+        self.assertContains(res, 'id="toastContainer"')
+        self.assertContains(res, 'id="errorAlertBanner"')
+        self.assertContains(res, "qr-alert-error")
+        self.assertContains(res, "Attention Required")
+        # Verify JavaScript showToast call
+        self.assertContains(res, 'showToast(')
+        self.assertContains(res, '"error"')
+
 
 
 
