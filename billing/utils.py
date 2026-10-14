@@ -46,6 +46,17 @@ def read_qr_code_data(image_input):
         }
 
     try:
+        # Check for empty file-like object (0 bytes)
+        if hasattr(image_input, "seek") and hasattr(image_input, "read"):
+            image_input.seek(0, 2)  # seek to end
+            file_size = image_input.tell()
+            image_input.seek(0)     # reset to beginning
+            if file_size == 0:
+                return {
+                    "success": False,
+                    "error": "The uploaded file is empty (0 bytes). Please select a valid QR code image."
+                }
+
         if hasattr(image_input, "read"):
             image_input.seek(0)
             img = Image.open(image_input)
@@ -56,7 +67,7 @@ def read_qr_code_data(image_input):
     except UnidentifiedImageError:
         return {
             "success": False,
-            "error": "The uploaded file is not a valid image format."
+            "error": "The uploaded file is not a valid image format or is corrupted."
         }
     except Exception as e:
         return {
@@ -107,6 +118,15 @@ def read_qr_code_data(image_input):
             "top": primary.rect.top,
             "width": primary.rect.width,
             "height": primary.rect.height
+        }
+
+    # Check for empty payload inside the detected QR code
+    if not raw_data or not raw_data.strip():
+        return {
+            "success": False,
+            "error": "The detected QR code contains empty or blank data payload.",
+            "code_type": qr_type,
+            "rect": rect_dict
         }
 
     # Parse payload structure

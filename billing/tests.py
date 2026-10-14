@@ -2121,6 +2121,61 @@ class QRCodeDecoderTests(TestCase):
         self.assertContains(res, "Beta Ltd")
         self.assertContains(res, "4500.00")
 
+    def test_qr_decoder_empty_zero_byte_file(self):
+        """Task 50: Uploading a 0-byte file displays error on view and returns 400 on API"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username="dist_qr_tester", password="Password@123")
+
+        empty_file = SimpleUploadedFile("empty.png", b"", content_type="image/png")
+        res = self.client.post(reverse("qr_decoder"), {"qr_image": empty_file})
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "The uploaded file is empty (0 bytes)")
+        self.assertContains(res, "invalidQrErrorBox")
+
+        # Also test API endpoint
+        empty_file_api = SimpleUploadedFile("empty.png", b"", content_type="image/png")
+        res_api = self.client.post(reverse("qr_decoder_api"), {"file": empty_file_api})
+        self.assertEqual(res_api.status_code, 400)
+        data = res_api.json()
+        self.assertEqual(data["error_code"], "EMPTY_FILE")
+
+    def test_qr_decoder_empty_qr_payload(self):
+        """Task 50: Uploading a QR code that encodes empty or whitespace-only text returns proper error"""
+        import io
+        import qrcode
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username="dist_qr_tester", password="Password@123")
+
+        img = qrcode.make("   ")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+
+        uploaded = SimpleUploadedFile("blank_payload.png", buf.getvalue(), content_type="image/png")
+        res = self.client.post(reverse("qr_decoder"), {"qr_image": uploaded})
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "The detected QR code contains empty or blank data payload")
+        self.assertContains(res, "invalidQrErrorBox")
+
+    def test_qr_decoder_invalid_scenery_image(self):
+        """Task 50: Uploading an image with no QR code renders invalidQrErrorBox with tips"""
+        from PIL import Image
+        import io
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username="dist_qr_tester", password="Password@123")
+
+        scenery = Image.new("RGB", (300, 300), color="lightblue")
+        buf = io.BytesIO()
+        scenery.save(buf, format="PNG")
+        buf.seek(0)
+
+        uploaded = SimpleUploadedFile("scenery.png", buf.getvalue(), content_type="image/png")
+        res = self.client.post(reverse("qr_decoder"), {"qr_image": uploaded})
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "QR Code Detection Failed")
+        self.assertContains(res, "invalidQrErrorBox")
+        self.assertContains(res, "Helpful Tips to Scan Successfully")
+
 
 
 

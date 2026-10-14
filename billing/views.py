@@ -1592,10 +1592,16 @@ def qr_decoder_view(request):
 
         try:
             if uploaded_image:
+                if uploaded_image.size == 0:
+                    messages.error(request, "The uploaded file is empty (0 bytes). Please select a valid QR code image.")
+                    return render(request, "billing/qr_decoder.html", {
+                        "result": {"success": False, "error": "The uploaded file is empty (0 bytes). Please select a valid QR code image."},
+                        "matched_invoice": None,
+                    })
                 if uploaded_image.size > 10 * 1024 * 1024:
                     messages.error(request, "Uploaded image file size must not exceed 10MB.")
                     return render(request, "billing/qr_decoder.html", {
-                        "result": None,
+                        "result": {"success": False, "error": "Uploaded image file size must not exceed 10MB."},
                         "matched_invoice": None,
                     })
                 decode_res = decode_qr_image(uploaded_image)
@@ -1650,6 +1656,12 @@ def qr_decoder_api(request):
     image_source = None
 
     if uploaded_file:
+        if uploaded_file.size == 0:
+            return JsonResponse({
+                "status": "error",
+                "message": "The uploaded file is empty (0 bytes). Please select a valid QR code image.",
+                "error_code": "EMPTY_FILE"
+            }, status=400)
         if uploaded_file.size > 10 * 1024 * 1024:
             return JsonResponse({
                 "status": "error",

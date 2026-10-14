@@ -337,9 +337,37 @@
                     </div>
                 </div>
 
+                {% elif result and not result.success %}
+                <!-- TASK 50: INVALID / EMPTY QR CODE ERROR STATE -->
+                <div class="result-box-error" id="invalidQrErrorBox" style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: var(--radius-lg); padding: 24px; text-align: center;">
+                    <div style="font-size: 42px; margin-bottom: 10px;">⚠️</div>
+                    <h4 style="font-size: 17px; font-weight: 800; color: #991b1b; margin: 0 0 8px 0;">
+                        QR Code Detection Failed
+                    </h4>
+                    <p style="font-size: 13.5px; color: #b91c1c; font-weight: 600; margin: 0 0 16px 0;" id="qrErrorMessage">
+                        {{ result.error|default:"The uploaded image does not contain a valid or readable QR code." }}
+                    </p>
+
+                    <div style="background: #ffffff; border: 1px solid #fee2e2; border-radius: var(--radius-md); padding: 14px 18px; text-align: left; font-size: 12.5px; color: #475569;">
+                        <strong style="color: #991b1b; display: block; margin-bottom: 6px;">💡 Helpful Tips to Scan Successfully:</strong>
+                        <ul style="margin: 0; padding-left: 20px; line-height: 1.6;">
+                            <li>Ensure the QR code has clear contrast between dark modules and light background.</li>
+                            <li>Make sure all 4 corners and the 3 positioning squares of the QR code are fully visible.</li>
+                            <li>Avoid blurry, low-resolution, or heavily skewed photos.</li>
+                            <li>Ensure the QR code image is not an empty file or corrupted graphic.</li>
+                        </ul>
+                    </div>
+
+                    <div style="margin-top: 18px;">
+                        <button type="button" class="preset-chip" onclick="document.getElementById('qrFileInput').click()" style="background: #ffffff; border-color: #fca5a5; color: #b91c1c; font-weight: 700; padding: 7px 16px;">
+                            🔄 Try Another Image
+                        </button>
+                    </div>
+                </div>
+
                 {% else %}
                 <!-- EMPTY / AWAITING STATE -->
-                <div style="text-align: center; padding: 48px 24px; color: var(--text-muted);">
+                <div style="text-align: center; padding: 48px 24px; color: var(--text-muted);" id="awaitingQrState">
                     <div style="font-size: 48px; margin-bottom: 14px;">📭</div>
                     <h4 style="font-size: 16px; font-weight: 700; color: var(--slate-800); margin: 0 0 6px 0;">No QR Code Decoded Yet</h4>
                     <p style="font-size: 13.5px; max-width: 380px; margin: 0 auto; line-height: 1.5;">
