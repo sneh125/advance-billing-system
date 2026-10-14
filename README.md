@@ -1,109 +1,89 @@
-# Advance Billing System with QR
+# Advance-Billing-System
 
-A Django-based SaaS billing application with role-based dashboards (Admin & Distributor), customer management, OTP-based password recovery, and secure authentication.
+## Project Description
+Advance-Billing-System is a professional, cloud-based multi-tenant billing, inventory, and invoice management platform built with Django. It empowers distributors and enterprise administrators to manage customer directories, maintain product inventories, perform real-time multi-item billing calculations, generate vector PDF invoices with dynamically embedded verification QR codes, filter and export date-range sales reports, and decode/verify billing QR codes using computer vision (`pyzbar`).
+The platform includes a fully custom admin and distributor dashboard for managing invoices, products, customers, sales reports, financial analytics, QR code verification, and profile settings -- separate from Django's default admin panel.
 
----
+## Features
+- **User Registration & Login** -- Role-based authentication (Admin & Distributor) with secure session handling, multi-tenant isolation, OTP-based email password recovery, and distributor profile management.
+- **Customer & Client Management** -- Complete customer CRUD lifecycle with real-time metrics, search/filter capabilities, delete confirmation modals, and REST API endpoints for distributor client onboarding.
+- **Product Inventory Management** -- Rich product catalog with SKU, category, stock quantity, unit prices, real-time search, and dedicated REST API endpoints (`/api/products/`).
+- **Dynamic Multi-Item Quick Billing** -- Interactive invoice creation interface with real-time JavaScript subtotal, GST tax, discount calculations, and atomic database transaction commits.
+- **Vector PDF Invoices & Dynamic QR Code Generation** -- Instant downloadable vector PDF invoices using `xhtml2pdf` and `reportlab`, featuring company branding, tax breakdowns, and automated high-contrast verification QR codes.
+- **Date-Range Sales Reports & PDF Export** -- Advanced reporting module to filter invoices by date range, displaying total invoice counts and total revenue collected with instant downloadable A4 landscape PDF summary reports.
+- **QR Code Decoder & Verification Tool** -- Upload invoice images or scan via camera to decode QR payloads using `pyzbar`, auto-match records against live database invoices, and display formatted data cards with animated toast/alert notifications for success and error outcomes.
+- **Custom Admin & Distributor Dashboards** -- Dedicated administrative command centers for business metrics, monthly billing charts, customer insights, and quick billing shortcuts.
 
-## 🚀 Features Completed
-
-### 🔐 1. Authentication & Security
-- Admin and Distributor login with role-based dashboard redirection
-- Distributor registration with comprehensive frontend & backend validations
-- Forgot password with temporary OTP generation, validation, and expiry mechanism
-- Resend OTP functionality with previous OTP invalidation
-- Session management, login required decorators, and CSRF protection on all forms
-
-### 👤 2. Distributor Profile Management
-- Distributor profile view displaying user details, contact info, and registration date
-- Live profile edit functionality (Name, Email, Phone) with database persistence and duplicate check
-
-### 👥 3. Customer Management Module (SaaS UI)
-- **Customer List & Dashboard**: Real-time database metrics (Total Customers, Active Customers, Recently Added, This Month)
-- **Search & Filter**: Search customers by Name, Email, Phone, or City with dynamic "Clear Search"
-- **Add Customer**: Two-column responsive card form with field icons, visible labels, and strict validation
-- **Edit Customer**: Pre-filled update form with real-time feedback
-- **Delete Confirmation Modal**: Interactive popup modal with CSRF-protected POST deletion
-- **Multi-Tenant Data Isolation**: Logged-in distributors can only access, edit, or delete their own customers
-
----
-
-## 🛠️ Tech Stack
-
-- **Backend:** Python 3.12+ / Django 6.1
-- **Database:** SQLite3 (Django ORM)
-- **Frontend:** HTML5, Vanilla CSS3 (Zero inline styles, separate stylesheets)
-- **Design System:** SaaS modern light theme (Navy `#0f172a`, Teal `#14b8a6`, Inter typography)
-
----
-
-## ⚙️ Setup & Installation
-
-```bash
+## Windows
+```powershell
 # 1. Clone the repository
 git clone https://github.com/sneh125/advance-billing-system.git
-cd advance-billing-system
+cd "Advance Billing System"
 
 # 2. Create and activate virtual environment
-python -m venv venv
-venv\Scripts\activate   # On Windows
-# source venv/bin/activate  # On Linux/Mac
+python -m venv myenv
+myenv\Scripts\activate
 
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Run database migrations
+# 4. Set up environment variables
+# (Optional) Customize settings in config/settings.py if required
+
+# 5. Run database migrations
 python manage.py migrate
 
-# 5. Run the development server
+# 6. Create a superuser (admin account)
+python manage.py createsuperuser
+
+# 7. Start the development server
 python manage.py runserver
 ```
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000/) in your browser.
 
-Open `http://127.0.0.1:8000/login/` in your browser.
+## macOS / Linux
+```bash
+# 1. Clone the repository
+git clone https://github.com/sneh125/advance-billing-system.git
+cd "Advance Billing System"
 
----
+# 2. Create and activate virtual environment
+python3 -m venv myenv
+source myenv/bin/activate
 
-## 🔑 Default Credentials
+# 3. Install dependencies
+pip install -r requirements.txt
 
-| Role | Username | Password |
-|------|----------|----------|
-| **Admin** | `admin` | `Admin@123` |
-| **Distributor** | `distributor` | `Dist@123` |
+# 4. Set up environment variables
+# (Optional) Customize settings in config/settings.py if required
 
----
+# 5. Run database migrations
+python3 manage.py migrate
 
-## 📁 Project Structure
+# 6. Create a superuser (admin account)
+python3 manage.py createsuperuser
 
+# 7. Start the development server
+python3 manage.py runserver
 ```
-Advance Billing System/
-├── accounts/               # Authentication, Registration, OTP, Profile views & models
-│   ├── models.py           # PasswordResetOTP, DistributorProfile
-│   ├── urls.py             # Auth & profile routes
-│   └── views.py            # Login, Register, OTP, Profile controllers
-├── billing/                # Customer, Product & Invoice Management
-│   ├── models.py           # Customer, Product, Invoice, InvoiceItem models
-│   ├── urls.py             # Customer & Product CRUD routes
-│   ├── views.py            # Customer & Product CRUD + search & pagination logic
-│   └── tests.py            # 11 Automated unit tests
-├── config/                 # Root project settings & URL configuration
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-├── templates/              # Clean HTML templates (No inline CSS)
-│   ├── accounts/           # login.html, register.html, forgot_password.html
-│   ├── admin/              # dashboard.html
-│   ├── distributor/        # dashboard.html, profile.html, update_profile.html
-│   └── billing/            # customer_list, customer_form, product_list, product_add, product_edit
-├── static/
-│   └── css/                # Separate CSS stylesheets
-│       ├── login.css
-│       ├── register.css
-│       ├── forgot_password.css
-│       ├── dashboard.css
-│       ├── customers.css
-│       ├── customer_form.css
-│       ├── product_list.css
-│       ├── product_add.css
-│       └── product_edit.css
-├── manage.py
-└── requirements.txt
-```
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000/) in your browser.
+
+## Credentials :-
+**Admin Account:**
+- Username :- `admin`
+- Email :- `admin@gmail.com`
+- Password :- `Admin@123`
+
+**Distributor Account:**
+- Username :- `distributor`
+- Email :- `distributor@gmail.com`
+- Password :- `Dist@123`
+
+## Screenshots
+- Home / Login Page
+- Distributor Dashboard
+- Customer & Product Management
+- Quick Bill Invoice Generation
+- Invoice PDF with Verification QR Code
+- Date-Range Sales Reports & Export
+- QR Code Decoder & Scanner Tool
