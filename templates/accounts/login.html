@@ -52,53 +52,85 @@
         <div class="form-section">
             <div class="login-card-inner">
                 
+                <!-- TASK 53: DUAL-ROLE TAB SELECTOR (ADMIN & DISTRIBUTOR) -->
+                <div class="role-toggle-tabs" id="roleToggleTabs" role="tablist" aria-label="Select User Role">
+                    <button type="button" class="role-tab-btn active" id="tabDistributor" onclick="switchLoginRole('distributor')" role="tab" aria-selected="true">
+                        🏢 Distributor Portal
+                    </button>
+                    <button type="button" class="role-tab-btn" id="tabAdmin" onclick="switchLoginRole('admin')" role="tab" aria-selected="false">
+                        👑 Administrator Portal
+                    </button>
+                </div>
+
                 <div class="auth-header-wrap">
-                    <h2>Welcome Back 👋</h2>
-                    <p>Sign in to access your distributor billing panel.</p>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+                        <h2 id="loginHeadingTitle" style="margin: 0;">Welcome Back 👋</h2>
+                        <span class="role-badge-pill role-badge-distributor" id="loginRoleBadge">Distributor Access</span>
+                    </div>
+                    <p id="loginHeadingSubtitle">Sign in to access your distributor billing & customer workspace.</p>
                 </div>
 
                 {% if error %}
-                <div class="auth-alert-error">
+                <div class="auth-alert-error" id="loginErrorAlert">
                     ⚠️ {{ error }}
                 </div>
                 {% endif %}
 
                 {% if messages %}
                 {% for message in messages %}
-                <div style="padding: 12px 16px; border-radius: var(--radius-md); background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-text); font-size: 13px; font-weight: 500;">
+                <div class="auth-alert-success" id="loginSuccessAlert" style="margin-bottom: 18px; padding: 12px 16px; border-radius: var(--radius-md); background: #ecfdf5; border: 1.5px solid #a7f3d0; color: #065f46; font-size: 13.5px; font-weight: 600;">
                     ✓ {{ message }}
                 </div>
                 {% endfor %}
                 {% endif %}
 
-                <form method="POST" action="{% url 'login' %}" class="auth-form-fields" novalidate>
+                <!-- QUICK DEMO CREDENTIAL CHIPS FOR BOTH ROLES -->
+                <div class="quick-demo-box" id="quickDemoBox">
+                    <span class="quick-demo-label">⚡ Quick Fill:</span>
+                    <button type="button" class="demo-chip-btn" id="btnDemoDistributor" onclick="fillCredentials('distributor', 'Dist@123', 'distributor')">
+                        🏢 Distributor Demo
+                    </button>
+                    <button type="button" class="demo-chip-btn" id="btnDemoAdmin" onclick="fillCredentials('admin', 'Admin@123', 'admin')">
+                        👑 Admin Demo
+                    </button>
+                </div>
+
+                <form method="POST" action="{% url 'login' %}" class="auth-form-fields" id="loginForm" novalidate>
                     {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next|default:'' }}">
+                    <input type="hidden" name="selected_role" id="selectedRoleInput" value="distributor">
 
                     <div class="input-field-group">
-                        <label for="username">Username or Email</label>
-                        <input type="text" id="username" name="username" class="auth-input-box" placeholder="Enter username or email" value="{{ username|default:'' }}" required autofocus>
+                        <label for="username" id="usernameFieldLabel">Username or Email</label>
+                        <div class="input-icon-wrap">
+                            <input type="text" id="username" name="username" class="auth-input-box" placeholder="Enter username or email address" value="{{ username|default:'' }}" required autofocus>
+                        </div>
                     </div>
 
                     <div class="input-field-group">
                         <label for="password">Password</label>
                         <div class="pw-input-wrap">
                             <input type="password" id="password" name="password" class="auth-input-box" placeholder="Enter your password" required style="padding-right: 42px;">
-                            <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('password', this)" title="Show/Hide Password">👁️</button>
+                            <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('password', this)" title="Show/Hide Password" aria-label="Show/Hide Password">👁️</button>
                         </div>
                     </div>
 
-                    <div class="auth-extra-links">
-                        <a href="{% url 'forgot_password' %}" class="link-forgot-pw">Forgot Password?</a>
+                    <div class="auth-extra-links" style="display: flex; justify-content: space-between; align-items: center;">
+                        <label class="remember-me-label" style="display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--slate-600); cursor: pointer; user-select: none;">
+                            <input type="checkbox" name="remember_me" id="rememberMeCheck" value="1" checked style="accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer;">
+                            <span>Remember Me</span>
+                        </label>
+                        <a href="{% url 'forgot_password' %}" class="link-forgot-pw" id="forgotPasswordLink">Forgot Password?</a>
                     </div>
 
-                    <button type="submit" class="btn-auth-submit">
+                    <button type="submit" class="btn-auth-submit" id="btnSubmitLogin">
                         Sign In to Dashboard →
                     </button>
                 </form>
 
-                <div class="auth-footer-prompt">
-                    Don't have a distributor account? <a href="{% url 'register' %}">Register here</a>
-                    <div style="margin-top: 8px; font-size: 12.5px;">
+                <div class="auth-footer-prompt" id="authFooterPrompt">
+                    <span id="footerPromptText">Don't have a distributor account? <a href="{% url 'register' %}" id="footerRegisterLink">Register here</a></span>
+                    <div style="margin-top: 8px; font-size: 12.5px;" id="adminRegisterBlock">
                         👑 System Administrator? <a href="{% url 'admin_register' %}">Register as Admin</a>
                     </div>
                 </div>
@@ -108,17 +140,60 @@
 
     </div>
 
+    <!-- SCRIPT FOR DUAL-ROLE INTERACTION & CREDENTIAL AUTOFILL (TASK 53) -->
     <script>
-        function togglePasswordVisibility(inputId, btn) {
-            const input = document.getElementById(inputId);
-            if (input.type === 'password') {
-                input.type = 'text';
-                btn.textContent = '🙈';
-            } else {
-                input.type = 'password';
-                btn.textContent = '👁️';
-            }
+    function switchLoginRole(role) {
+        const tabDist = document.getElementById('tabDistributor');
+        const tabAdmin = document.getElementById('tabAdmin');
+        const roleBadge = document.getElementById('loginRoleBadge');
+        const titleEl = document.getElementById('loginHeadingTitle');
+        const subtitleEl = document.getElementById('loginHeadingSubtitle');
+        const roleInput = document.getElementById('selectedRoleInput');
+        const forgotLink = document.getElementById('forgotPasswordLink');
+        const footerText = document.getElementById('footerPromptText');
+        const btnSubmit = document.getElementById('btnSubmitLogin');
+
+        if (role === 'admin') {
+            tabAdmin.classList.add('active');
+            tabDist.classList.remove('active');
+            roleBadge.textContent = 'Administrator Access';
+            roleBadge.className = 'role-badge-pill role-badge-admin';
+            titleEl.textContent = 'Admin Sign In 👑';
+            subtitleEl.textContent = 'Sign in to access system analytics, audit logs and master settings.';
+            roleInput.value = 'admin';
+            forgotLink.href = "{% url 'admin_forgot_password' %}";
+            footerText.innerHTML = "Need an Admin account? <a href='{% url 'admin_register' %}'>Admin Registration</a>";
+            btnSubmit.innerHTML = "Sign In as Administrator →";
+        } else {
+            tabDist.classList.add('active');
+            tabAdmin.classList.remove('active');
+            roleBadge.textContent = 'Distributor Access';
+            roleBadge.className = 'role-badge-pill role-badge-distributor';
+            titleEl.textContent = 'Welcome Back 👋';
+            subtitleEl.textContent = 'Sign in to access your distributor billing & customer workspace.';
+            roleInput.value = 'distributor';
+            forgotLink.href = "{% url 'forgot_password' %}";
+            footerText.innerHTML = "Don't have a distributor account? <a href='{% url 'register' %}'>Register here</a>";
+            btnSubmit.innerHTML = "Sign In to Dashboard →";
         }
+    }
+
+    function fillCredentials(user, pass, role) {
+        switchLoginRole(role);
+        document.getElementById('username').value = user;
+        document.getElementById('password').value = pass;
+    }
+
+    function togglePasswordVisibility(fieldId, btn) {
+        const input = document.getElementById(fieldId);
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.textContent = '🙈';
+        } else {
+            input.type = 'password';
+            btn.textContent = '👁️';
+        }
+    }
     </script>
 
 </body>

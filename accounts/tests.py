@@ -729,6 +729,28 @@ class AdminDistributorLoginBackendTests(TestCase):
         self.assertEqual(bad_res.status_code, 401)
         self.assertEqual(bad_res.json()["status"], "error")
 
+    def test_login_form_ui_for_both_users(self):
+        """Task 53: Verify login page renders dual-user portal UI with role tabs and demo chips"""
+        res = self.client.get(reverse("login"))
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "accounts/login.html")
+
+        # Verify role toggle tabs for both users
+        self.assertContains(res, 'id="roleToggleTabs"')
+        self.assertContains(res, 'id="tabDistributor"')
+        self.assertContains(res, 'id="tabAdmin"')
+        self.assertContains(res, "Distributor Portal")
+        self.assertContains(res, "Administrator Portal")
+
+        # Verify quick demo credential buttons
+        self.assertContains(res, 'id="btnDemoDistributor"')
+        self.assertContains(res, 'id="btnDemoAdmin"')
+
+        # Verify remember me checkbox and fields
+        self.assertContains(res, 'id="rememberMeCheck"')
+        self.assertContains(res, 'name="username"')
+        self.assertContains(res, 'name="password"')
+
 
 
 
