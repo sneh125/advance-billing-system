@@ -17,6 +17,12 @@ urlpatterns = [
     ),
 
     path(
+        "api/login/",
+        views.login_api_view,
+        name="login_api"
+    ),
+
+    path(
         "logout/",
         views.logout_view,
         name="logout"

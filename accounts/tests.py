@@ -584,6 +584,152 @@ class AdminDashboardReportsTests(TestCase):
         self.assertIn("INV-20261009-0002", content)
 
 
+class AdminDistributorLoginBackendTests(TestCase):
+    """
+    Task 52: Test suite for Admin and Distributor login backend.
+    Tests credential resolution (username and email), role differentiation,
+    inactive account handling, session configuration, and REST API login.
+    """
+    def setUp(self):
+        self.client = Client()
+
+        # Create Admin User
+        self.admin = User.objects.create_user(
+            username="master_admin",
+            email="master_admin@billing.com",
+            password="AdminPass@123",
+            first_name="Master",
+            last_name="Admin",
+            is_staff=True,
+            is_superuser=True
+        )
+
+        # Create Active Distributor User
+        self.distributor = User.objects.create_user(
+            username="star_distributor",
+            email="star_dist@billing.com",
+            password="DistPass@123",
+            first_name="Star",
+            last_name="Distributor",
+            is_staff=False
+        )
+        self.dist_profile = DistributorProfile.objects.create(
+            user=self.distributor,
+            phone="9876543210"
+        )
+
+        # Create Inactive User
+        self.inactive_user = User.objects.create_user(
+            username="inactive_user",
+            email="inactive@billing.com",
+            password="InactivePass@123",
+            is_active=False
+        )
+
+    def test_admin_login_by_username_redirects_admin_dashboard(self):
+        """Task 52: Admin login by username authenticates and redirects to admin_dashboard"""
+        res = self.client.post(reverse("login"), {
+            "username": "master_admin",
+            "password": "AdminPass@123"
+        })
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse("admin_dashboard"))
+        self.assertEqual(self.client.session.get("user_role"), "admin")
+        self.assertEqual(self.client.session.get("role_display"), "Administrator")
+
+    def test_admin_login_by_email_redirects_admin_dashboard(self):
+        """Task 52: Admin login by email address authenticates and redirects to admin_dashboard"""
+        res = self.client.post(reverse("login"), {
+            "username": "master_admin@billing.com",
+            "password": "AdminPass@123"
+        })
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse("admin_dashboard"))
+        self.assertEqual(self.client.session.get("user_role"), "admin")
+
+    def test_distributor_login_by_username_redirects_distributor_dashboard(self):
+        """Task 52: Distributor login by username authenticates and redirects to distributor_dashboard"""
+        res = self.client.post(reverse("login"), {
+            "username": "star_distributor",
+            "password": "DistPass@123"
+        })
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse("distributor_dashboard"))
+        self.assertEqual(self.client.session.get("user_role"), "distributor")
+        self.assertEqual(self.client.session.get("role_display"), "Distributor")
+
+    def test_distributor_login_by_email_redirects_distributor_dashboard(self):
+        """Task 52: Distributor login by email address authenticates and redirects to distributor_dashboard"""
+        res = self.client.post(reverse("login"), {
+            "username": "star_dist@billing.com",
+            "password": "DistPass@123"
+        })
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse("distributor_dashboard"))
+        self.assertEqual(self.client.session.get("user_role"), "distributor")
+
+    def test_inactive_account_shows_deactivation_message(self):
+        """Task 52: Inactive accounts are blocked with clear deactivation warning"""
+        res = self.client.post(reverse("login"), {
+            "username": "inactive_user",
+            "password": "InactivePass@123"
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "account has been deactivated")
+
+    def test_invalid_password_shows_error_message(self):
+        """Task 52: Incorrect credentials display clean error message"""
+        res = self.client.post(reverse("login"), {
+            "username": "star_distributor",
+            "password": "WrongPassword@999"
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Invalid username/email or password")
+
+    def test_login_with_next_query_parameter(self):
+        """Task 52: Next parameter is safely respected after authentication"""
+        res = self.client.post(reverse("login") + "?next=/customers/", {
+            "username": "star_distributor",
+            "password": "DistPass@123"
+        })
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, "/customers/")
+
+    def test_login_api_view_success_and_error(self):
+        """Task 52: REST API login returns JSON response with role and redirect URL"""
+        # Valid Admin Login via JSON
+        res = self.client.post(
+            reverse("login_api"),
+            data=json.dumps({"username": "master_admin", "password": "AdminPass@123"}),
+            content_type="application/json"
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["user"]["role"], "admin")
+        self.assertEqual(data["redirect_url"], "/admin-dashboard/")
+
+        # Valid Distributor Login via JSON (using email)
+        res_dist = self.client.post(
+            reverse("login_api"),
+            data=json.dumps({"email": "star_dist@billing.com", "password": "DistPass@123"}),
+            content_type="application/json"
+        )
+        self.assertEqual(res_dist.status_code, 200)
+        dist_data = res_dist.json()
+        self.assertEqual(dist_data["user"]["role"], "distributor")
+        self.assertEqual(dist_data["redirect_url"], "/distributor/dashboard/")
+
+        # Invalid Credentials via API
+        bad_res = self.client.post(
+            reverse("login_api"),
+            data=json.dumps({"username": "master_admin", "password": "BadPassword"}),
+            content_type="application/json"
+        )
+        self.assertEqual(bad_res.status_code, 401)
+        self.assertEqual(bad_res.json()["status"], "error")
+
+
 
 
 

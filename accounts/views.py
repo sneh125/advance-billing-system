@@ -203,59 +203,170 @@ def register_view(request):
     )
 
 
-# LOGIN
+# ==============================================================================
+# TASK 52: ADMIN AND DISTRIBUTOR LOGIN BACKEND
+# ==============================================================================
+
+def _authenticate_admin_or_distributor(identifier, password, request=None):
+    """
+    Core backend authentication logic for both Admin and Distributor users.
+    Supports login via either username or email address, performs inactive checks,
+    and returns (user, error_message, role).
+    """
+    identifier = (identifier or "").strip()
+    if not identifier or not password:
+        return None, "Please enter your username or email and password.", None
+
+    user = None
+    lookup_user = None
+
+    # 1. Direct username authentication
+    user = authenticate(request, username=identifier, password=password)
+
+    # 2. Email-based authentication fallback
+    if user is None and "@" in identifier:
+        lookup_user = User.objects.filter(email__iexact=identifier).first()
+        if lookup_user:
+            user = authenticate(request, username=lookup_user.username, password=password)
+
+    # 3. Case-insensitive username lookup fallback
+    if user is None:
+        if not lookup_user:
+            lookup_user = User.objects.filter(username__iexact=identifier).first()
+        if lookup_user:
+            user = authenticate(request, username=lookup_user.username, password=password)
+
+    # 4. Check for inactive user account with correct password
+    if user is None and lookup_user and lookup_user.check_password(password):
+        if not lookup_user.is_active:
+            return None, "Your account has been deactivated. Please contact the administrator.", None
+
+    if user is None:
+        return None, "Invalid username/email or password.", None
+
+    if not user.is_active:
+        return None, "Your account has been deactivated. Please contact the administrator.", None
+
+    # Determine user role
+    role = "admin" if (user.is_staff or user.is_superuser) else "distributor"
+    return user, None, role
+
 
 def login_view(request):
-
-    # Already logged in
+    """
+    Task 52: Admin and Distributor Login Backend Controller.
+    Handles session authentication, role differentiation, next redirects, and flash alerts.
+    """
+    # Already logged in: redirect to respective role dashboard
     if request.user.is_authenticated:
-
-        if request.user.is_staff:
+        if request.user.is_staff or request.user.is_superuser:
             return redirect("admin_dashboard")
-
         return redirect("distributor_dashboard")
 
+    next_url = request.POST.get("next") or request.GET.get("next") or ""
+
     if request.method == "POST":
-
-        username = request.POST.get("username", "").strip()
+        identifier = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
+        remember_me = request.POST.get("remember_me")
 
-        if not username or not password:
+        user, error_msg, role = _authenticate_admin_or_distributor(identifier, password, request)
 
+        if error_msg:
             return render(
                 request,
                 "accounts/login.html",
                 {
-                    "error": "Please enter username and password."
+                    "error": error_msg,
+                    "username": identifier,
+                    "next": next_url,
                 }
             )
 
-        user = authenticate(
-            request,
-            username=username,
-            password=password
-        )
+        # Authenticate and login to session
+        login(request, user)
 
-        if user is not None:
+        # Configure session role attributes (Task 52 & Task 54)
+        role_display = "Administrator" if role == "admin" else "Distributor"
+        request.session["user_role"] = role
+        request.session["role_display"] = role_display
+        request.session["user_name"] = user.get_full_name() or user.username
 
-            login(request, user)
+        # Set session expiry if remember_me is unchecked
+        if not remember_me:
+            request.session.set_expiry(0)  # Expires on browser close
+        else:
+            request.session.set_expiry(1209600)  # 2 weeks in seconds
 
-            if user.is_staff:
-                return redirect("admin_dashboard")
+        messages.success(request, f"Welcome back, {user.first_name or user.username}! You are logged in as {role_display}.")
 
-            return redirect("distributor_dashboard")
+        # Safe next URL redirect
+        if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+            return redirect(next_url)
 
-        return render(
-            request,
-            "accounts/login.html",
-            {
-                "error": "Invalid username or password."
-            }
-        )
+        if role == "admin":
+            return redirect("admin_dashboard")
+        return redirect("distributor_dashboard")
+
     return render(
         request,
-        "accounts/login.html"
+        "accounts/login.html",
+        {
+            "next": next_url
+        }
     )
+
+
+@csrf_exempt
+def login_api_view(request):
+    """
+    Task 52: Dedicated REST API for Admin and Distributor authentication.
+    Accepts JSON or form data and returns role + redirect URL.
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed. Use POST."}, status=405)
+
+    identifier = ""
+    password = ""
+
+    if request.content_type == "application/json":
+        try:
+            body = json.loads(request.body.decode("utf-8"))
+            identifier = body.get("username") or body.get("email") or ""
+            password = body.get("password") or ""
+        except json.JSONDecodeError:
+            return JsonResponse({"status": "error", "message": "Invalid JSON format."}, status=400)
+    else:
+        identifier = request.POST.get("username") or request.POST.get("email") or ""
+        password = request.POST.get("password") or ""
+
+    user, error_msg, role = _authenticate_admin_or_distributor(identifier, password, request)
+
+    if error_msg:
+        return JsonResponse({
+            "status": "error",
+            "message": error_msg
+        }, status=401)
+
+    login(request, user)
+    request.session["user_role"] = role
+    request.session["role_display"] = "Administrator" if role == "admin" else "Distributor"
+
+    redirect_url = "/admin-dashboard/" if role == "admin" else "/distributor/dashboard/"
+
+    return JsonResponse({
+        "status": "success",
+        "message": f"Login successful as {role.capitalize()}.",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "first_name": user.first_name,
+            "role": role,
+            "is_staff": user.is_staff,
+        },
+        "redirect_url": redirect_url
+    }, status=200)
 
 # LOGOUT
 
