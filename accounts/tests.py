@@ -751,6 +751,54 @@ class AdminDistributorLoginBackendTests(TestCase):
         self.assertContains(res, 'name="username"')
         self.assertContains(res, 'name="password"')
 
+    def test_session_configuration_settings(self):
+        """Task 54: Verify session authentication settings are securely configured"""
+        from django.conf import settings
+        self.assertEqual(settings.SESSION_ENGINE, 'django.contrib.sessions.backends.db')
+        self.assertEqual(settings.SESSION_COOKIE_NAME, 'advance_billing_sessionid')
+        self.assertTrue(settings.SESSION_COOKIE_HTTPONLY)
+        self.assertTrue(settings.SESSION_SAVE_EVERY_REQUEST)
+        self.assertEqual(settings.SESSION_COOKIE_SAMESITE, 'Lax')
+
+    def test_session_cookie_created_on_login(self):
+        """Task 54: Login creates secure session cookie and stores user state"""
+        from django.conf import settings
+        res = self.client.post(reverse("login"), {
+            "username": "star_distributor",
+            "password": "DistPass@123",
+            "remember_me": "1"
+        })
+        self.assertEqual(res.status_code, 302)
+        # Check custom session cookie presence and properties
+        self.assertIn(settings.SESSION_COOKIE_NAME, res.cookies)
+        cookie = res.cookies[settings.SESSION_COOKIE_NAME]
+        self.assertTrue(cookie["httponly"])
+        self.assertEqual(cookie["samesite"], "Lax")
+
+    def test_session_status_api_anonymous_and_authenticated(self):
+        """Task 54: Session status API returns authentication state, role, and expiry"""
+        # Anonymous state
+        anon_res = self.client.get(reverse("session_status_api"))
+        self.assertEqual(anon_res.status_code, 200)
+        anon_data = anon_res.json()
+        self.assertFalse(anon_data["authenticated"])
+        self.assertIsNone(anon_data["user"])
+
+        # Authenticated state
+        self.client.post(reverse("login"), {
+            "username": "master_admin",
+            "password": "AdminPass@123",
+            "remember_me": "1"
+        })
+        auth_res = self.client.get(reverse("session_status_api"))
+        self.assertEqual(auth_res.status_code, 200)
+        auth_data = auth_res.json()
+        self.assertTrue(auth_data["authenticated"])
+        self.assertEqual(auth_data["user"]["username"], "master_admin")
+        self.assertEqual(auth_data["user"]["role"], "admin")
+        self.assertEqual(auth_data["user"]["role_display"], "Administrator")
+        self.assertTrue(len(auth_data["session_key"]) > 0)
+
 
 
 

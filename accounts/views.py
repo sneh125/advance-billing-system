@@ -368,6 +368,42 @@ def login_api_view(request):
         "redirect_url": redirect_url
     }, status=200)
 
+
+# ==============================================================================
+# TASK 54: SESSION-BASED AUTHENTICATION STATUS & INSPECTION API
+# ==============================================================================
+
+def session_status_api(request):
+    """
+    Task 54: Session Authentication Inspector API.
+    Inspects active session cookie, authentication state, expiry age, and role.
+    """
+    is_authenticated = request.user.is_authenticated
+    session_key = request.session.session_key or ""
+    expiry_age = request.session.get_expiry_age()
+
+    data = {
+        "authenticated": is_authenticated,
+        "session_key": session_key,
+        "expiry_seconds": expiry_age,
+        "session_cookie_name": "advance_billing_sessionid",
+    }
+
+    if is_authenticated:
+        role = request.session.get("user_role") or ("admin" if request.user.is_staff else "distributor")
+        data["user"] = {
+            "id": request.user.id,
+            "username": request.user.username,
+            "email": request.user.email,
+            "role": role,
+            "role_display": request.session.get("role_display") or ("Administrator" if role == "admin" else "Distributor"),
+            "is_staff": request.user.is_staff,
+        }
+    else:
+        data["user"] = None
+
+    return JsonResponse(data, status=200)
+
 # LOGOUT
 
 @login_required

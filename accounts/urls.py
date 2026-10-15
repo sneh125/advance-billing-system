@@ -23,6 +23,12 @@ urlpatterns = [
     ),
 
     path(
+        "api/session/status/",
+        views.session_status_api,
+        name="session_status_api"
+    ),
+
+    path(
         "logout/",
         views.logout_view,
         name="logout"

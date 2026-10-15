@@ -139,3 +139,16 @@ MAILERS = {
     },
 }
 
+# ==============================================================================
+# TASK 54: SESSION-BASED AUTHENTICATION CONFIGURATION
+# ==============================================================================
+# Database-backed session engine for multi-tenant state and persistent authentication
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_NAME = 'advance_billing_sessionid'
+SESSION_COOKIE_AGE = 1209600  # Default 2 weeks session age (14 days in seconds)
+SESSION_COOKIE_HTTPONLY = True  # Protect session ID cookie from client-side script inspection (XSS protection)
+SESSION_COOKIE_SAMESITE = 'Lax'  # Prevent CSRF session fixation
+SESSION_SAVE_EVERY_REQUEST = True  # Rolling session updates: active users keep session alive
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+
