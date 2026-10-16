@@ -42,7 +42,7 @@ class AccountAuthenticationTests(TestCase):
             'password': 'WrongPassword',
         })
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Invalid username or password")
+        self.assertContains(response, "Invalid username/email or password")
 
     def test_registration_flow(self):
         """Test new distributor registration creates user & profile"""
@@ -798,6 +798,130 @@ class AdminDistributorLoginBackendTests(TestCase):
         self.assertEqual(auth_data["user"]["role"], "admin")
         self.assertEqual(auth_data["user"]["role_display"], "Administrator")
         self.assertTrue(len(auth_data["session_key"]) > 0)
+
+
+class RouteProtectionAndLoginLogoutFlowTests(TestCase):
+    """
+    Task 55: Protect routes using middleware or decorators.
+    Task 56: Test login/logout flow.
+    """
+    def setUp(self):
+        self.client = Client()
+        self.distributor = User.objects.create_user(
+            username="flow_distributor",
+            email="flow_dist@billing.local",
+            password="FlowPassword@123"
+        )
+        self.admin = User.objects.create_user(
+            username="flow_admin",
+            email="flow_admin@billing.local",
+            password="FlowAdminPassword@123",
+            is_staff=True,
+            is_superuser=True
+        )
+
+    def test_task_55_protected_routes_redirect_unauthenticated_users(self):
+        """Task 55: Protected routes using @login_required decorator redirect unauthenticated users"""
+        protected_urls = [
+            reverse('customer_list'),
+            reverse('customer_add'),
+            reverse('product_list'),
+            reverse('product_add'),
+            reverse('invoice_list'),
+            reverse('invoice_create'),
+            reverse('invoice_report'),
+            reverse('qr_decoder'),
+            reverse('distributor_dashboard'),
+            reverse('distributor_profile'),
+            reverse('admin_dashboard'),
+        ]
+        for url in protected_urls:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 302, f"Expected 302 redirect for {url}")
+            self.assertIn('/login/', response.url, f"Expected login redirect for {url}")
+
+    def test_task_55_admin_route_protects_against_non_staff_distributor(self):
+        """Task 55: Admin routes protect against non-admin distributors and redirect them"""
+        self.client.login(username="flow_distributor", password="FlowPassword@123")
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('distributor_dashboard'))
+
+    def test_task_56_complete_login_and_logout_flow(self):
+        """Task 56: Test end-to-end login, authenticated navigation, and logout flow"""
+        # 1. Access protected route anonymously -> redirects to login with next param
+        res1 = self.client.get(reverse('customer_list'))
+        self.assertEqual(res1.status_code, 302)
+        self.assertIn('/login/?next=/customers/', res1.url)
+
+        # 2. Login as distributor
+        res2 = self.client.post(reverse('login'), {
+            'username': 'flow_distributor',
+            'password': 'FlowPassword@123',
+        })
+        self.assertEqual(res2.status_code, 302)
+        self.assertRedirects(res2, reverse('distributor_dashboard'))
+
+        # Verify session state
+        res_session = self.client.get(reverse('session_status_api'))
+        self.assertTrue(res_session.json()['authenticated'])
+        self.assertEqual(res_session.json()['user']['username'], 'flow_distributor')
+
+        # 3. Access protected route when authenticated -> 200 OK
+        res3 = self.client.get(reverse('customer_list'))
+        self.assertEqual(res3.status_code, 200)
+
+        # 4. Logout
+        res4 = self.client.get(reverse('logout'))
+        self.assertEqual(res4.status_code, 302)
+        self.assertRedirects(res4, reverse('login'))
+
+        # 5. Verify session is flushed after logout
+        res5 = self.client.get(reverse('session_status_api'))
+        self.assertFalse(res5.json()['authenticated'])
+        self.assertIsNone(res5.json()['user'])
+
+        # 6. Accessing protected route again redirects to login
+        res6 = self.client.get(reverse('customer_list'))
+        self.assertEqual(res6.status_code, 302)
+
+
+class DatabaseInvoiceIntegrityTests(TestCase):
+    """
+    Task 57: Ensure that invoice data exists in the database (invoice ID, customer name, total amount, and date).
+    """
+    def setUp(self):
+        self.distributor = User.objects.create_user(
+            username="db_distributor",
+            email="db_dist@example.com",
+            password="Password@123"
+        )
+        self.customer = Customer.objects.create(
+            distributor=self.distributor,
+            name="Apex Retail Hub",
+            email="apex@example.com",
+            phone="9876543210"
+        )
+        self.invoice = Invoice.objects.create(
+            invoice_number="INV-20261016-0001",
+            distributor=self.distributor,
+            customer=self.customer,
+            subtotal=Decimal("1500.00"),
+            gst_amount=Decimal("270.00"),
+            total_amount=Decimal("1770.00"),
+            status="Paid"
+        )
+
+    def test_task_57_invoice_fields_and_integrity(self):
+        """Task 57: Verify invoice data contains invoice ID/number, customer name, total amount, and date"""
+        inv = Invoice.objects.get(id=self.invoice.id)
+        self.assertIsNotNone(inv.id)
+        self.assertEqual(inv.invoice_number, "INV-20261016-0001")
+        self.assertEqual(inv.customer.name, "Apex Retail Hub")
+        self.assertEqual(inv.total_amount, Decimal("1770.00"))
+        self.assertIsNotNone(inv.invoice_date)
+        self.assertIsNotNone(inv.created_at)
+
 
 
 
