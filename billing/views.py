@@ -1069,7 +1069,8 @@ def generate_upi_qr(invoice):
 @login_required
 def invoice_detail(request, pk):
     """
-    Detailed invoice view with dynamically generated verification & UPI payment QR codes.
+    Task 61: Detailed / Preview Invoice page for each invoice that includes
+    complete invoice details and dynamically generated verification & UPI payment QR codes.
     """
     invoice = get_object_or_404(
         Invoice.objects.select_related(
@@ -1081,7 +1082,7 @@ def invoice_detail(request, pk):
     )
 
     items = invoice.items.select_related("product").all()
-    qr_code = generate_invoice_qr(invoice)
+    qr_code = invoice.qr_code_data or generate_invoice_qr(invoice)
     qr_payload = get_invoice_qr_payload(invoice)
     upi_qr_code, upi_uri, upi_id = generate_upi_qr(invoice)
 
@@ -1096,8 +1097,18 @@ def invoice_detail(request, pk):
             "upi_qr_code": upi_qr_code,
             "upi_uri": upi_uri,
             "upi_id": upi_id,
+            "is_preview": True,
         }
     )
+
+
+@login_required
+def invoice_preview(request, pk):
+    """
+    Task 61: Dedicated 'Preview Invoice' page endpoint (/invoices/<pk>/preview/)
+    displaying full invoice details and QR code.
+    """
+    return invoice_detail(request, pk)
 
 @login_required
 def invoice_pdf(request, pk):

@@ -186,8 +186,8 @@
                             </td>
                             <td style="text-align: right;">
                                 <div class="action-buttons-wrap">
-                                    <a href="{% url 'invoice_detail' inv.pk %}" class="btn-table-edit" title="View Printable Bill">
-                                        👁️ View
+                                    <a href="{% url 'invoice_preview' inv.pk %}" class="btn-table-edit" title="Preview Invoice">
+                                        👁️ Preview Invoice
                                     </a>
                                     <a href="{% url 'invoice_pdf' inv.pk %}" class="btn-table-edit" style="background: var(--primary-50); color: var(--primary-700); border-color: var(--primary-200);" title="Download PDF">
                                         📄 PDF

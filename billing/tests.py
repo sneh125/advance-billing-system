@@ -2348,6 +2348,28 @@ class Task57InvoiceDatabaseExistenceTests(TestCase):
         qr_bytes = base64.b64decode(new_inv.qr_code_data)
         self.assertTrue(qr_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
 
+    def test_task_61_preview_invoice_page_with_details_and_qr(self):
+        """
+        Task 61: Provide a 'Preview Invoice' page for each invoice that includes details and QR.
+        """
+        self.client.login(username="task57_dist", password="Password@123")
+
+        # 1. Invoice list contains link to Preview Invoice page
+        list_res = self.client.get(reverse("invoice_list"))
+        self.assertEqual(list_res.status_code, 200)
+        preview_url = reverse("invoice_preview", kwargs={"pk": self.invoice.pk})
+        self.assertContains(list_res, preview_url)
+        self.assertContains(list_res, "Preview Invoice")
+
+        # 2. Preview Invoice page renders details and QR
+        res = self.client.get(preview_url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Preview Invoice")
+        self.assertContains(res, self.invoice.invoice_number)
+        self.assertContains(res, self.customer.name)
+        self.assertContains(res, "29500.00")
+        self.assertContains(res, 'id="dynamicInvoiceQrImage"')
+
 
 
 
