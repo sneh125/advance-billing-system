@@ -1066,39 +1066,56 @@ def generate_upi_qr(invoice):
     return upi_qr_base64, upi_uri, upi_id
 
 
+def fetch_complete_invoice_details(pk, distributor=None):
+    """
+    Task 63: Fetch complete invoice details (ID, customer name, total, date, and line items)
+    from the database for invoice preview and PDF export.
+    """
+    qs = Invoice.objects.select_related(
+        "customer",
+        "distributor",
+        "distributor__distributor_profile"
+    ).prefetch_related("items__product")
+
+    if distributor is not None:
+        invoice = get_object_or_404(qs, pk=pk, distributor=distributor)
+    else:
+        invoice = get_object_or_404(qs, pk=pk)
+
+    items = list(invoice.items.all())
+    summary = invoice.get_invoice_summary_data()
+    qr_code = invoice.qr_code_data or generate_invoice_qr(invoice)
+    qr_payload = get_invoice_qr_payload(invoice)
+    upi_qr_code, upi_uri, upi_id = generate_upi_qr(invoice)
+
+    return {
+        "invoice": invoice,
+        "invoice_id": summary["invoice_id"],
+        "invoice_number": summary["invoice_number"],
+        "customer_name": summary["customer_name"],
+        "total_amount": summary["total_amount"],
+        "invoice_date": summary["date"],
+        "items": items,
+        "qr_code": qr_code,
+        "qr_payload": qr_payload,
+        "upi_qr_code": upi_qr_code,
+        "upi_uri": upi_uri,
+        "upi_id": upi_id,
+    }
+
+
 @login_required
 def invoice_detail(request, pk):
     """
     Task 61: Detailed / Preview Invoice page for each invoice that includes
     complete invoice details and dynamically generated verification & UPI payment QR codes.
     """
-    invoice = get_object_or_404(
-        Invoice.objects.select_related(
-            "customer",
-            "distributor"
-        ),
-        pk=pk,
-        distributor=request.user
-    )
-
-    items = invoice.items.select_related("product").all()
-    qr_code = invoice.qr_code_data or generate_invoice_qr(invoice)
-    qr_payload = get_invoice_qr_payload(invoice)
-    upi_qr_code, upi_uri, upi_id = generate_upi_qr(invoice)
-
+    context = fetch_complete_invoice_details(pk, distributor=request.user)
+    context["is_preview"] = True
     return render(
         request,
         "billing/invoice_detail.html",
-        {
-            "invoice": invoice,
-            "items": items,
-            "qr_code": qr_code,
-            "qr_payload": qr_payload,
-            "upi_qr_code": upi_qr_code,
-            "upi_uri": upi_uri,
-            "upi_id": upi_id,
-            "is_preview": True,
-        }
+        context
     )
 
 
@@ -1116,28 +1133,8 @@ def invoice_pdf(request, pk):
     Generate and download invoice as PDF with embedded dynamic verification & UPI payment QR code.
     Only the logged-in distributor can access his own invoice.
     """
-    invoice = get_object_or_404(
-        Invoice.objects.select_related(
-            "customer",
-            "distributor",
-            "distributor__distributor_profile"
-        ),
-        pk=pk,
-        distributor=request.user
-    )
-
-    items = invoice.items.select_related("product").all()
-    qr_code = generate_invoice_qr(invoice)
-    upi_qr_code, upi_uri, upi_id = generate_upi_qr(invoice)
-
-    context = {
-        "invoice": invoice,
-        "items": items,
-        "qr_code": qr_code,
-        "upi_qr_code": upi_qr_code,
-        "upi_uri": upi_uri,
-        "upi_id": upi_id,
-    }
+    context = fetch_complete_invoice_details(pk, distributor=request.user)
+    invoice = context["invoice"]
 
     pdf = render_to_pdf(
         "billing/invoice_pdf.html",

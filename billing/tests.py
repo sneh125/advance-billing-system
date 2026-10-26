@@ -2391,6 +2391,21 @@ class Task57InvoiceDatabaseExistenceTests(TestCase):
         self.assertIn(f'filename="{self.invoice.invoice_number}.pdf"', pdf_res["Content-Disposition"])
         self.assertTrue(pdf_res.content.startswith(b"%PDF"))
 
+    def test_task_63_fetch_complete_invoice_details_from_database(self):
+        """
+        Task 63: Fetch complete invoice details (ID, customer name, total, date) from the database.
+        """
+        from billing.views import fetch_complete_invoice_details
+
+        details = fetch_complete_invoice_details(self.invoice.pk, distributor=self.distributor)
+        self.assertEqual(details["invoice_id"], self.invoice.id)
+        self.assertEqual(details["invoice_number"], "INV-20261026-0057")
+        self.assertEqual(details["customer_name"], "Shree Ganesh Traders")
+        self.assertEqual(details["total_amount"], Decimal("29500.00"))
+        self.assertEqual(details["invoice_date"], self.invoice.invoice_date.strftime("%d %b %Y"))
+        self.assertEqual(len(details["items"]), 1)
+        self.assertTrue(len(details["qr_code"]) > 100)
+
 
 
 
