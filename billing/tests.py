@@ -2370,6 +2370,27 @@ class Task57InvoiceDatabaseExistenceTests(TestCase):
         self.assertContains(res, "29500.00")
         self.assertContains(res, 'id="dynamicInvoiceQrImage"')
 
+    def test_task_62_download_pdf_button_exports_invoice_with_qr(self):
+        """
+        Task 62: Add a 'Download PDF' button that exports the invoice (with QR) using xhtml2pdf.
+        """
+        self.client.login(username="task57_dist", password="Password@123")
+
+        # 1. Verify 'Download PDF' button is present on the Preview Invoice page
+        preview_res = self.client.get(reverse("invoice_preview", kwargs={"pk": self.invoice.pk}))
+        self.assertEqual(preview_res.status_code, 200)
+        pdf_url = reverse("invoice_pdf", kwargs={"pk": self.invoice.pk})
+        self.assertContains(preview_res, 'id="btnDownloadInvoicePdf"')
+        self.assertContains(preview_res, "Download PDF")
+        self.assertContains(preview_res, f'href="{pdf_url}"')
+
+        # 2. Follow the Download PDF link and verify xhtml2pdf exports valid PDF stream
+        pdf_res = self.client.get(pdf_url)
+        self.assertEqual(pdf_res.status_code, 200)
+        self.assertEqual(pdf_res["Content-Type"], "application/pdf")
+        self.assertIn(f'filename="{self.invoice.invoice_number}.pdf"', pdf_res["Content-Disposition"])
+        self.assertTrue(pdf_res.content.startswith(b"%PDF"))
+
 
 
 

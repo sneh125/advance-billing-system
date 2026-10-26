@@ -89,7 +89,7 @@
             </nav>
 
             <div style="display: flex; align-items: center; gap: 10px;" class="action-buttons-group">
-                <a href="{% url 'invoice_pdf' invoice.pk %}" class="btn-form-submit" style="text-decoration: none; padding: 9px 18px; font-size: 13.5px;">
+                <a href="{% url 'invoice_pdf' invoice.pk %}" id="btnDownloadInvoicePdf" class="btn-form-submit" style="text-decoration: none; padding: 9px 18px; font-size: 13.5px;">
                     📄 Download PDF
                 </a>
                 <button type="button" class="btn-form-cancel" onclick="window.print()" style="padding: 9px 16px; font-size: 13.5px; cursor: pointer;">
