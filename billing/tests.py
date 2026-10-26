@@ -2214,6 +2214,73 @@ class QRCodeDecoderTests(TestCase):
         self.assertContains(res, '"error"')
 
 
+class Task57InvoiceDatabaseExistenceTests(TestCase):
+    """
+    Task 57: Ensure that invoice data exists in the database
+    (invoice ID, customer name, total amount, and date).
+    """
+
+    def setUp(self):
+        self.distributor = User.objects.create_user(
+            username="task57_dist",
+            email="task57@billing.com",
+            password="Password@123",
+            first_name="Task57 Distributor"
+        )
+        self.customer = Customer.objects.create(
+            distributor=self.distributor,
+            name="Shree Ganesh Traders",
+            email="ganesh@traders.in",
+            phone="9876543210",
+            city="Ahmedabad",
+            state="Gujarat",
+            pincode="380015"
+        )
+        self.product = Product.objects.create(
+            distributor=self.distributor,
+            name="Industrial UPS 2KVA",
+            category="Electronics",
+            price=Decimal("12500.00"),
+            stock=25,
+            gst_rate=Decimal("18.00")
+        )
+        self.invoice = Invoice.objects.create(
+            invoice_number="INV-20261026-0057",
+            distributor=self.distributor,
+            customer=self.customer,
+            subtotal=Decimal("25000.00"),
+            gst_amount=Decimal("4500.00"),
+            total_amount=Decimal("29500.00"),
+            status="Paid"
+        )
+        InvoiceItem.objects.create(
+            invoice=self.invoice,
+            product=self.product,
+            quantity=2,
+            unit_price=Decimal("12500.00"),
+            gst_rate=Decimal("18.00"),
+            subtotal=Decimal("25000.00"),
+            total=Decimal("29500.00")
+        )
+
+    def test_invoice_data_exists_in_database_with_required_fields(self):
+        """Task 57: Verify saved invoice record in DB has ID, customer name, total amount, and date"""
+        db_invoice = Invoice.objects.select_related("customer").get(pk=self.invoice.pk)
+        self.assertIsNotNone(db_invoice.id)
+        self.assertEqual(db_invoice.invoice_number, "INV-20261026-0057")
+        self.assertEqual(db_invoice.customer.name, "Shree Ganesh Traders")
+        self.assertEqual(db_invoice.total_amount, Decimal("29500.00"))
+        self.assertIsNotNone(db_invoice.invoice_date)
+
+        summary = db_invoice.get_invoice_summary_data()
+        self.assertEqual(summary["invoice_id"], db_invoice.id)
+        self.assertEqual(summary["invoice_number"], "INV-20261026-0057")
+        self.assertEqual(summary["customer_name"], "Shree Ganesh Traders")
+        self.assertEqual(summary["total_amount"], Decimal("29500.00"))
+        self.assertTrue(len(summary["date"]) > 0)
+
+
+
 
 
 

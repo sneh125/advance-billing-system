@@ -133,6 +133,20 @@ class Invoice(models.Model):
         auto_now=True
     )
 
+    def get_invoice_summary_data(self):
+        """
+        Task 57: Return core invoice data stored in the database
+        (invoice ID, invoice number, customer name, total amount, and date).
+        """
+        inv_date = self.invoice_date or self.created_at
+        return {
+            "invoice_id": self.id,
+            "invoice_number": self.invoice_number,
+            "customer_name": self.customer.name if self.customer_id else "",
+            "total_amount": self.total_amount,
+            "date": inv_date.strftime("%d %b %Y") if inv_date else "",
+        }
+
     def __str__(self):
         return self.invoice_number
 
