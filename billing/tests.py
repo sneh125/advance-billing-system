@@ -2308,6 +2308,26 @@ class Task57InvoiceDatabaseExistenceTests(TestCase):
         self.assertEqual(img.format, "PNG")
         self.assertTrue(img.width > 100 and img.height > 100)
 
+    def test_task_59_display_qr_code_dynamically_in_invoice_preview_template(self):
+        """
+        Task 59: Display the QR code dynamically in the invoice preview template.
+        """
+        self.client.login(username="task57_dist", password="Password@123")
+        res = self.client.get(reverse("invoice_detail", kwargs={"pk": self.invoice.pk}))
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "billing/invoice_detail.html")
+
+        # Verify dynamic QR code context & HTML image element in template
+        self.assertIn("qr_code", res.context)
+        self.assertIn("qr_payload", res.context)
+        qr_b64 = res.context["qr_code"]
+        self.assertTrue(len(qr_b64) > 100)
+
+        self.assertContains(res, 'id="invoicePreviewQrSection"')
+        self.assertContains(res, 'id="dynamicInvoiceQrImage"')
+        self.assertContains(res, f'src="data:image/png;base64,{qr_b64}"')
+        self.assertContains(res, f"Invoice ID: #{self.invoice.id}")
+
 
 
 

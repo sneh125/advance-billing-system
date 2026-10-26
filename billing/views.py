@@ -1079,6 +1079,7 @@ def invoice_detail(request, pk):
 
     items = invoice.items.select_related("product").all()
     qr_code = generate_invoice_qr(invoice)
+    qr_payload = get_invoice_qr_payload(invoice)
     upi_qr_code, upi_uri, upi_id = generate_upi_qr(invoice)
 
     return render(
@@ -1088,6 +1089,7 @@ def invoice_detail(request, pk):
             "invoice": invoice,
             "items": items,
             "qr_code": qr_code,
+            "qr_payload": qr_payload,
             "upi_qr_code": upi_qr_code,
             "upi_uri": upi_uri,
             "upi_id": upi_id,
