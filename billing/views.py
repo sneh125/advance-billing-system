@@ -730,6 +730,9 @@ def invoice_create(request):
                             total=item_data["total"]
                         )
 
+                    # Refresh QR code on invoice save after items are attached (Task 60)
+                    invoice.save()
+
                     messages.success(request, f"Invoice {inv_number} generated successfully.")
                     return redirect("invoice_detail", pk=invoice.pk)
 

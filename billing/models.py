@@ -2,6 +2,9 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
+import base64
+from io import BytesIO
+import qrcode
 
 
 class Customer(models.Model):
@@ -125,6 +128,11 @@ class Invoice(models.Model):
         default="Pending"
     )
 
+    qr_code_data = models.TextField(
+        blank=True,
+        null=True
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )
@@ -146,6 +154,44 @@ class Invoice(models.Model):
             "total_amount": self.total_amount,
             "date": inv_date.strftime("%d %b %Y") if inv_date else "",
         }
+
+    def generate_qr_code_base64(self):
+        """
+        Task 60: Generate base64 PNG QR code using the qrcode library
+        for this invoice instance.
+        """
+        summary = self.get_invoice_summary_data()
+        product_count = self.items.count() if self.pk else 0
+        payload = (
+            f"Invoice ID: {summary['invoice_id']}\n"
+            f"Invoice: {summary['invoice_number']}\n"
+            f"Customer: {summary['customer_name']}\n"
+            f"Products: {product_count}\n"
+            f"Total: ₹{summary['total_amount']}\n"
+            f"Date: {summary['date']}"
+        )
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=8,
+            border=4,
+        )
+        qr.add_data(payload)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+        buf = BytesIO()
+        qr_img.save(buf, format="PNG")
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    def save(self, *args, **kwargs):
+        """
+        Task 60: Automatically handle QR code generation using qrcode library
+        whenever an Invoice is saved.
+        """
+        super().save(*args, **kwargs)
+        generated_qr = self.generate_qr_code_base64()
+        self.qr_code_data = generated_qr
+        Invoice.objects.filter(pk=self.pk).update(qr_code_data=generated_qr)
 
     def __str__(self):
         return self.invoice_number

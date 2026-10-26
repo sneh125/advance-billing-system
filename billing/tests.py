@@ -2328,6 +2328,26 @@ class Task57InvoiceDatabaseExistenceTests(TestCase):
         self.assertContains(res, f'src="data:image/png;base64,{qr_b64}"')
         self.assertContains(res, f"Invoice ID: #{self.invoice.id}")
 
+    def test_task_60_qr_generation_during_invoice_save(self):
+        """
+        Task 60: Use qrcode library to handle QR generation automatically during invoice save.
+        """
+        new_inv = Invoice.objects.create(
+            invoice_number="INV-20261026-0060",
+            distributor=self.distributor,
+            customer=self.customer,
+            subtotal=Decimal("5000.00"),
+            gst_amount=Decimal("900.00"),
+            total_amount=Decimal("5900.00"),
+            status="Paid"
+        )
+        new_inv.refresh_from_db()
+        self.assertIsNotNone(new_inv.qr_code_data)
+        self.assertTrue(len(new_inv.qr_code_data) > 100)
+
+        qr_bytes = base64.b64decode(new_inv.qr_code_data)
+        self.assertTrue(qr_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
+
 
 
 
