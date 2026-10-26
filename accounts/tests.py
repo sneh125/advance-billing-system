@@ -885,6 +885,35 @@ class RouteProtectionAndLoginLogoutFlowTests(TestCase):
         res6 = self.client.get(reverse('customer_list'))
         self.assertEqual(res6.status_code, 302)
 
+    def test_task_56_admin_login_and_logout_flow(self):
+        """Task 56: Test complete login, authenticated dashboard access, and logout flow for Admin user"""
+        # 1. Login as Admin
+        res_login = self.client.post(reverse('login'), {
+            'username': 'flow_admin',
+            'password': 'FlowAdminPassword@123',
+        })
+        self.assertEqual(res_login.status_code, 302)
+        self.assertRedirects(res_login, reverse('admin_dashboard'))
+
+        # 2. Visiting /login/ while already authenticated redirects to admin_dashboard
+        res_revisit = self.client.get(reverse('login'))
+        self.assertEqual(res_revisit.status_code, 302)
+        self.assertRedirects(res_revisit, reverse('admin_dashboard'))
+
+        # 3. Access admin_dashboard -> 200 OK
+        res_dash = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(res_dash.status_code, 200)
+
+        # 4. Logout clears session and redirects to login with logout message
+        res_logout = self.client.get(reverse('logout'), follow=True)
+        self.assertRedirects(res_logout, reverse('login'))
+        self.assertContains(res_logout, "You have been logged out successfully.")
+
+        # 5. Accessing admin_dashboard after logout redirects to login
+        res_after = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(res_after.status_code, 302)
+        self.assertIn('/login/', res_after.url)
+
 
 class DatabaseInvoiceIntegrityTests(TestCase):
     """

@@ -133,12 +133,6 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'Advance Billing System <no-reply@advancebilling.local>'
 EMAIL_SUBJECT_PREFIX = '[Advance Billing] '
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
-
 # ==============================================================================
 # TASK 54: SESSION-BASED AUTHENTICATION CONFIGURATION
 # ==============================================================================

@@ -408,9 +408,11 @@ def session_status_api(request):
 
 @login_required
 def logout_view(request):
-
+    """
+    Task 56: Logout handler that flushes user session and redirects to login page.
+    """
     logout(request)
-
+    messages.info(request, "You have been logged out successfully.")
     return redirect("login")
 
 # OTP GENERATOR
