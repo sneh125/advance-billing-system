@@ -960,19 +960,37 @@ def invoice_report_pdf(request):
     return pdf
 
 
+def get_invoice_qr_payload(invoice):
+    """
+    Task 58: Fetch invoice data from the saved Invoice model in the database
+    (invoice ID, invoice number, customer name, total amount, and date)
+    and build the structured QR payload string.
+    """
+    saved_inv = (
+        Invoice.objects.select_related("customer").filter(pk=invoice.pk).first()
+        if getattr(invoice, "pk", None)
+        else None
+    ) or invoice
+
+    summary = saved_inv.get_invoice_summary_data()
+    product_count = saved_inv.items.count() if getattr(saved_inv, "pk", None) else 0
+
+    return (
+        f"Invoice ID: {summary['invoice_id']}\n"
+        f"Invoice: {summary['invoice_number']}\n"
+        f"Customer: {summary['customer_name']}\n"
+        f"Products: {product_count}\n"
+        f"Total: ₹{summary['total_amount']}\n"
+        f"Date: {summary['date']}"
+    )
+
+
 def generate_invoice_qr(invoice):
     """
-    Generate QR code containing important invoice information.
+    Task 58: Fetch saved invoice data from the model and generate a QR code
+    encoding invoice ID, customer name, total amount, and date.
     """
-    product_count = invoice.items.count()
-
-    qr_data = (
-        f"Invoice: {invoice.invoice_number}\n"
-        f"Customer: {invoice.customer.name}\n"
-        f"Products: {product_count}\n"
-        f"Total: ₹{invoice.total_amount}\n"
-        f"Date: {invoice.created_at.strftime('%d %b %Y')}"
-    )
+    qr_data = get_invoice_qr_payload(invoice)
 
     qr = qrcode.QRCode(
         version=1,
@@ -987,7 +1005,7 @@ def generate_invoice_qr(invoice):
     qr_image = qr.make_image(
         fill_color="black",
         back_color="white"
-    )
+    ).convert("RGB")
 
     buffer = BytesIO()
     qr_image.save(buffer, format="PNG")

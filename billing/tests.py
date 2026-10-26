@@ -2279,6 +2279,35 @@ class Task57InvoiceDatabaseExistenceTests(TestCase):
         self.assertEqual(summary["total_amount"], Decimal("29500.00"))
         self.assertTrue(len(summary["date"]) > 0)
 
+    def test_task_58_fetch_saved_invoice_data_and_generate_qr_encoding_values(self):
+        """
+        Task 58: Fetch data from the saved invoice model and generate a QR code
+        encoding invoice ID, customer name, total amount, and date.
+        """
+        import io
+        from PIL import Image
+        from billing.views import get_invoice_qr_payload, generate_invoice_qr
+
+        # 1. Verify payload fetched from saved invoice model
+        payload = get_invoice_qr_payload(self.invoice)
+        self.assertIn(f"Invoice ID: {self.invoice.id}", payload)
+        self.assertIn("Invoice: INV-20261026-0057", payload)
+        self.assertIn("Customer: Shree Ganesh Traders", payload)
+        self.assertIn("Total: ₹29500.00", payload)
+        self.assertIn(self.invoice.invoice_date.strftime("%d %b %Y"), payload)
+
+        # 2. Generate QR code and verify valid PNG image output
+        qr_b64 = generate_invoice_qr(self.invoice)
+        self.assertIsInstance(qr_b64, str)
+        self.assertTrue(len(qr_b64) > 100)
+
+        qr_bytes = base64.b64decode(qr_b64)
+        self.assertTrue(qr_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
+
+        img = Image.open(io.BytesIO(qr_bytes))
+        self.assertEqual(img.format, "PNG")
+        self.assertTrue(img.width > 100 and img.height > 100)
+
 
 
 
