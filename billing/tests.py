@@ -2406,6 +2406,25 @@ class Task57InvoiceDatabaseExistenceTests(TestCase):
         self.assertEqual(len(details["items"]), 1)
         self.assertTrue(len(details["qr_code"]) > 100)
 
+    def test_task_64_styled_invoice_template_html_css_for_pdf_export(self):
+        """
+        Task 64: Design styled invoice template in HTML/CSS for PDF export.
+        """
+        from django.template.loader import render_to_string
+        from billing.views import fetch_complete_invoice_details
+
+        context = fetch_complete_invoice_details(self.invoice.pk, distributor=self.distributor)
+        rendered_html = render_to_string("billing/invoice_pdf.html", context)
+
+        self.assertIn("TAX INVOICE", rendered_html)
+        self.assertIn(f"#{self.invoice.id}", rendered_html)
+        self.assertIn("INV-20261026-0057", rendered_html)
+        self.assertIn("Shree Ganesh Traders", rendered_html)
+        self.assertIn("Industrial UPS 2KVA", rendered_html)
+        self.assertIn("Rs. 29500.00", rendered_html)
+        self.assertIn("@page", rendered_html)
+        self.assertIn("Authorized Signatory", rendered_html)
+
 
 
 

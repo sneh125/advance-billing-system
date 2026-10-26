@@ -171,6 +171,7 @@
             </td>
             <td style="width: 45%; vertical-align: top;">
                 <div class="invoice-title">TAX INVOICE</div>
+                <div class="invoice-meta-text"><strong>Invoice ID:</strong> #{{ invoice.id }}</div>
                 <div class="invoice-meta-text"><strong>Invoice #:</strong> {{ invoice.invoice_number }}</div>
                 <div class="invoice-meta-text"><strong>Date:</strong> {{ invoice.created_at|date:"d M Y, h:i A" }}</div>
                 <div class="invoice-meta-text"><strong>Status:</strong> {{ invoice.status }}</div>
@@ -296,6 +297,11 @@
         </tr>
     </table>
 
+    <!-- AUTHORIZED SIGNATORY FOOTER -->
+    <div class="footer-sign">
+        <strong>For {{ invoice.distributor.get_full_name|default:invoice.distributor.username }}</strong><br><br>
+        <span>Authorized Signatory</span>
+    </div>
 
 </body>
 </html>
