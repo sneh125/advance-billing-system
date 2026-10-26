@@ -2,12 +2,13 @@ import io
 from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
+import reportlab
 
 
-def render_to_pdf(template_src, context_dict=None):
+def generate_invoice_pdf_bytes(template_src, context_dict=None):
     """
-    Utility function to render an HTML template into a PDF file stream
-    using xhtml2pdf / pisa engine.
+    Task 65: Integrate xhtml2pdf / ReportLab engine to compile an invoice HTML template
+    and context dictionary into raw PDF binary bytes.
     """
     if context_dict is None:
         context_dict = {}
@@ -16,7 +17,6 @@ def render_to_pdf(template_src, context_dict=None):
     html = template.render(context_dict)
     result = io.BytesIO()
 
-    # Generate PDF document
     pdf = pisa.pisaDocument(
         io.BytesIO(html.encode("utf-8")),
         result,
@@ -24,8 +24,18 @@ def render_to_pdf(template_src, context_dict=None):
     )
 
     if not pdf.err:
-        return HttpResponse(result.getvalue(), content_type="application/pdf")
-    
+        return result.getvalue()
+    return None
+
+
+def render_to_pdf(template_src, context_dict=None):
+    """
+    Utility function to render an HTML template into a PDF HttpResponse stream
+    using xhtml2pdf / ReportLab engine.
+    """
+    pdf_bytes = generate_invoice_pdf_bytes(template_src, context_dict)
+    if pdf_bytes is not None:
+        return HttpResponse(pdf_bytes, content_type="application/pdf")
     return None
 
 

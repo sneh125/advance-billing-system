@@ -2425,6 +2425,27 @@ class Task57InvoiceDatabaseExistenceTests(TestCase):
         self.assertIn("@page", rendered_html)
         self.assertIn("Authorized Signatory", rendered_html)
 
+    def test_task_65_integrate_xhtml2pdf_reportlab_to_generate_pdf_from_template(self):
+        """
+        Task 65: Integrate xhtml2pdf/ReportLab to generate PDFs from invoice templates.
+        """
+        import reportlab
+        from billing.utils import generate_invoice_pdf_bytes, render_to_pdf
+        from billing.views import fetch_complete_invoice_details
+
+        self.assertIsNotNone(reportlab.__version__)
+        context = fetch_complete_invoice_details(self.invoice.pk, distributor=self.distributor)
+
+        pdf_bytes = generate_invoice_pdf_bytes("billing/invoice_pdf.html", context)
+        self.assertIsNotNone(pdf_bytes)
+        self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+        self.assertIn(b"ReportLab Generated PDF document", pdf_bytes)
+
+        response = render_to_pdf("billing/invoice_pdf.html", context)
+        self.assertIsNotNone(response)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF-"))
+
 
 
 
