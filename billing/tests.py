@@ -2446,6 +2446,29 @@ class Task57InvoiceDatabaseExistenceTests(TestCase):
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF-"))
 
+    def test_task_66_embed_dynamically_generated_qr_code_into_pdf_layout(self):
+        """
+        Task 66: Embed dynamically generated QR code into the PDF layout.
+        """
+        from django.template.loader import render_to_string
+        from billing.views import fetch_complete_invoice_details
+        from billing.utils import generate_invoice_pdf_bytes
+
+        context = fetch_complete_invoice_details(self.invoice.pk, distributor=self.distributor)
+        qr_b64 = context["qr_code"]
+
+        # 1. Verify QR code image is embedded in rendered PDF HTML layout even when upi_qr_code is present
+        rendered_pdf_html = render_to_string("billing/invoice_pdf.html", context)
+        self.assertIn('id="pdfEmbeddedInvoiceQr"', rendered_pdf_html)
+        self.assertIn(f'src="data:image/png;base64,{qr_b64}"', rendered_pdf_html)
+        self.assertIn("Invoice QR Verification", rendered_pdf_html)
+
+        # 2. Verify compiled PDF binary stream succeeds with embedded QR image object
+        pdf_bytes = generate_invoice_pdf_bytes("billing/invoice_pdf.html", context)
+        self.assertIsNotNone(pdf_bytes)
+        self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+        self.assertIn(b"/Subtype /Image", pdf_bytes)
+
 
 
 
