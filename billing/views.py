@@ -781,6 +781,7 @@ def invoice_list(request):
         inv.product_count = len(item_list)
         inv.product_summary = ", ".join(f"{item.product.name} (x{item.quantity})" for item in item_list)
         inv.product_names = [item.product.name for item in item_list]
+        inv.qr_code_base64 = inv.qr_code_data or inv.generate_qr_code_base64()
 
     # Pagination (10 items per page)
     paginator = Paginator(invoices_qs, 10)
@@ -1084,7 +1085,7 @@ def fetch_complete_invoice_details(pk, distributor=None):
 
     items = list(invoice.items.all())
     summary = invoice.get_invoice_summary_data()
-    qr_code = invoice.qr_code_data or generate_invoice_qr(invoice)
+    qr_code = generate_invoice_qr(invoice)
     qr_payload = get_invoice_qr_payload(invoice)
     upi_qr_code, upi_uri, upi_id = generate_upi_qr(invoice)
 
