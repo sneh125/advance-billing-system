@@ -2484,3 +2484,124 @@ class Task57InvoiceDatabaseExistenceTests(TestCase):
 
 
 
+
+
+class Task81To85RoleBasedAndPaginationTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_superuser(
+            username="admin_role_tester",
+            email="admin_role@example.com",
+            password="AdminPassword@123"
+        )
+        self.distributor1 = User.objects.create_user(
+            username="dist_role_1",
+            email="dist1_role@example.com",
+            password="Password@123"
+        )
+        self.distributor2 = User.objects.create_user(
+            username="dist_role_2",
+            email="dist2_role@example.com",
+            password="Password@123"
+        )
+        for i in range(15):
+            Customer.objects.create(
+                distributor=self.distributor1,
+                name=f"Customer PageTest {i+1}",
+                phone=f"98765432{i:02d}",
+                city="Surat",
+                state="Gujarat",
+                pincode="395001"
+            )
+
+    def test_task_85_customer_list_pagination(self):
+        """Task 85: Verify customer list paginates records at 10 items per page"""
+        self.client.login(username="dist_role_1", password="Password@123")
+        res = self.client.get(reverse("customer_list"))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.context["customers"]), 10)
+        self.assertTrue(res.context["page_obj"].has_next())
+        self.assertEqual(res.context["page_obj"].paginator.num_pages, 2)
+        self.assertContains(res, "Showing page <strong>1</strong> of <strong>2</strong>")
+
+        res2 = self.client.get(reverse("customer_list") + "?page=2")
+        self.assertEqual(res2.status_code, 200)
+        self.assertEqual(len(res2.context["customers"]), 5)
+        self.assertFalse(res2.context["page_obj"].has_next())
+        self.assertTrue(res2.context["page_obj"].has_previous())
+
+    def test_task_81_admin_add_customer_for_any_distributor(self):
+        """Task 81: Admin can add new customer and assign to selected distributor"""
+        self.client.login(username="admin_role_tester", password="AdminPassword@123")
+        res = self.client.get(reverse("customer_add"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Assign to Distributor (Admin Role)")
+
+        post_res = self.client.post(reverse("customer_add"), {
+            "name": "Admin Assigned Customer",
+            "phone": "9988776655",
+            "city": "Vadodara",
+            "state": "Gujarat",
+            "pincode": "390001",
+            "distributor_id": str(self.distributor2.id),
+        })
+        self.assertEqual(post_res.status_code, 302)
+        new_cust = Customer.objects.filter(name="Admin Assigned Customer").first()
+        self.assertIsNotNone(new_cust)
+        self.assertEqual(new_cust.distributor, self.distributor2)
+
+    def test_task_82_admin_add_product_for_any_distributor(self):
+        """Task 82: Admin can add new product and assign to selected distributor"""
+        self.client.login(username="admin_role_tester", password="AdminPassword@123")
+        res = self.client.get(reverse("product_add"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Assign to Distributor (Admin Role)")
+
+        post_res = self.client.post(reverse("product_add"), {
+            "name": "Admin Assigned Product",
+            "category": "Electronics",
+            "price": "1500.00",
+            "stock": "50",
+            "gst_rate": "18.00",
+            "description": "Added by admin for distributor2",
+            "distributor_id": str(self.distributor2.id),
+        })
+        self.assertEqual(post_res.status_code, 302)
+        new_prod = Product.objects.filter(name="Admin Assigned Product").first()
+        self.assertIsNotNone(new_prod)
+        self.assertEqual(new_prod.distributor, self.distributor2)
+
+    def test_task_83_and_84_admin_can_view_edit_delete_all(self):
+        """Task 83 and 84: Admin views all customers and products, and can edit/delete them"""
+        cust = Customer.objects.filter(distributor=self.distributor1).first()
+        prod = Product.objects.create(
+            distributor=self.distributor1,
+            name="Distributor 1 Exclusive Product",
+            category="Hardware",
+            price=Decimal("200.00"),
+            stock=10,
+            gst_rate=Decimal("12.00")
+        )
+
+        self.client.login(username="admin_role_tester", password="AdminPassword@123")
+
+        res_c = self.client.get(reverse("customer_list"))
+        self.assertContains(res_c, cust.name)
+
+        res_p = self.client.get(reverse("product_list"))
+        self.assertContains(res_p, prod.name)
+
+        edit_c = self.client.post(reverse("customer_edit", kwargs={"pk": cust.pk}), {
+            "name": "Customer Edited By Admin",
+            "phone": cust.phone,
+            "city": cust.city,
+            "state": cust.state,
+            "pincode": cust.pincode,
+        })
+        self.assertEqual(edit_c.status_code, 302)
+        cust.refresh_from_db()
+        self.assertEqual(cust.name, "Customer Edited By Admin")
+
+        del_p = self.client.post(reverse("product_delete", kwargs={"pk": prod.pk}))
+        self.assertEqual(del_p.status_code, 302)
+        self.assertFalse(Product.objects.filter(pk=prod.pk).exists())

@@ -30,12 +30,16 @@ from .forms import InvoiceCreateForm, InvoiceReportFilterForm
 def customer_list(request):
     """
     Customer Dashboard / List View with real-time statistics,
-    search filtering, and distributor-level ownership isolation.
+    search filtering, role-based isolation (Admin views all, Distributor views own),
+    and pagination (Task 84 & Task 85).
     """
     search_query = request.GET.get("q", "").strip()
 
-    # Ownership isolation: Only get customers of the logged-in distributor
-    customers_qs = Customer.objects.filter(distributor=request.user)
+    # Ownership isolation: Admin can see all, Distributor sees only their own (Task 84)
+    if request.user.is_staff or request.user.is_superuser:
+        customers_qs = Customer.objects.all().select_related("distributor")
+    else:
+        customers_qs = Customer.objects.filter(distributor=request.user)
 
     # Real-time statistics from the database
     now = timezone.now()
@@ -59,8 +63,18 @@ def customer_list(request):
             Q(state__icontains=search_query)
         )
 
+    # Order by newest
+    customers_qs = customers_qs.order_by("-created_at")
+
+    # Task 85: Pagination (10 customers per page)
+    paginator = Paginator(customers_qs, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        "customers": customers_qs,
+        "customers": page_obj,
+        "page_obj": page_obj,
+        "paginator": paginator,
         "search_query": search_query,
         "total_customers": total_customers,
         "active_customers": active_customers,
@@ -73,11 +87,12 @@ def customer_list(request):
 @login_required
 def customer_register_view(request):
     """
-    Front-end view for registering a new customer by the authenticated distributor.
-    Renders the modern customer registration form with real-time feedback and validation.
+    Front-end view for registering a new customer.
+    Task 81: Admin can add for any distributor or all; Distributor adds only their own.
     """
     errors = {}
     form_data = {}
+    distributors = User.objects.filter(is_staff=False).order_by("username") if (request.user.is_staff or request.user.is_superuser) else []
 
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
@@ -88,6 +103,7 @@ def customer_register_view(request):
         state = request.POST.get("state", "").strip()
         pincode = request.POST.get("pincode", "").strip()
         is_active = request.POST.get("is_active") in ["on", "true", True, "1"]
+        distributor_id = request.POST.get("distributor_id")
 
         form_data = {
             "name": name,
@@ -98,6 +114,7 @@ def customer_register_view(request):
             "state": state,
             "pincode": pincode,
             "is_active": is_active,
+            "distributor_id": distributor_id,
         }
 
         # Validation
@@ -134,9 +151,16 @@ def customer_register_view(request):
         elif not pincode.isdigit() or len(pincode) < 5 or len(pincode) > 6:
             errors["pincode"] = "Please enter a valid 6-digit postal pincode."
 
+        # Role-based distributor assignment (Task 81)
+        target_distributor = request.user
+        if (request.user.is_staff or request.user.is_superuser) and distributor_id:
+            assigned_dist = User.objects.filter(pk=distributor_id).first()
+            if assigned_dist:
+                target_distributor = assigned_dist
+
         if not errors:
             customer = Customer.objects.create(
-                distributor=request.user,
+                distributor=target_distributor,
                 name=name,
                 email=email if email else None,
                 phone=phone,
@@ -156,6 +180,7 @@ def customer_register_view(request):
             "is_edit": False,
             "errors": errors,
             "form_data": form_data,
+            "distributors": distributors,
         }
     )
 
@@ -167,11 +192,15 @@ customer_add = customer_register_view
 @login_required
 def customer_edit(request, pk):
     """
-    Edit existing customer with distributor-level ownership verification.
+    Edit existing customer with user ownership checks (Task 83).
+    Admin can edit any customer; Distributor can only edit their own.
     """
-    # Safe lookup ensuring logged-in distributor owns the customer
-    customer = get_object_or_404(Customer, pk=pk, distributor=request.user)
+    if request.user.is_staff or request.user.is_superuser:
+        customer = get_object_or_404(Customer, pk=pk)
+    else:
+        customer = get_object_or_404(Customer, pk=pk, distributor=request.user)
 
+    distributors = User.objects.filter(is_staff=False).order_by("username") if (request.user.is_staff or request.user.is_superuser) else []
     errors = {}
     form_data = {
         "name": customer.name,
@@ -182,6 +211,7 @@ def customer_edit(request, pk):
         "state": customer.state,
         "pincode": customer.pincode,
         "is_active": customer.is_active,
+        "distributor_id": customer.distributor_id,
     }
 
     if request.method == "POST":
@@ -193,6 +223,7 @@ def customer_edit(request, pk):
         state = request.POST.get("state", "").strip()
         pincode = request.POST.get("pincode", "").strip()
         is_active = request.POST.get("is_active") == "on"
+        distributor_id = request.POST.get("distributor_id")
 
         form_data = {
             "name": name,
@@ -203,6 +234,7 @@ def customer_edit(request, pk):
             "state": state,
             "pincode": pincode,
             "is_active": is_active,
+            "distributor_id": distributor_id or customer.distributor_id,
         }
 
         # Validation
@@ -248,6 +280,10 @@ def customer_edit(request, pk):
             customer.state = state
             customer.pincode = pincode
             customer.is_active = is_active
+            if (request.user.is_staff or request.user.is_superuser) and distributor_id:
+                reassigned_dist = User.objects.filter(pk=distributor_id).first()
+                if reassigned_dist:
+                    customer.distributor = reassigned_dist
             customer.save()
 
             messages.success(request, "Customer updated successfully.")
@@ -261,6 +297,7 @@ def customer_edit(request, pk):
             "customer": customer,
             "errors": errors,
             "form_data": form_data,
+            "distributors": distributors,
         }
     )
 
@@ -268,9 +305,13 @@ def customer_edit(request, pk):
 @login_required
 def customer_delete(request, pk):
     """
-    Safely delete customer via POST with distributor ownership check.
+    Safely delete customer via POST with user ownership check (Task 83).
+    Admin can delete any customer; Distributor can only delete their own.
     """
-    customer = get_object_or_404(Customer, pk=pk, distributor=request.user)
+    if request.user.is_staff or request.user.is_superuser:
+        customer = get_object_or_404(Customer, pk=pk)
+    else:
+        customer = get_object_or_404(Customer, pk=pk, distributor=request.user)
 
     if request.method == "POST":
         customer_name = customer.name
@@ -283,15 +324,20 @@ def customer_delete(request, pk):
 
 @login_required
 def product_add(request):
+    """
+    Task 82: Create forms and views to add new products (same role-based logic as customers).
+    Admin can add product for any distributor; Distributor adds only for themselves.
+    """
+    distributors = User.objects.filter(is_staff=False).order_by("username") if (request.user.is_staff or request.user.is_superuser) else []
 
     if request.method == "POST":
-
         name = request.POST.get("name", "").strip()
         category = request.POST.get("category", "").strip()
         price = request.POST.get("price", "").strip()
         stock = request.POST.get("stock", "").strip()
         gst_rate = request.POST.get("gst_rate", "").strip()
         description = request.POST.get("description", "").strip()
+        distributor_id = request.POST.get("distributor_id")
 
         context = {
             "name": name,
@@ -300,74 +346,57 @@ def product_add(request):
             "stock": stock,
             "gst_rate": gst_rate,
             "description": description,
+            "distributors": distributors,
+            "selected_distributor_id": distributor_id,
         }
 
         # Required fields
         if not all([name, category, price, stock, gst_rate]):
             context["error"] = "Please fill in all required fields."
-            return render(
-                request,
-                "billing/product_add.html",
-                context
-            )
+            return render(request, "billing/product_add.html", context)
 
         # Name validation
         if len(name) < 2:
             context["error"] = "Product name must contain at least 2 characters."
-            return render(
-                request,
-                "billing/product_add.html",
-                context
-            )
+            return render(request, "billing/product_add.html", context)
 
         # Price validation
         try:
             price_value = float(price)
-
             if price_value <= 0:
                 raise ValueError
-
         except ValueError:
             context["error"] = "Please enter a valid price greater than 0."
-            return render(
-                request,
-                "billing/product_add.html",
-                context
-            )
+            return render(request, "billing/product_add.html", context)
 
         # Stock validation
         try:
             stock_value = int(stock)
-
             if stock_value < 0:
                 raise ValueError
-
         except ValueError:
             context["error"] = "Stock must be a valid non-negative number."
-            return render(
-                request,
-                "billing/product_add.html",
-                context
-            )
+            return render(request, "billing/product_add.html", context)
 
         # GST validation
         try:
             gst_value = float(gst_rate)
-
             if gst_value < 0 or gst_value > 100:
                 raise ValueError
-
         except ValueError:
             context["error"] = "GST rate must be between 0 and 100."
-            return render(
-                request,
-                "billing/product_add.html",
-                context
-            )
+            return render(request, "billing/product_add.html", context)
+
+        # Role-based distributor assignment (Task 82)
+        target_distributor = request.user
+        if (request.user.is_staff or request.user.is_superuser) and distributor_id:
+            assigned_dist = User.objects.filter(pk=distributor_id).first()
+            if assigned_dist:
+                target_distributor = assigned_dist
 
         # Create product
         Product.objects.create(
-            distributor=request.user,
+            distributor=target_distributor,
             name=name,
             category=category,
             price=price_value,
@@ -376,27 +405,28 @@ def product_add(request):
             description=description,
         )
 
-        messages.success(
-            request,
-            "Product added successfully."
-        )
-
+        messages.success(request, "Product added successfully.")
         return redirect("product_list")
 
     return render(
         request,
-        "billing/product_add.html"
+        "billing/product_add.html",
+        {"distributors": distributors}
     )
 
 @login_required
 def product_list(request):
     """
     Product Management Dashboard & List View with live inventory KPI metrics,
-    search filtering, pagination, and multi-tenant isolation.
+    search filtering, pagination, and multi-tenant isolation (Task 84 & Task 85).
+    Admin sees all products; Distributor sees only their own.
     """
     query = request.GET.get("q", "").strip()
 
-    base_qs = Product.objects.filter(distributor=request.user)
+    if request.user.is_staff or request.user.is_superuser:
+        base_qs = Product.objects.all().select_related("distributor")
+    else:
+        base_qs = Product.objects.filter(distributor=request.user)
 
     # Real-time inventory metrics
     total_products = base_qs.count()
@@ -437,27 +467,25 @@ def product_list(request):
 
 @login_required
 def product_edit(request, pk):
+    """
+    Edit existing product with user ownership verification (Task 83).
+    Admin can edit any product; Distributor can only edit their own.
+    """
+    if request.user.is_staff or request.user.is_superuser:
+        product = get_object_or_404(Product, pk=pk)
+    else:
+        product = get_object_or_404(Product, pk=pk, distributor=request.user)
 
-    # Security:
-    # Only the logged-in distributor can edit his own product
-    product = get_object_or_404(
-        Product,
-        pk=pk,
-        distributor=request.user
-    )
+    distributors = User.objects.filter(is_staff=False).order_by("username") if (request.user.is_staff or request.user.is_superuser) else []
 
     if request.method == "POST":
-
         name = request.POST.get("name", "").strip()
         category = request.POST.get("category", "").strip()
         price = request.POST.get("price", "").strip()
         stock = request.POST.get("stock", "").strip()
         gst_rate = request.POST.get("gst_rate", "").strip()
         description = request.POST.get("description", "").strip()
-
-        # -----------------------------
-        # Required validation
-        # -----------------------------
+        distributor_id = request.POST.get("distributor_id")
 
         if not name or not category or not price or not stock or not gst_rate:
             return render(
@@ -465,7 +493,8 @@ def product_edit(request, pk):
                 "billing/product_edit.html",
                 {
                     "product": product,
-                    "error": "Please fill in all required fields."
+                    "error": "Please fill in all required fields.",
+                    "distributors": distributors,
                 }
             )
 
@@ -475,73 +504,55 @@ def product_edit(request, pk):
                 "billing/product_edit.html",
                 {
                     "product": product,
-                    "error": "Product name must contain at least 2 characters."
+                    "error": "Product name must contain at least 2 characters.",
+                    "distributors": distributors,
                 }
             )
 
-        # -----------------------------
-        # Price validation
-        # -----------------------------
-
         try:
             price_value = Decimal(price)
-
             if price_value <= 0:
                 raise ValueError
-
         except (InvalidOperation, ValueError):
             return render(
                 request,
                 "billing/product_edit.html",
                 {
                     "product": product,
-                    "error": "Price must be greater than 0."
+                    "error": "Price must be greater than 0.",
+                    "distributors": distributors,
                 }
             )
 
-        # -----------------------------
-        # Stock validation
-        # -----------------------------
-
         try:
             stock_value = int(stock)
-
             if stock_value < 0:
                 raise ValueError
-
         except ValueError:
             return render(
                 request,
                 "billing/product_edit.html",
                 {
                     "product": product,
-                    "error": "Stock cannot be negative."
+                    "error": "Stock cannot be negative.",
+                    "distributors": distributors,
                 }
             )
 
-        # -----------------------------
-        # GST validation
-        # -----------------------------
-
         try:
             gst_value = Decimal(gst_rate)
-
             if gst_value < 0 or gst_value > 100:
                 raise ValueError
-
         except (InvalidOperation, ValueError):
             return render(
                 request,
                 "billing/product_edit.html",
                 {
                     "product": product,
-                    "error": "GST rate must be between 0 and 100."
+                    "error": "GST rate must be between 0 and 100.",
+                    "distributors": distributors,
                 }
             )
-
-        # -----------------------------
-        # Update Product
-        # -----------------------------
 
         product.name = name
         product.category = category
@@ -549,68 +560,56 @@ def product_edit(request, pk):
         product.stock = stock_value
         product.gst_rate = gst_value
         product.description = description
+        if (request.user.is_staff or request.user.is_superuser) and distributor_id:
+            reassigned_dist = User.objects.filter(pk=distributor_id).first()
+            if reassigned_dist:
+                product.distributor = reassigned_dist
 
         product.save()
 
-        messages.success(
-            request,
-            f"Product '{product.name}' updated successfully."
-        )
-
+        messages.success(request, f"Product '{product.name}' updated successfully.")
         return redirect("product_list")
 
     return render(
         request,
         "billing/product_edit.html",
         {
-            "product": product
+            "product": product,
+            "distributors": distributors,
         }
     )
 
 @login_required
 def product_delete(request, pk):
+    """
+    Safely delete product with user ownership check (Task 83).
+    Admin can delete any product; Distributor can only delete their own.
+    """
+    if request.user.is_staff or request.user.is_superuser:
+        product = get_object_or_404(Product, pk=pk)
+    else:
+        product = get_object_or_404(Product, pk=pk, distributor=request.user)
 
-    # Security:
-    # Only the logged-in distributor can delete his own product
-    product = get_object_or_404(
-        Product,
-        pk=pk,
-        distributor=request.user
-    )
-
-    # Delete only through POST request
     if request.method == "POST":
-
         product_name = product.name
-
         product.delete()
-
-        messages.success(
-            request,
-            f"Product '{product_name}' deleted successfully."
-        )
-
+        messages.success(request, f"Product '{product_name}' deleted successfully.")
         return redirect("product_list")
 
-    # If someone tries GET directly, don't delete anything
-    messages.error(
-        request,
-        "Invalid request for product deletion."
-    )
-
+    messages.error(request, "Invalid request for product deletion.")
     return redirect("product_list")
 
 
 @login_required
 def product_detail(request, pk):
     """
-    Read / View single product details with distributor ownership verification.
+    Read / View single product details with user ownership verification.
+    Admin can view any product; Distributor can only view their own.
     """
-    product = get_object_or_404(
-        Product,
-        pk=pk,
-        distributor=request.user
-    )
+    if request.user.is_staff or request.user.is_superuser:
+        product = get_object_or_404(Product, pk=pk)
+    else:
+        product = get_object_or_404(Product, pk=pk, distributor=request.user)
     return render(
         request,
         "billing/product_detail.html",

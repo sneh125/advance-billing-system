@@ -105,7 +105,22 @@
                         👤 Customer & Contact Info
                     </div>
 
-                    <div class="form-grid-2col">
+                                        <div class="form-grid-2col">
+                        {% if request.user.is_staff and distributors %}
+                        <div class="form-group-field full-span" style="margin-bottom: 12px;">
+                            <label for="id_distributor" class="form-label" style="color: var(--primary); font-weight: 700;">
+                                🏢 Assign to Distributor (Admin Role) <span class="req">*</span>
+                            </label>
+                            <select id="id_distributor" name="distributor_id" class="form-control-input" style="background: #f8fafc; border: 1.5px solid var(--primary-200);">
+                                {% for dist in distributors %}
+                                <option value="{{ dist.id }}" {% if form_data.distributor_id == dist.id or customer.distributor_id == dist.id %}selected{% endif %}>
+                                    {{ dist.first_name|default:dist.username }} ({{ dist.email|default:dist.username }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small style="color: var(--text-muted); font-size: 11.5px; display: block; margin-top: 3px;">As an administrator, select which distributor workspace will own this customer.</small>
+                        </div>
+                        {% endif %}
                         <div class="form-group-field">
                             <label for="id_name" class="form-label">
                                 Customer Full Name <span class="req">*</span>
