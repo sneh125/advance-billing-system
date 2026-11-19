@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Quotation - {{ quotation.quotation_number }}</title>
+    <style>
+        @page {
+            size: a4 portrait;
+            margin: 1.4cm;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #0f172a;
+            font-size: 9.5pt;
+            line-height: 1.4;
+        }
+
+        .header-tbl {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .brand {
+            font-size: 17pt;
+            font-weight: bold;
+            color: #6d28d9;
+        }
+
+        .title {
+            font-size: 15pt;
+            font-weight: bold;
+            text-align: right;
+            color: #0f172a;
+        }
+
+        .meta {
+            font-size: 8.5pt;
+            color: #475569;
+            text-align: right;
+        }
+
+        .divider {
+            border-bottom: 1.5pt solid #6d28d9;
+            margin: 8px 0 12px 0;
+        }
+
+        .items-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+
+        .items-tbl th {
+            background-color: #6d28d9;
+            color: #ffffff;
+            font-size: 8pt;
+            padding: 6px 5px;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .items-tbl td {
+            padding: 6px 5px;
+            border-bottom: 0.5pt solid #e2e8f0;
+            font-size: 8.5pt;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .words-bar {
+            background-color: #f8fafc;
+            border: 0.75pt solid #cbd5e1;
+            padding: 6px 9px;
+            margin-bottom: 12px;
+            font-size: 8.5pt;
+        }
+    </style>
+</head>
+
+<body>
+    <table class="header-tbl">
+        <tr>
+            <td style="width: 55%; vertical-align: top;">
+                <div class="brand">{{ seller_name }}</div>
+                {% if distributor_profile.gstin %}
+                <div style="font-size: 8pt; color: #64748b;">GSTIN: {{ distributor_profile.gstin }}</div>
+                {% endif %}
+            </td>
+            <td style="width: 45%; vertical-align: top;">
+                <div class="title">SALES QUOTATION</div>
+                <div class="meta"><strong>Quote #:</strong> {{ quotation.quotation_number }}</div>
+                <div class="meta"><strong>Date:</strong> {{ quotation.created_at|date:"d M Y" }}</div>
+                {% if quotation.valid_until %}
+                <div class="meta"><strong>Valid Until:</strong> {{ quotation.valid_until|date:"d M Y" }}</div>
+                {% endif %}
+                <div class="meta"><strong>Place of Supply:</strong> {{ place_of_supply }}</div>
+            </td>
+        </tr>
+    </table>
+    <div class="divider"></div>
+    <table style="width: 100%; margin-bottom: 14px;">
+        <tr>
+            <td style="width: 50%; vertical-align: top; padding-right: 12px;">
+                <div style="font-size: 8pt; font-weight: bold; color: #64748b; text-transform: uppercase;">Prepared By
+                </div>
+                <strong>{{ seller_name }}</strong><br>
+                <span style="font-size: 8.5pt; color: #475569;">{{ quotation.distributor.email }}</span>
+            </td>
+            <td style="width: 50%; vertical-align: top;">
+                <div style="font-size: 8pt; font-weight: bold; color: #64748b; text-transform: uppercase;">Quotation For
+                </div>
+                <strong>{{ quotation.customer.name }}</strong><br>
+                <span style="font-size: 8.5pt; color: #475569;">
+                    Phone: {{ quotation.customer.phone }} |
+                    {{ quotation.customer.city }}, {{ quotation.customer.state }}
+                </span>
+            </td>
+        </tr>
+    </table>
+    <table class="items-tbl">
+        <thead>
+            <tr>
+                <th class="text-center">#</th>
+                <th>Item Description</th>
+                <th class="text-center">HSN/SAC</th>
+                <th class="text-right">Rate</th>
+                <th class="text-center">Qty</th>
+                <th class="text-center">Disc %</th>
+                <th class="text-right">Taxable</th>
+                <th class="text-center">GST</th>
+                <th class="text-right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td class="text-center">{{ forloop.counter }}</td>
+                <td><strong>{{ item.product.name }}</strong></td>
+                <td class="text-center">{{ item.product.hsn_code|default:"-" }}</td>
+                <td class="text-right">Rs. {{ item.unit_price }}</td>
+                <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-center">{{ item.discount_percent|floatformat:1 }}%</td>
+                <td class="text-right">Rs. {{ item.subtotal }}</td>
+                <td class="text-center">{{ item.gst_rate|floatformat:0 }}%</td>
+                <td class="text-right"><strong>Rs. {{ item.total }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="words-bar">
+        <strong>Estimated Amount (in Words):</strong> {{ amount_in_words }}
+    </div>
+    <table style="width: 100%;">
+        <tr>
+            <td style="width: 52%; vertical-align: top; font-size: 8pt; color: #64748b;">
+                <strong>Notes &amp; Terms:</strong><br>
+                This is a quotation/estimate and not a final GST Tax Invoice.<br>
+                {% if quotation.notes %}{{ quotation.notes }}{% endif %}
+            </td>
+            <td style="width: 48%; vertical-align: top;">
+                <table style="width: 100%; border: 1pt solid #cbd5e1; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 5px 8px; font-size: 8.5pt;">Taxable Subtotal:</td>
+                        <td style="padding: 5px 8px; font-size: 8.5pt; text-align: right;">Rs. {{ quotation.subtotal }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px 8px; font-size: 8.5pt;">GST Tax:</td>
+                        <td style="padding: 5px 8px; font-size: 8.5pt; text-align: right;">
+                            Rs. {{ quotation.gst_amount }}
+                        </td>
+                    </tr>
+                    <tr style="background-color: #6d28d9; color: #ffffff;">
+                        <td style="padding: 7px 8px; font-size: 9.5pt; font-weight: bold;">Estimated Total:</td>
+                        <td style="padding: 7px 8px; font-size: 9.5pt; font-weight: bold; text-align: right;">
+                            Rs. {{ quotation.total_amount }}
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    <div style="margin-top: 28px; text-align: right; font-size: 9pt; color: #475569;">
+        <strong>For {{ seller_name }}</strong><br><br>Authorized Signatory
+    </div>
+</body>
+
+</html>

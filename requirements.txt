@@ -9,3 +9,8 @@ html5lib==1.1
 Pillow==10.1.0
 qrcode==8.2
 pyzbar==0.1.9
+
+# Production deployment drivers (install when deploying with PostgreSQL / Gunicorn)
+# psycopg[binary]>=3.1
+# gunicorn>=22.0
+# whitenoise>=6.6

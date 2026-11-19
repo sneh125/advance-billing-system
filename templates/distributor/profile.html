@@ -601,69 +601,7 @@
 </head>
 <body>
 
-    <!-- UNIFIED APP TOP HEADER -->
-    <header class="app-shell-header">
-        <div class="app-header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
-                <div class="brand-badge-icon">AB</div>
-                <div class="brand-text-group">
-                    <h1>Advance Billing System</h1>
-                    <span class="brand-tagline">Distributor Cloud Workspace</span>
-                </div>
-            </a>
-
-            <!-- NAVIGATION PILL TABS -->
-            <nav class="app-nav-pills" aria-label="Main Navigation">
-                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
-                    📊 Dashboard
-                </a>
-                <a href="{% url 'customer_list' %}" class="app-nav-link">
-                    👥 Customers
-                </a>
-                <a href="{% url 'product_list' %}" class="app-nav-link">
-                    📦 Products
-                </a>
-                <a href="{% url 'invoice_list' %}" class="app-nav-link">
-                    🧾 Invoices
-                </a>
-                <a href="{% url 'distributor_profile' %}" class="app-nav-link active">
-                    👤 My Profile
-                </a>
-            </nav>
-        </div>
-
-        <div class="app-header-right">
-            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
-                ⚡ + Quick Bill
-            </a>
-            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
-                <div class="user-avatar-circle">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
-                    <span class="avatar-online-dot"></span>
-                </div>
-                <div class="user-info-text-col">
-                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
-                    <span class="user-role-subtag">Distributor</span>
-                </div>
-            </a>
-            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
-                Logout
-            </a>
-            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
-                ☰
-            </button>
-        </div>
-    </header>
-
-    <!-- MOBILE NAV DRAWER -->
-    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
-        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
-        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
-        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
-        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
-        <a href="{% url 'distributor_profile' %}" class="app-nav-link active">👤 My Profile</a>
-        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
-    </nav>
+    {% include 'includes/app_header.html' with active_page='profile' %}
 
     <!-- TOAST MESSAGES -->
     <div class="toast-container" id="toastContainer">
@@ -856,18 +794,22 @@
                             </div>
 
                             <div class="detail-group-card full-width">
-                                <div class="detail-group-title">🏢 Billing & Distributor Workspace</div>
+                                <div class="detail-group-title">🏢 Business, GST & UPI Billing Profile</div>
                                 <div class="detail-row">
-                                    <span class="detail-key">Platform:</span>
-                                    <span class="detail-val">Advance Billing System with QR</span>
+                                    <span class="detail-key">Business Name:</span>
+                                    <span class="detail-val">{{ profile.business_name|default:"Not specified" }}</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span class="detail-key">Tax Invoice Engine:</span>
-                                    <span class="detail-val">Standard GST Compliant Calculation</span>
+                                    <span class="detail-key">GSTIN:</span>
+                                    <span class="detail-val">{{ profile.gstin|default:"Not specified" }}</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span class="detail-key">Multi-Tenant Isolation:</span>
-                                    <span class="detail-val" style="color: var(--primary-600);">Strict Distributor-Scoped Data</span>
+                                    <span class="detail-key">UPI Payment ID:</span>
+                                    <span class="detail-val">{{ profile.upi_id|default:"Default (phone@upi)" }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-key">Business Location:</span>
+                                    <span class="detail-val">{% if profile.city or profile.state %}{{ profile.address }}{% if profile.address %}, {% endif %}{{ profile.city }}{% if profile.state %}, {{ profile.state }}{% endif %}{% else %}Not specified{% endif %}</span>
                                 </div>
                             </div>
 
@@ -886,7 +828,7 @@
                                         Full Name <span class="required-star">*</span>
                                     </label>
                                     <input type="text" id="id_name" name="name" class="form-input-box" value="{{ request.user.first_name|default:request.user.username }}" required minlength="3">
-                                    <span class="form-help-hint">Your legal name or distributor business title.</span>
+                                    <span class="form-help-hint">Your legal name or distributor contact name.</span>
                                 </div>
 
                                 <div class="form-field-group">
@@ -897,12 +839,46 @@
                                     <span class="form-help-hint">Used for login and password recovery OTPs.</span>
                                 </div>
 
-                                <div class="form-field-group full">
+                                <div class="form-field-group">
                                     <label for="id_phone">
                                         Phone Number (10 Digits) <span class="required-star">*</span>
                                     </label>
                                     <input type="tel" id="id_phone" name="phone" class="form-input-box" value="{{ profile.phone }}" maxlength="10" pattern="[0-9]{10}" placeholder="9876543210" required>
                                     <span class="form-help-hint">Enter your 10-digit mobile number.</span>
+                                </div>
+
+                                <div class="form-field-group">
+                                    <label for="id_business_name">Business / Firm Name</label>
+                                    <input type="text" id="id_business_name" name="business_name" class="form-input-box" value="{{ profile.business_name }}" placeholder="e.g., Shree Ganesh Distributors">
+                                    <span class="form-help-hint">Printed on tax invoices and UPI payment labels.</span>
+                                </div>
+
+                                <div class="form-field-group">
+                                    <label for="id_gstin">GSTIN (15 Characters)</label>
+                                    <input type="text" id="id_gstin" name="gstin" class="form-input-box" value="{{ profile.gstin }}" maxlength="15" placeholder="24ABCDE1234F1Z5" style="text-transform: uppercase;">
+                                    <span class="form-help-hint">Optional 15-character GST Identification Number.</span>
+                                </div>
+
+                                <div class="form-field-group">
+                                    <label for="id_upi_id">UPI ID (VPA)</label>
+                                    <input type="text" id="id_upi_id" name="upi_id" class="form-input-box" value="{{ profile.upi_id }}" placeholder="yourbusiness@okicici">
+                                    <span class="form-help-hint">Used to generate real Scan & Pay UPI QR codes on invoices.</span>
+                                </div>
+
+                                <div class="form-field-group">
+                                    <label for="id_city">City</label>
+                                    <input type="text" id="id_city" name="city" class="form-input-box" value="{{ profile.city }}" placeholder="Ahmedabad">
+                                </div>
+
+                                <div class="form-field-group">
+                                    <label for="id_state">State (Used for CGST/SGST vs IGST)</label>
+                                    <input type="text" id="id_state" name="state" class="form-input-box" value="{{ profile.state }}" placeholder="Gujarat">
+                                    <span class="form-help-hint">Matches against customer state for intra/inter-state tax split.</span>
+                                </div>
+
+                                <div class="form-field-group full">
+                                    <label for="id_address">Business Address</label>
+                                    <input type="text" id="id_address" name="address" class="form-input-box" value="{{ profile.address }}" placeholder="Shop/Office Street Address">
                                 </div>
                             </div>
 
@@ -979,7 +955,14 @@
             const container = document.getElementById('toastContainer');
             const card = document.createElement('div');
             card.className = `toast-card ${type}`;
-            card.innerHTML = `<span>✓ ${message}</span><button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>`;
+            const span = document.createElement('span');
+            span.textContent = `✓ ${message}`;
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'toast-close-btn';
+            closeBtn.textContent = '×';
+            closeBtn.addEventListener('click', () => card.remove());
+            card.append(span, closeBtn);
             container.appendChild(card);
             setTimeout(() => {
                 card.remove();

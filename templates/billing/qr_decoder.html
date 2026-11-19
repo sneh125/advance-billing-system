@@ -13,48 +13,7 @@
 
 <div class="invoice-page-layout">
 
-    <!-- UNIFIED APP HEADER -->
-    <header class="app-shell-header">
-        <div class="app-header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
-                <div class="brand-badge-icon">AB</div>
-                <div class="brand-text-group">
-                    <h1>Advance Billing System</h1>
-                    <span class="brand-tagline">Distributor Cloud Workspace</span>
-                </div>
-            </a>
-
-            <!-- NAVIGATION PILL TABS -->
-            <nav class="app-nav-pills" aria-label="Main Navigation">
-                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
-                <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
-                <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
-                <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
-                <a href="{% url 'invoice_report' %}" class="app-nav-link">📅 Date Reports</a>
-                <a href="{% url 'qr_decoder' %}" class="app-nav-link active" style="color: var(--primary); font-weight: 800;">📷 QR Decoder</a>
-                <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
-            </nav>
-        </div>
-
-        <div class="app-header-right">
-            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
-                ⚡ + Quick Bill
-            </a>
-            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
-                <div class="user-avatar-circle">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
-                    <span class="avatar-online-dot"></span>
-                </div>
-                <div class="user-info-text-col">
-                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
-                    <span class="user-role-subtag">Distributor</span>
-                </div>
-            </a>
-            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
-                Logout
-            </a>
-        </div>
-    </header>
+    {% include 'includes/app_header.html' with active_page='qr' %}
 
     <!-- MAIN QR DECODER CONTENT -->
     <main class="qr-decoder-content">
@@ -409,15 +368,32 @@ function showToast(type, title, message, duration = 4500) {
     toast.id = toastId;
     toast.setAttribute('role', 'alert');
 
-    toast.innerHTML = `
-        <div class="toast-icon">${toastIcon}</div>
-        <div class="toast-content">
-            <h5 class="toast-title">${title}</h5>
-            <p class="toast-message">${message}</p>
-        </div>
-        <button type="button" class="toast-close-btn" aria-label="Close notification" onclick="dismissToast('${toastId}')">✕</button>
-        <div class="toast-progress" style="animation-duration: ${duration}ms;"></div>
-    `;
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'toast-icon';
+    iconDiv.textContent = toastIcon;
+
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'toast-content';
+    const titleEl = document.createElement('h5');
+    titleEl.className = 'toast-title';
+    titleEl.textContent = title;
+    const msgEl = document.createElement('p');
+    msgEl.className = 'toast-message';
+    msgEl.textContent = message;
+    contentDiv.append(titleEl, msgEl);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'toast-close-btn';
+    closeBtn.setAttribute('aria-label', 'Close notification');
+    closeBtn.textContent = '✕';
+    closeBtn.addEventListener('click', () => dismissToast(toastId));
+
+    const progressDiv = document.createElement('div');
+    progressDiv.className = 'toast-progress';
+    progressDiv.style.animationDuration = `${duration}ms`;
+
+    toast.append(iconDiv, contentDiv, closeBtn, progressDiv);
 
     container.appendChild(toast);
 

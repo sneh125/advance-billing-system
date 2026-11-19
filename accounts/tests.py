@@ -430,13 +430,20 @@ class AccountAuthenticationTests(TestCase):
         self.assertEqual(r_exp.status_code, 400)
         self.assertIn("expired", r_exp.json()["message"])
 
-        # 3. Create verified OTP record and test reset password mismatch
+        # 3. Verify OTP via Step 2 to bind session and test reset password mismatch
+        PasswordResetOTP.objects.filter(email="edge_admin@billing.local").delete()
         PasswordResetOTP.objects.create(
             email="edge_admin@billing.local",
             otp="999888",
-            is_verified=True,
+            is_verified=False,
             expires_at=timezone.now() + timedelta(minutes=5)
         )
+        r_verify_ok = self.client.post(
+            reverse('api_admin_verify_otp'),
+            data=json.dumps({"email": "edge_admin@billing.local", "otp": "999888"}),
+            content_type="application/json"
+        )
+        self.assertEqual(r_verify_ok.status_code, 200)
         r_mismatch = self.client.post(
             reverse('api_admin_reset_password'),
             data=json.dumps({
@@ -549,6 +556,11 @@ class AdminDashboardReportsTests(TestCase):
         self.assertContains(response, "Catalog Valuation & Stock Health")
         self.assertContains(response, "Distributor Performance & Revenue Rankings")
         self.assertContains(response, "Recent System Transactions & Invoice Audit")
+        self.assertContains(response, 'id="adminRevenueTrendChart"')
+        self.assertContains(response, 'id="adminDistributorBarChart"')
+        self.assertContains(response, 'id="adminSettlementDonut"')
+        self.assertContains(response, 'id="adminStockDonut"')
+        self.assertIn("trend_chart_data", response.context)
 
         # Verify accurate calculated context metrics
         ctx = response.context
@@ -797,7 +809,8 @@ class AdminDistributorLoginBackendTests(TestCase):
         self.assertEqual(auth_data["user"]["username"], "master_admin")
         self.assertEqual(auth_data["user"]["role"], "admin")
         self.assertEqual(auth_data["user"]["role_display"], "Administrator")
-        self.assertTrue(len(auth_data["session_key"]) > 0)
+        self.assertTrue(auth_data["has_active_session"])
+        self.assertNotIn("session_key", auth_data)
 
 
 class RouteProtectionAndLoginLogoutFlowTests(TestCase):
@@ -950,6 +963,175 @@ class DatabaseInvoiceIntegrityTests(TestCase):
         self.assertEqual(inv.total_amount, Decimal("1770.00"))
         self.assertIsNotNone(inv.invoice_date)
         self.assertIsNotNone(inv.created_at)
+
+
+class SecurityHardeningAndAdminControlTests(TestCase):
+    """Verify security hardening, OTP protections, CSV sanitization, business profile, and admin controls."""
+
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_user(
+            username="sec_admin",
+            email="sec_admin@billing.local",
+            password="StrongAdmin@2026!",
+            first_name="Security Admin",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.distributor = User.objects.create_user(
+            username="sec_dist",
+            email="sec_dist@billing.local",
+            password="StrongDist@2026!",
+            first_name="Security Distributor",
+        )
+        DistributorProfile.objects.create(user=self.distributor, phone="9876543210")
+
+    def test_admin_register_locked_down_when_admin_exists(self):
+        # Unauthenticated API call -> 401
+        res_api_anon = self.client.post(
+            reverse("admin_register_api"),
+            data=json.dumps({
+                "username": "rogue_admin",
+                "email": "rogue@evil.com",
+                "password": "RoguePassword@2026",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(res_api_anon.status_code, 401)
+        self.assertFalse(User.objects.filter(username="rogue_admin").exists())
+
+        # Unauthenticated frontend -> redirect to login
+        res_ui_anon = self.client.get(reverse("admin_register"))
+        self.assertRedirects(res_ui_anon, reverse("login"))
+
+        # Logged in as distributor -> 403 on API, redirect on UI
+        self.client.login(username="sec_dist", password="StrongDist@2026!")
+        res_api_dist = self.client.post(
+            reverse("admin_register_api"),
+            data=json.dumps({
+                "username": "rogue_admin2",
+                "email": "rogue2@evil.com",
+                "password": "RoguePassword@2026",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(res_api_dist.status_code, 403)
+        res_ui_dist = self.client.get(reverse("admin_register"))
+        self.assertRedirects(res_ui_dist, reverse("distributor_dashboard"))
+
+        # Logged in as existing Admin -> succeeds (201)
+        self.client.logout()
+        self.client.login(username="sec_admin", password="StrongAdmin@2026!")
+        res_api_ok = self.client.post(
+            reverse("admin_register_api"),
+            data=json.dumps({
+                "username": "approved_admin",
+                "email": "approved_admin@billing.local",
+                "password": "ApprovedAdmin@2026!",
+                "name": "Approved Admin",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(res_api_ok.status_code, 201)
+        self.assertTrue(User.objects.filter(username="approved_admin", is_staff=True).exists())
+
+    def test_otp_bruteforce_lockout_and_session_binding(self):
+        self.client.post(reverse("forgot_password"), {"email": "sec_dist@billing.local"})
+        otp_obj = PasswordResetOTP.objects.get(email="sec_dist@billing.local")
+
+        # 5 wrong guesses should lock and delete OTP
+        for _ in range(PasswordResetOTP.MAX_ATTEMPTS):
+            res = self.client.post(reverse("verify_otp"), {
+                "email": "sec_dist@billing.local",
+                "otp": "000000" if otp_obj.otp != "000000" else "999999",
+            })
+        self.assertContains(res, "Too many failed OTP attempts")
+        self.assertFalse(PasswordResetOTP.objects.filter(email="sec_dist@billing.local").exists())
+
+        # Even if a verified OTP record exists in DB, a separate session cannot reset the password
+        PasswordResetOTP.objects.create(
+            email="sec_dist@billing.local",
+            otp="123456",
+            expires_at=timezone.now() + timedelta(minutes=5),
+            is_verified=True,
+        )
+        res_hijack = self.client.post(reverse("reset_password"), {
+            "email": "sec_dist@billing.local",
+            "password": "HijackPassword@2026!",
+            "confirm_password": "HijackPassword@2026!",
+        })
+        self.assertEqual(res_hijack.status_code, 200)
+        self.assertContains(res_hijack, "expired or invalid")
+        self.distributor.refresh_from_db()
+        self.assertTrue(self.distributor.check_password("StrongDist@2026!"))
+
+    def test_no_hardcoded_admin_password_in_error_messages(self):
+        res = self.client.post(reverse("login"), {
+            "username": "sec_dist",
+            "password": "StrongDist@2026!",
+            "selected_role": "admin",
+        })
+        self.assertNotContains(res, "Admin@123")
+
+    def test_csv_formula_injection_sanitized(self):
+        from billing.models import Customer, Invoice
+        evil_cust = Customer.objects.create(
+            distributor=self.distributor,
+            name="=CMD|' /C calc'!A0",
+            phone="9876543211",
+            city="Ahmedabad",
+            state="Gujarat",
+            pincode="380001",
+        )
+        Invoice.objects.create(
+            invoice_number="INV-CSV-001",
+            customer=evil_cust,
+            distributor=self.distributor,
+            subtotal=Decimal("100.00"),
+            gst_amount=Decimal("18.00"),
+            total_amount=Decimal("118.00"),
+            status="Paid",
+        )
+        self.client.login(username="sec_admin", password="StrongAdmin@2026!")
+        res = self.client.get(reverse("admin_dashboard") + "?export=csv")
+        self.assertEqual(res.status_code, 200)
+        csv_text = res.content.decode("utf-8")
+        self.assertIn("'=CMD|", csv_text)
+
+    def test_admin_toggle_distributor_active_and_business_profile_update(self):
+        self.client.login(username="sec_admin", password="StrongAdmin@2026!")
+        res = self.client.post(reverse("admin_toggle_distributor_active", kwargs={"pk": self.distributor.pk}))
+        self.assertRedirects(res, reverse("admin_dashboard"))
+        self.distributor.refresh_from_db()
+        self.assertFalse(self.distributor.is_active)
+
+        # Reactivate
+        self.client.post(reverse("admin_toggle_distributor_active", kwargs={"pk": self.distributor.pk}))
+        self.distributor.refresh_from_db()
+        self.assertTrue(self.distributor.is_active)
+
+        # Distributor profile business GST/UPI fields update
+        self.client.logout()
+        self.client.login(username="sec_dist", password="StrongDist@2026!")
+        res_prof = self.client.post(reverse("distributor_profile"), {
+            "action": "update_profile",
+            "name": "Security Distributor",
+            "email": "sec_dist@billing.local",
+            "phone": "9876543210",
+            "business_name": "Apex Distributors LLP",
+            "gstin": "24ABCDE1234F1Z5",
+            "upi_id": "apexdist@okicici",
+            "city": "Surat",
+            "state": "Gujarat",
+            "address": "Ring Road",
+        })
+        self.assertEqual(res_prof.status_code, 200)
+        profile = DistributorProfile.objects.get(user=self.distributor)
+        self.assertEqual(profile.business_name, "Apex Distributors LLP")
+        self.assertEqual(profile.gstin, "24ABCDE1234F1Z5")
+        self.assertEqual(profile.upi_id, "apexdist@okicici")
+        self.assertEqual(profile.state, "Gujarat")
+
 
 
 

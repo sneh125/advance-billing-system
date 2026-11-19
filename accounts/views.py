@@ -1,23 +1,56 @@
-import secrets
+import base64
+import csv
+import hmac
 import json
+import re
+import secrets
 from datetime import timedelta
 from decimal import Decimal
-import csv
 
-from django.shortcuts import render, redirect
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core.validators import validate_email
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import IntegrityError
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum, Value
+from django.db.models.functions import Coalesce
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.contrib import messages
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.csrf import csrf_exempt
 
-from .models import PasswordResetOTP, DistributorProfile
-from .utils import send_otp_email
+from .decorators import admin_required
+from .models import DistributorProfile, PasswordResetOTP
+from .utils import sanitize_csv_cell, send_otp_email
+
+
+GSTIN_REGEX = re.compile(r"^[0-9A-Z]{15}$")
+
+
+def _authenticate_basic_header(request):
+    """Extract and authenticate a user from HTTP Basic Authorization header if present."""
+    auth_header = request.headers.get("Authorization") or request.META.get("HTTP_AUTHORIZATION", "")
+    if auth_header.startswith("Basic "):
+        try:
+            decoded = base64.b64decode(auth_header[6:].strip()).decode("utf-8")
+            username, password = decoded.split(":", 1)
+            return authenticate(request, username=username, password=password)
+        except Exception:
+            return None
+    return None
+
+
+def _validate_profile_business_fields(gstin, upi_id):
+    """Validate optional GSTIN and UPI VPA fields for distributor profiles."""
+    if gstin and not GSTIN_REGEX.match(gstin.upper()):
+        return "Please enter a valid 15-character alphanumeric GSTIN (e.g., 24ABCDE1234F1Z5)."
+    if upi_id and ("@" not in upi_id or " " in upi_id or len(upi_id) < 5):
+        return "Please enter a valid UPI ID (e.g., business@upi)."
+    return None
 
 
 # DISTRIBUTOR REGISTRATION
@@ -103,7 +136,7 @@ def register_view(request):
                 }
             )
 
-        # Password length
+        # Password length & Django strength validation
         if len(password) < 8:
             return render(
                 request,
@@ -116,10 +149,21 @@ def register_view(request):
                 }
             )
 
-        # -----------------------------
-        # Email format validation
-        # -----------------------------
+        try:
+            validate_password(password)
+        except ValidationError as exc:
+            return render(
+                request,
+                "accounts/register.html",
+                {
+                    "error": exc.messages[0],
+                    "name": name,
+                    "email": email,
+                    "phone": phone,
+                }
+            )
 
+        # Email format validation
         try:
             validate_email(email)
         except ValidationError:
@@ -158,7 +202,6 @@ def register_view(request):
 
         # Create user
         try:
-
             user = User.objects.create_user(
                 username=username,
                 email=email,
@@ -177,7 +220,6 @@ def register_view(request):
                 phone=phone
             )
 
-            # Registration success message
             messages.success(
                 request,
                 "Distributor account created successfully. Please login."
@@ -185,7 +227,6 @@ def register_view(request):
             return redirect("login")
 
         except IntegrityError:
-
             return render(
                 request,
                 "accounts/register.html",
@@ -257,11 +298,15 @@ def login_view(request):
     Task 52: Admin and Distributor Login Backend Controller.
     Handles session authentication, role differentiation, next redirects, and flash alerts.
     """
-    # Already logged in: redirect to respective role dashboard
+    # Allow explicit role switch via ?role=admin or ?role=distributor
+    requested_role_param = request.GET.get("role", "").strip().lower()
     if request.user.is_authenticated:
-        if request.user.is_staff or request.user.is_superuser:
-            return redirect("admin_dashboard")
-        return redirect("distributor_dashboard")
+        if requested_role_param in ("admin", "distributor"):
+            logout(request)
+        else:
+            if request.user.is_staff or request.user.is_superuser:
+                return redirect("admin_dashboard")
+            return redirect("distributor_dashboard")
 
     next_url = request.POST.get("next") or request.GET.get("next") or ""
 
@@ -269,8 +314,24 @@ def login_view(request):
         identifier = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
         remember_me = request.POST.get("remember_me")
+        selected_role = request.POST.get("selected_role", "").strip().lower()
 
         user, error_msg, role = _authenticate_admin_or_distributor(identifier, password, request)
+
+        if not error_msg and selected_role == "admin" and role != "admin":
+            return render(
+                request,
+                "accounts/login.html",
+                {
+                    "error": (
+                        f"Account '{user.username}' is a Distributor account without Administrator privileges. "
+                        "Please sign in with an authorized Administrator account."
+                    ),
+                    "username": identifier,
+                    "selected_role": "admin",
+                    "next": next_url,
+                }
+            )
 
         if error_msg:
             return render(
@@ -279,6 +340,7 @@ def login_view(request):
                 {
                     "error": error_msg,
                     "username": identifier,
+                    "selected_role": selected_role,
                     "next": next_url,
                 }
             )
@@ -300,8 +362,16 @@ def login_view(request):
 
         messages.success(request, f"Welcome back, {user.first_name or user.username}! You are logged in as {role_display}.")
 
-        # Safe next URL redirect
-        if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+        # Safe next URL redirect (prevent open redirect & cross-role dashboard bounce)
+        if next_url and url_has_allowed_host_and_scheme(
+            url=next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            if role == "admin" and (selected_role == "admin" or next_url.startswith("/distributor")):
+                return redirect("admin_dashboard")
+            if role == "distributor" and next_url.startswith("/admin"):
+                return redirect("distributor_dashboard")
             return redirect(next_url)
 
         if role == "admin":
@@ -312,7 +382,8 @@ def login_view(request):
         request,
         "accounts/login.html",
         {
-            "next": next_url
+            "next": next_url,
+            "selected_role": requested_role_param if requested_role_param in ("admin", "distributor") else "",
         }
     )
 
@@ -376,15 +447,16 @@ def login_api_view(request):
 def session_status_api(request):
     """
     Task 54: Session Authentication Inspector API.
-    Inspects active session cookie, authentication state, expiry age, and role.
+    Returns authentication state, expiry age, and role WITHOUT exposing raw session_key
+    (preserving HttpOnly cookie protection against XSS session theft).
     """
     is_authenticated = request.user.is_authenticated
-    session_key = request.session.session_key or ""
+    has_active_session = bool(request.session.session_key)
     expiry_age = request.session.get_expiry_age()
 
     data = {
         "authenticated": is_authenticated,
-        "session_key": session_key,
+        "has_active_session": has_active_session,
         "expiry_seconds": expiry_age,
         "session_cookie_name": "advance_billing_sessionid",
     }
@@ -404,6 +476,7 @@ def session_status_api(request):
 
     return JsonResponse(data, status=200)
 
+
 # LOGOUT
 
 @login_required
@@ -415,13 +488,14 @@ def logout_view(request):
     messages.info(request, "You have been logged out successfully.")
     return redirect("login")
 
+
 # OTP GENERATOR
 
 def generate_otp():
-
     return str(
         secrets.randbelow(900000) + 100000
     )
+
 
 # FORGOT PASSWORD - SEND OTP
 
@@ -429,28 +503,32 @@ def forgot_password(request):
 
     if request.method == "POST":
 
-        email = request.POST.get(
-            "email",
-            ""
-        ).strip().lower()
+        email = request.POST.get("email", "").strip().lower()
 
-        # Email required
         if not email:
             return render(
                 request,
                 "accounts/forgot_password.html",
-                {
-                    "error": "Please enter your email address."
-                }
+                {"error": "Please enter your email address."}
             )
 
-        # Check if account exists
-        if not User.objects.filter(email=email).exists():
+        user_obj = User.objects.filter(email=email).first()
+        if not user_obj:
             return render(
                 request,
                 "accounts/forgot_password.html",
                 {
                     "error": "No account found with this email address.",
+                    "email": email
+                }
+            )
+
+        if user_obj.is_staff or user_obj.is_superuser:
+            return render(
+                request,
+                "accounts/forgot_password.html",
+                {
+                    "error": "Administrator accounts must use the Admin Password Recovery portal.",
                     "email": email
                 }
             )
@@ -471,12 +549,12 @@ def forgot_password(request):
             expires_at=expires_at
         )
 
-        # Send OTP email
-        user_obj = User.objects.filter(email=email).first()
-        user_name = user_obj.first_name if user_obj else "User"
-        send_otp_email(email=email, otp=otp, user_name=user_name, is_admin=False)
+        # Clear any stale reset session markers
+        request.session.pop("pwd_reset_email", None)
+        request.session.pop("pwd_reset_otp_id", None)
 
-        print(f"[AUTH] Generated OTP for {email}: {otp}")
+        # Send OTP email (never print plaintext OTP to console logs)
+        send_otp_email(email=email, otp=otp, user_name=user_obj.first_name or "User", is_admin=False)
 
         return render(
             request,
@@ -501,17 +579,9 @@ def verify_otp(request):
     if request.method != "POST":
         return redirect("forgot_password")
 
-    email = request.POST.get(
-        "email",
-        ""
-    ).strip().lower()
+    email = request.POST.get("email", "").strip().lower()
+    otp = request.POST.get("otp", "").strip()
 
-    otp = request.POST.get(
-        "otp",
-        ""
-    ).strip()
-
-    # Required fields
     if not email or not otp:
         return render(
             request,
@@ -527,11 +597,8 @@ def verify_otp(request):
     otp_record = PasswordResetOTP.objects.filter(
         email=email,
         is_verified=False
-    ).order_by(
-        "-created_at"
-    ).first()
+    ).order_by("-created_at").first()
 
-    # No OTP found
     if otp_record is None:
         return render(
             request,
@@ -543,20 +610,45 @@ def verify_otp(request):
             }
         )
 
-    # Check OTP value
-    if otp_record.otp != otp:
+    # Check brute-force attempt limit
+    if otp_record.failed_attempts >= PasswordResetOTP.MAX_ATTEMPTS:
+        otp_record.delete()
         return render(
             request,
             "accounts/forgot_password.html",
             {
-                "error": "Invalid OTP. Please check the code and try again.",
+                "error": "Too many failed OTP attempts. Please request a new OTP.",
+                "email": email,
+            }
+        )
+
+    # Constant-time OTP check
+    if not hmac.compare_digest(otp_record.otp, otp):
+        otp_record.failed_attempts += 1
+        otp_record.save(update_fields=["failed_attempts"])
+        remaining = PasswordResetOTP.MAX_ATTEMPTS - otp_record.failed_attempts
+        if remaining <= 0:
+            otp_record.delete()
+            return render(
+                request,
+                "accounts/forgot_password.html",
+                {
+                    "error": "Too many failed OTP attempts. Please request a new OTP.",
+                    "email": email,
+                }
+            )
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {
+                "error": f"Invalid OTP. Please check the code and try again ({remaining} attempts left).",
                 "email": email,
                 "otp_sent": True
             }
         )
 
     # Check expiry
-    if not otp_record.is_valid():
+    if timezone.now() > otp_record.expires_at:
         return render(
             request,
             "accounts/forgot_password.html",
@@ -567,11 +659,12 @@ def verify_otp(request):
             }
         )
 
-    # Mark OTP as verified
+    # Mark OTP as verified and bind to current session
     otp_record.is_verified = True
-    otp_record.save(
-        update_fields=["is_verified"]
-    )
+    otp_record.save(update_fields=["is_verified"])
+
+    request.session["pwd_reset_email"] = email
+    request.session["pwd_reset_otp_id"] = otp_record.id
 
     return render(
         request,
@@ -592,27 +685,28 @@ def resend_otp(request):
     if request.method != "POST":
         return redirect("forgot_password")
 
-    email = request.POST.get(
-        "email",
-        ""
-    ).strip().lower()
+    email = request.POST.get("email", "").strip().lower()
 
     if not email:
         return render(
             request,
             "accounts/forgot_password.html",
-            {
-                "error": "Please enter your email address."
-            }
+            {"error": "Please enter your email address."}
         )
 
-    if not User.objects.filter(email=email).exists():
+    user_obj = User.objects.filter(email=email).first()
+    if not user_obj:
         return render(
             request,
             "accounts/forgot_password.html",
-            {
-                "error": "No account found with this email address."
-            }
+            {"error": "No account found with this email address."}
+        )
+
+    if user_obj.is_staff or user_obj.is_superuser:
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {"error": "Administrator accounts must use the Admin Password Recovery portal."}
         )
 
     PasswordResetOTP.objects.filter(
@@ -629,12 +723,10 @@ def resend_otp(request):
         expires_at=expires_at
     )
 
-    # Send OTP email
-    user_obj = User.objects.filter(email=email).first()
-    user_name = user_obj.first_name if user_obj else "User"
-    send_otp_email(email=email, otp=otp, user_name=user_name, is_admin=False)
+    request.session.pop("pwd_reset_email", None)
+    request.session.pop("pwd_reset_otp_id", None)
 
-    print(f"[AUTH] RESEND OTP for {email}: {otp}")
+    send_otp_email(email=email, otp=otp, user_name=user_obj.first_name or "User", is_admin=False)
 
     return render(
         request,
@@ -670,13 +762,26 @@ def reset_password(request):
             }
         )
 
-    # Check verified OTP session
+    # Enforce session binding & verified unexpired OTP
+    session_email = request.session.get("pwd_reset_email")
+    session_otp_id = request.session.get("pwd_reset_otp_id")
+    if session_email != email or not session_otp_id:
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {
+                "error": "Verification session expired or invalid. Please request a new OTP.",
+                "email": email
+            }
+        )
+
     otp_record = PasswordResetOTP.objects.filter(
+        pk=session_otp_id,
         email=email,
         is_verified=True
-    ).order_by("-created_at").first()
+    ).first()
 
-    if not otp_record:
+    if not otp_record or not otp_record.is_reset_window_valid():
         return render(
             request,
             "accounts/forgot_password.html",
@@ -710,14 +815,28 @@ def reset_password(request):
             }
         )
 
-    user = User.objects.filter(email=email).first()
+    user = User.objects.filter(email=email, is_staff=False, is_superuser=False).first()
     if not user:
         return render(
             request,
             "accounts/forgot_password.html",
             {
-                "error": "No account associated with this email address.",
+                "error": "No distributor account associated with this email address.",
                 "email": email
+            }
+        )
+
+    try:
+        validate_password(password, user=user)
+    except ValidationError as exc:
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {
+                "error": exc.messages[0],
+                "email": email,
+                "otp_sent": True,
+                "otp_verified": True
             }
         )
 
@@ -725,8 +844,10 @@ def reset_password(request):
     user.set_password(password)
     user.save()
 
-    # Clear OTP records
+    # Clear OTP records & session binding
     PasswordResetOTP.objects.filter(email=email).delete()
+    request.session.pop("pwd_reset_email", None)
+    request.session.pop("pwd_reset_otp_id", None)
 
     messages.success(
         request,
@@ -741,10 +862,14 @@ def reset_password(request):
 def admin_dashboard(request):
     """
     Dedicated Admin Dashboard with Comprehensive System Reports & Analytics Suite.
-    Aggregates real-time financial metrics, GST tax audit, distributor performance summaries,
-    inventory catalog valuation, and CSV export capability.
+    Aggregates real-time financial metrics via SQL aggregations, GST tax audit,
+    distributor performance summaries, inventory catalog valuation, and safe CSV export.
     """
-    if not request.user.is_staff:
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(
+            request,
+            "Access restricted: You are signed in as a Distributor. Please sign in with an Administrator account to open the Admin Portal."
+        )
         return redirect("distributor_dashboard")
 
     from billing.models import Customer, Product, Invoice
@@ -771,80 +896,220 @@ def admin_dashboard(request):
         period = "all"
         invoices_filtered = invoices_qs
 
-    # Optional CSV Export
+    # Optional CSV Export (protected against CSV Formula Injection)
     if request.GET.get("export") == "csv":
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = f'attachment; filename="admin_sales_report_{period}_{now.strftime("%Y%m%d")}.csv"'
         writer = csv.writer(response)
-        writer.writerow(["Invoice Number", "Date", "Distributor", "Customer", "Subtotal (INR)", "GST (INR)", "Total Amount (INR)", "Status"])
+        writer.writerow(["Invoice Number", "Date", "Distributor", "Customer", "Subtotal (INR)", "GST (INR)", "Total Amount (INR)", "Status", "Payment Mode"])
         for inv in invoices_filtered.order_by("-created_at"):
             writer.writerow([
-                inv.invoice_number,
+                sanitize_csv_cell(inv.invoice_number),
                 inv.invoice_date.strftime("%Y-%m-%d %H:%M"),
-                inv.distributor.username,
-                inv.customer.name,
+                sanitize_csv_cell(inv.distributor.username),
+                sanitize_csv_cell(inv.customer.name),
                 f"{inv.subtotal:.2f}",
                 f"{inv.gst_amount:.2f}",
                 f"{inv.total_amount:.2f}",
-                inv.status
+                sanitize_csv_cell(inv.status),
+                sanitize_csv_cell(inv.payment_mode),
             ])
         return response
 
-    # 1. Financial & Revenue Report Aggregations
-    total_invoices_count = invoices_filtered.count()
-    gross_revenue = sum(inv.total_amount for inv in invoices_filtered)
-    total_tax_collected = sum(inv.gst_amount for inv in invoices_filtered)
-    net_taxable_subtotal = sum(inv.subtotal for inv in invoices_filtered)
+    # 1. Financial & Revenue Report Aggregations (SQL aggregate — exclude Cancelled from revenue)
+    active_invoices = invoices_filtered.exclude(status__iexact="Cancelled")
+    zero_dec = Value(Decimal("0.00"), output_field=DecimalField(max_digits=14, decimal_places=2))
+    fin_agg = active_invoices.aggregate(
+        total_invoices_count=Count("id"),
+        gross_revenue=Coalesce(Sum("total_amount"), zero_dec),
+        total_tax_collected=Coalesce(Sum("gst_amount"), zero_dec),
+        net_taxable_subtotal=Coalesce(Sum("subtotal"), zero_dec),
+        paid_invoices_count=Count("id", filter=Q(status__iexact="Paid")),
+        paid_revenue=Coalesce(Sum("total_amount", filter=Q(status__iexact="Paid")), zero_dec),
+        pending_invoices_count=Count("id", filter=Q(status__iexact="Pending")),
+        pending_revenue=Coalesce(Sum("total_amount", filter=Q(status__iexact="Pending")), zero_dec),
+    )
+    cancelled_invoices_count = invoices_filtered.filter(status__iexact="Cancelled").count()
 
-    paid_invoices_qs = invoices_filtered.filter(status__iexact="Paid")
-    paid_invoices_count = paid_invoices_qs.count()
-    paid_revenue = sum(inv.total_amount for inv in paid_invoices_qs)
-
-    pending_invoices_qs = invoices_filtered.filter(status__iexact="Pending")
-    pending_invoices_count = pending_invoices_qs.count()
-    pending_revenue = sum(inv.total_amount for inv in pending_invoices_qs)
+    total_invoices_count = fin_agg["total_invoices_count"]
+    gross_revenue = fin_agg["gross_revenue"]
+    total_tax_collected = fin_agg["total_tax_collected"]
+    net_taxable_subtotal = fin_agg["net_taxable_subtotal"]
+    paid_invoices_count = fin_agg["paid_invoices_count"]
+    paid_revenue = fin_agg["paid_revenue"]
+    pending_invoices_count = fin_agg["pending_invoices_count"]
+    pending_revenue = fin_agg["pending_revenue"]
 
     avg_invoice_value = (gross_revenue / total_invoices_count) if total_invoices_count > 0 else Decimal("0.00")
 
-    # Ratio calculation for paid vs pending progress bar
     paid_percentage = 0
     pending_percentage = 0
     if gross_revenue > 0:
         paid_percentage = round((float(paid_revenue) / float(gross_revenue)) * 100, 1)
         pending_percentage = round((float(pending_revenue) / float(gross_revenue)) * 100, 1)
 
-    # 2. Distributor Performance Report
+    # 2. Distributor Performance Report (Batched SQL aggregations instead of N+1 queries)
+    dist_inv_stats = {
+        row["distributor_id"]: row
+        for row in active_invoices.values("distributor_id").annotate(
+            invoice_count=Count("id"),
+            revenue=Coalesce(Sum("total_amount"), zero_dec),
+        )
+    }
+    dist_cust_stats = {
+        row["distributor_id"]: row["cnt"]
+        for row in customers_qs.values("distributor_id").annotate(cnt=Count("id"))
+    }
+    dist_prod_stats = {
+        row["distributor_id"]: row["cnt"]
+        for row in products_qs.values("distributor_id").annotate(cnt=Count("id"))
+    }
+
     distributor_reports = []
     for dist in distributors_qs:
-        dist_inv = invoices_filtered.filter(distributor=dist)
-        dist_rev = sum(i.total_amount for i in dist_inv)
-        dist_cust_count = customers_qs.filter(distributor=dist).count()
-        dist_prod_count = products_qs.filter(distributor=dist).count()
+        inv_stat = dist_inv_stats.get(dist.id, {})
+        dist_rev = inv_stat.get("revenue", Decimal("0.00"))
+        dist_inv_count = inv_stat.get("invoice_count", 0)
         phone = dist.distributor_profile.phone if hasattr(dist, "distributor_profile") else ""
         distributor_reports.append({
             "user": dist,
             "phone": phone,
-            "invoice_count": dist_inv.count(),
+            "invoice_count": dist_inv_count,
             "revenue": dist_rev,
-            "customer_count": dist_cust_count,
-            "product_count": dist_prod_count,
+            "customer_count": dist_cust_stats.get(dist.id, 0),
+            "product_count": dist_prod_stats.get(dist.id, 0),
             "is_active": dist.is_active,
         })
     distributor_reports.sort(key=lambda x: x["revenue"], reverse=True)
 
-    # 3. Inventory & Catalog Stock Health
-    total_products_count = products_qs.count()
-    low_stock_products_count = products_qs.filter(stock__gt=0, stock__lte=10).count()
-    out_of_stock_products_count = products_qs.filter(stock=0).count()
-    in_stock_products_count = products_qs.filter(stock__gt=10).count()
-    total_inventory_valuation = sum((p.price * p.stock) for p in products_qs)
+    max_dist_rev = max((float(d["revenue"]) for d in distributor_reports), default=0.0)
+    for d in distributor_reports:
+        rev_f = float(d["revenue"])
+        d["bar_pct"] = round((rev_f / max_dist_rev) * 100, 1) if max_dist_rev > 0 else 0
+        d["share_pct"] = round((rev_f / float(gross_revenue)) * 100, 1) if gross_revenue > 0 else 0
+
+    # Time-series Revenue & GST Trend Chart buckets (only non-cancelled invoices)
+    all_invoices_list = list(
+        Invoice.objects.exclude(status__iexact="Cancelled").only("invoice_date", "total_amount", "subtotal", "gst_amount")
+    )
+    trend_chart_data = []
+    if period in ("week", "today"):
+        for i in reversed(range(7)):
+            b_date = (now - timedelta(days=i)).date()
+            bucket_invs = [inv for inv in all_invoices_list if inv.invoice_date.date() == b_date]
+            b_rev = sum((inv.total_amount for inv in bucket_invs), Decimal("0.00"))
+            b_sub = sum((inv.subtotal for inv in bucket_invs), Decimal("0.00"))
+            b_gst = sum((inv.gst_amount for inv in bucket_invs), Decimal("0.00"))
+            trend_chart_data.append({
+                "label": b_date.strftime("%d %b"),
+                "revenue": float(b_rev),
+                "subtotal": float(b_sub),
+                "gst": float(b_gst),
+                "count": len(bucket_invs),
+            })
+    elif period == "month":
+        for k in range(6):
+            w_start = (now - timedelta(days=29 - k * 5)).date()
+            w_end = now.date() if k == 5 else (now - timedelta(days=25 - k * 5)).date()
+            bucket_invs = [inv for inv in all_invoices_list if w_start <= inv.invoice_date.date() <= w_end]
+            b_rev = sum((inv.total_amount for inv in bucket_invs), Decimal("0.00"))
+            b_sub = sum((inv.subtotal for inv in bucket_invs), Decimal("0.00"))
+            b_gst = sum((inv.gst_amount for inv in bucket_invs), Decimal("0.00"))
+            trend_chart_data.append({
+                "label": w_start.strftime("%d %b"),
+                "revenue": float(b_rev),
+                "subtotal": float(b_sub),
+                "gst": float(b_gst),
+                "count": len(bucket_invs),
+            })
+    else:
+        cur_y, cur_m = now.year, now.month
+        for offset in reversed(range(6)):
+            total_months = (cur_y * 12 + (cur_m - 1)) - offset
+            b_y, b_m = divmod(total_months, 12)
+            b_m += 1
+            b_date = now.date().replace(year=b_y, month=b_m, day=1)
+            bucket_invs = [
+                inv for inv in all_invoices_list
+                if inv.invoice_date.year == b_y and inv.invoice_date.month == b_m
+            ]
+            b_rev = sum((inv.total_amount for inv in bucket_invs), Decimal("0.00"))
+            b_sub = sum((inv.subtotal for inv in bucket_invs), Decimal("0.00"))
+            b_gst = sum((inv.gst_amount for inv in bucket_invs), Decimal("0.00"))
+            trend_chart_data.append({
+                "label": b_date.strftime("%b %Y"),
+                "revenue": float(b_rev),
+                "subtotal": float(b_sub),
+                "gst": float(b_gst),
+                "count": len(bucket_invs),
+            })
+
+    max_trend_rev = max((b["revenue"] for b in trend_chart_data), default=0.0)
+    for b in trend_chart_data:
+        if max_trend_rev > 0:
+            b["rev_pct"] = round((b["revenue"] / max_trend_rev) * 100, 1)
+            b["gst_pct"] = round((b["gst"] / max_trend_rev) * 100, 1)
+        else:
+            b["rev_pct"] = 0
+            b["gst_pct"] = 0
+
+    # 3. Inventory & Catalog Stock Health (Single SQL Aggregate)
+    inv_val_expr = ExpressionWrapper(
+        F("price") * F("stock"),
+        output_field=DecimalField(max_digits=16, decimal_places=2),
+    )
+    prod_agg = products_qs.aggregate(
+        total_products_count=Count("id"),
+        low_stock_products_count=Count("id", filter=Q(stock__gt=0, stock__lte=10)),
+        out_of_stock_products_count=Count("id", filter=Q(stock=0)),
+        in_stock_products_count=Count("id", filter=Q(stock__gt=10)),
+        total_inventory_valuation=Coalesce(Sum(inv_val_expr), zero_dec),
+    )
+    total_products_count = prod_agg["total_products_count"]
+    low_stock_products_count = prod_agg["low_stock_products_count"]
+    out_of_stock_products_count = prod_agg["out_of_stock_products_count"]
+    in_stock_products_count = prod_agg["in_stock_products_count"]
+    total_inventory_valuation = prod_agg["total_inventory_valuation"]
+
+    if total_products_count > 0:
+        in_stock_pct = round((in_stock_products_count / total_products_count) * 100, 1)
+        low_stock_pct = round((low_stock_products_count / total_products_count) * 100, 1)
+        out_of_stock_pct = round((out_of_stock_products_count / total_products_count) * 100, 1)
+    else:
+        in_stock_pct = 0.0
+        low_stock_pct = 0.0
+        out_of_stock_pct = 0.0
+
+    in_stock_end_pct = in_stock_pct
+    low_stock_end_pct = round(min(100.0, in_stock_pct + low_stock_pct), 1)
+
+    chart_payload = {
+        "trend": trend_chart_data,
+        "distributors": [
+            {
+                "name": d["user"].get_full_name() or d["user"].username,
+                "revenue": float(d["revenue"]),
+                "invoices": d["invoice_count"],
+                "share_pct": d["share_pct"],
+            }
+            for d in distributor_reports[:6]
+        ],
+    }
+    chart_json = json.dumps(chart_payload)
 
     # 4. Customer Directory Totals
-    total_customers_count = customers_qs.count()
-    active_customers_count = customers_qs.filter(is_active=True).count()
+    cust_agg = customers_qs.aggregate(
+        total_customers_count=Count("id"),
+        active_customers_count=Count("id", filter=Q(is_active=True)),
+    )
+    total_customers_count = cust_agg["total_customers_count"]
+    active_customers_count = cust_agg["active_customers_count"]
 
     # 5. Recent Invoices Ledger (latest 10)
     recent_invoices = invoices_filtered.order_by("-created_at")[:10]
+
+    total_distributors_count = len(distributor_reports)
+    active_distributors_count = sum(1 for d in distributor_reports if d["is_active"])
 
     context = {
         "period": period,
@@ -857,12 +1122,13 @@ def admin_dashboard(request):
         "paid_revenue": paid_revenue,
         "pending_invoices_count": pending_invoices_count,
         "pending_revenue": pending_revenue,
+        "cancelled_invoices_count": cancelled_invoices_count,
         "avg_invoice_value": avg_invoice_value,
         "paid_percentage": paid_percentage,
         "pending_percentage": pending_percentage,
         # System Overview KPIs
-        "total_distributors_count": distributors_qs.count(),
-        "active_distributors_count": distributors_qs.filter(is_active=True).count(),
+        "total_distributors_count": total_distributors_count,
+        "active_distributors_count": active_distributors_count,
         "total_customers_count": total_customers_count,
         "active_customers_count": active_customers_count,
         # Stock & Inventory
@@ -870,7 +1136,16 @@ def admin_dashboard(request):
         "low_stock_products_count": low_stock_products_count,
         "out_of_stock_products_count": out_of_stock_products_count,
         "in_stock_products_count": in_stock_products_count,
+        "in_stock_pct": in_stock_pct,
+        "low_stock_pct": low_stock_pct,
+        "out_of_stock_pct": out_of_stock_pct,
+        "in_stock_end_pct": in_stock_end_pct,
+        "low_stock_end_pct": low_stock_end_pct,
         "total_inventory_valuation": total_inventory_valuation,
+        # Charts & Visualizations
+        "trend_chart_data": trend_chart_data,
+        "chart_payload": chart_payload,
+        "chart_json": chart_json,
         # Detailed Tables
         "distributor_reports": distributor_reports,
         "recent_invoices": recent_invoices,
@@ -879,21 +1154,121 @@ def admin_dashboard(request):
     return render(request, "admin/dashboard.html", context)
 
 
+@admin_required
+def admin_toggle_distributor_active(request, pk):
+    """
+    Allow Administrators to activate or deactivate a distributor account via POST.
+    """
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("admin_dashboard")
+
+    distributor = get_object_or_404(User, pk=pk, is_staff=False, is_superuser=False)
+    distributor.is_active = not distributor.is_active
+    distributor.save(update_fields=["is_active"])
+    state_label = "activated" if distributor.is_active else "deactivated"
+    messages.success(request, f"Distributor '{distributor.username}' has been {state_label}.")
+    return redirect("admin_dashboard")
+
+
+@admin_required
+def admin_backup_db(request):
+    """
+    One-click Administrator database backup download.
+    Streams a JSON snapshot (?format=json or non-file DB) or a hot online SQLite
+    backup copy for safe disaster recovery.
+    """
+    import io
+    import os
+    import sqlite3
+    import tempfile
+    from django.conf import settings as dj_settings
+    from django.core.management import call_command
+
+    stamp = timezone.localtime(timezone.now()).strftime("%Y%m%d_%H%M%S")
+    req_format = (request.GET.get("format") or "json").strip().lower()
+    db_cfg = dj_settings.DATABASES["default"]
+    db_name = str(db_cfg.get("NAME", ""))
+
+    if req_format == "sqlite" and "sqlite3" in db_cfg.get("ENGINE", "") and db_name and os.path.isfile(db_name):
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".sqlite3")
+        os.close(tmp_fd)
+        try:
+            src = sqlite3.connect(db_name)
+            dst = sqlite3.connect(tmp_path)
+            with dst:
+                src.backup(dst)
+            dst.close()
+            src.close()
+            with open(tmp_path, "rb") as fh:
+                payload = fh.read()
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        response = HttpResponse(payload, content_type="application/x-sqlite3")
+        response["Content-Disposition"] = f'attachment; filename="advance_billing_backup_{stamp}.sqlite3"'
+        return response
+
+    buf = io.StringIO()
+    call_command("dumpdata", "auth.user", "accounts", "billing", indent=2, stdout=buf)
+    response = HttpResponse(buf.getvalue(), content_type="application/json; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="advance_billing_backup_{stamp}.json"'
+    return response
+
 
 # DISTRIBUTOR DASHBOARD
 
 @login_required
 def distributor_dashboard(request):
 
-    if request.user.is_staff:
+    if request.user.is_staff or request.user.is_superuser:
         return redirect("admin_dashboard")
 
-    from billing.models import Customer, Product, Invoice
+    from billing.models import Customer, Product, Invoice, Quotation
     total_customers = Customer.objects.filter(distributor=request.user).count()
-    total_products = Product.objects.filter(distributor=request.user).count()
-    invoices_qs = Invoice.objects.filter(distributor=request.user)
-    total_invoices = invoices_qs.count()
-    total_billed = sum(inv.total_amount for inv in invoices_qs)
+    products_qs = Product.objects.filter(distributor=request.user)
+    total_products = products_qs.count()
+    invoices_qs = Invoice.objects.filter(distributor=request.user).select_related("customer")
+    active_invoices_qs = invoices_qs.exclude(status__iexact="Cancelled")
+
+    zero_dec = Value(Decimal("0.00"), output_field=DecimalField(max_digits=14, decimal_places=2))
+    agg = active_invoices_qs.aggregate(
+        total_invoices=Count("id"),
+        total_billed=Coalesce(Sum("total_amount"), zero_dec),
+        total_gst_collected=Coalesce(Sum("gst_amount"), zero_dec),
+        paid_invoices_count=Count("id", filter=Q(status__iexact="Paid")),
+        partial_invoices_count=Count("id", filter=Q(status__iexact="Partial")),
+        pending_invoices_count=Count("id", filter=Q(status__iexact="Pending")),
+    )
+
+    total_invoices = agg["total_invoices"]
+    total_billed = agg["total_billed"]
+    total_gst_collected = agg["total_gst_collected"]
+    paid_invoices_count = agg["paid_invoices_count"]
+    partial_invoices_count = agg["partial_invoices_count"]
+    pending_invoices_count = agg["pending_invoices_count"]
+
+    # Compute exact cash received vs pending receivables (accounting for Partial bills) & overdue count
+    paid_revenue = Decimal("0.00")
+    pending_revenue = Decimal("0.00")
+    overdue_invoices_count = 0
+    for inv in active_invoices_qs.select_related(None).only("total_amount", "amount_paid", "status", "due_date"):
+        paid_revenue += inv.effective_amount_paid
+        pending_revenue += inv.balance_due
+        if inv.is_overdue:
+            overdue_invoices_count += 1
+
+    paid_percentage = 0
+    pending_percentage = 0
+    if total_billed > 0:
+        paid_percentage = round((float(paid_revenue) / float(total_billed)) * 100, 1)
+        pending_percentage = round((float(pending_revenue) / float(total_billed)) * 100, 1)
+
+    low_stock_qs = products_qs.filter(stock__lte=10).order_by("stock", "name")
+    low_stock_count = low_stock_qs.count()
+    low_stock_products = low_stock_qs[:5]
+    recent_invoices = invoices_qs.order_by("-created_at")[:5]
+    quotations_count = Quotation.objects.filter(distributor=request.user).exclude(status__iexact="Converted").count()
 
     return render(
         request,
@@ -903,6 +1278,19 @@ def distributor_dashboard(request):
             "total_products": total_products,
             "total_invoices": total_invoices,
             "total_billed": total_billed,
+            "total_gst_collected": total_gst_collected,
+            "paid_invoices_count": paid_invoices_count,
+            "partial_invoices_count": partial_invoices_count,
+            "pending_invoices_count": pending_invoices_count,
+            "overdue_invoices_count": overdue_invoices_count,
+            "quotations_count": quotations_count,
+            "paid_revenue": paid_revenue,
+            "pending_revenue": pending_revenue,
+            "paid_percentage": paid_percentage,
+            "pending_percentage": pending_percentage,
+            "low_stock_count": low_stock_count,
+            "low_stock_products": low_stock_products,
+            "recent_invoices": recent_invoices,
         }
     )
 
@@ -910,10 +1298,10 @@ def distributor_dashboard(request):
 @login_required
 def distributor_profile(request):
 
-    if request.user.is_staff:
+    if request.user.is_staff or request.user.is_superuser:
         return redirect("admin_dashboard")
 
-    # get_or_create: manually created users jinka profile nahi hai unke liye auto create karo
+    # Auto-create profile if missing
     profile, _ = DistributorProfile.objects.get_or_create(
         user=request.user,
         defaults={"phone": ""}
@@ -925,9 +1313,15 @@ def distributor_profile(request):
 
         if action == "update_profile":
 
-            name  = request.POST.get("name", "").strip()
+            name = request.POST.get("name", "").strip()
             email = request.POST.get("email", "").strip().lower()
             phone = request.POST.get("phone", "").strip()
+            business_name = request.POST.get("business_name", profile.business_name).strip()
+            gstin = request.POST.get("gstin", profile.gstin).strip().upper()
+            address = request.POST.get("address", profile.address).strip()
+            city = request.POST.get("city", profile.city).strip()
+            state = request.POST.get("state", profile.state).strip()
+            upi_id = request.POST.get("upi_id", profile.upi_id).strip()
 
             # Validate name
             if not name or len(name) < 3:
@@ -949,6 +1343,21 @@ def distributor_profile(request):
                     "profile": profile,
                     "error": "Please enter a valid email address."
                 })
+            try:
+                validate_email(email)
+            except ValidationError:
+                return render(request, "distributor/profile.html", {
+                    "profile": profile,
+                    "error": "Please enter a valid email address."
+                })
+
+            # Validate optional business GSTIN & UPI ID
+            biz_err = _validate_profile_business_fields(gstin, upi_id)
+            if biz_err:
+                return render(request, "distributor/profile.html", {
+                    "profile": profile,
+                    "error": biz_err
+                })
 
             # Check email duplicate (exclude current user)
             if User.objects.filter(
@@ -965,9 +1374,14 @@ def distributor_profile(request):
             request.user.save()
 
             profile.phone = phone
+            profile.business_name = business_name
+            profile.gstin = gstin
+            profile.address = address
+            profile.city = city
+            profile.state = state
+            profile.upi_id = upi_id
             profile.save()
 
-            # Refresh profile
             profile.refresh_from_db()
 
             return render(request, "distributor/profile.html", {
@@ -983,87 +1397,84 @@ def distributor_profile(request):
         }
     )
 
+
 @login_required
 def update_profile(request):
 
+    if request.user.is_staff or request.user.is_superuser:
+        return redirect("admin_dashboard")
+
     user = request.user
-    profile = user.distributor_profile
+    profile, _ = DistributorProfile.objects.get_or_create(
+        user=user,
+        defaults={"phone": ""}
+    )
 
     if request.method == "POST":
 
         name = request.POST.get("name", "").strip()
         email = request.POST.get("email", "").strip().lower()
         phone = request.POST.get("phone", "").strip()
+        business_name = request.POST.get("business_name", profile.business_name).strip()
+        gstin = request.POST.get("gstin", profile.gstin).strip().upper()
+        address = request.POST.get("address", profile.address).strip()
+        city = request.POST.get("city", profile.city).strip()
+        state = request.POST.get("state", profile.state).strip()
+        upi_id = request.POST.get("upi_id", profile.upi_id).strip()
 
-        # Required fields
+        ctx = {
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "business_name": business_name,
+            "gstin": gstin,
+            "address": address,
+            "city": city,
+            "state": state,
+            "upi_id": upi_id,
+        }
+
         if not name or not email or not phone:
-            return render(
-                request,
-                "distributor/update_profile.html",
-                {
-                    "error": "All fields are required.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+            ctx["error"] = "All fields are required."
+            return render(request, "distributor/update_profile.html", ctx)
 
-        # Name validation
         if len(name) < 3:
-            return render(
-                request,
-                "distributor/update_profile.html",
-                {
-                    "error": "Name must contain at least 3 characters.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+            ctx["error"] = "Name must contain at least 3 characters."
+            return render(request, "distributor/update_profile.html", ctx)
 
-        # Phone validation
         if not phone.isdigit() or len(phone) != 10:
-            return render(
-                request,
-                "distributor/update_profile.html",
-                {
-                    "error": "Please enter a valid 10-digit phone number.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+            ctx["error"] = "Please enter a valid 10-digit phone number."
+            return render(request, "distributor/update_profile.html", ctx)
 
-        # Email duplicate check
-        if User.objects.filter(
-            email=email
-        ).exclude(id=user.id).exists():
+        try:
+            validate_email(email)
+        except ValidationError:
+            ctx["error"] = "Please enter a valid email address."
+            return render(request, "distributor/update_profile.html", ctx)
 
-            return render(
-                request,
-                "distributor/update_profile.html",
-                {
-                    "error": "This email is already registered.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+        biz_err = _validate_profile_business_fields(gstin, upi_id)
+        if biz_err:
+            ctx["error"] = biz_err
+            return render(request, "distributor/update_profile.html", ctx)
 
-        # Update User
+        if User.objects.filter(email=email).exclude(id=user.id).exists():
+            ctx["error"] = "This email is already registered."
+            return render(request, "distributor/update_profile.html", ctx)
+
         user.first_name = name
         user.email = email
         user.save()
 
-        # Update Distributor Profile
         profile.phone = phone
+        profile.business_name = business_name
+        profile.gstin = gstin
+        profile.address = address
+        profile.city = city
+        profile.state = state
+        profile.upi_id = upi_id
         profile.save()
 
-        messages.success(
-            request,
-            "Profile updated successfully."
-        )
-
+        messages.success(request, "Profile updated successfully.")
         return redirect("distributor_profile")
 
     return render(
@@ -1073,34 +1484,48 @@ def update_profile(request):
             "name": user.first_name,
             "email": user.email,
             "phone": profile.phone,
+            "business_name": profile.business_name,
+            "gstin": profile.gstin,
+            "address": profile.address,
+            "city": profile.city,
+            "state": profile.state,
+            "upi_id": profile.upi_id,
         }
     )
 
 
 # ==============================================================================
-# ADMIN USER REGISTRATION API ENDPOINT
+# ADMIN USER REGISTRATION API ENDPOINT (LOCKED DOWN)
 # ==============================================================================
 
 @csrf_exempt
 def admin_register_api(request):
     """
     REST API endpoint for registering Admin users.
-    Accepts JSON or Form POST data:
-        - username (required, unique, min 3 chars)
-        - email (required, unique, valid email format)
-        - password (required, min 8 chars)
-        - first_name / name (optional, admin full name)
-    Creates User with is_staff=True, is_superuser=True.
-    Returns:
-        HTTP 201 Created with JSON on success
-        HTTP 400 Bad Request on validation failure
-        HTTP 405 Method Not Allowed for non-POST
+    Security policy:
+      - If at least one Admin already exists in the system, caller MUST be an
+        authenticated Admin (via session or HTTP Basic Auth).
+      - If zero Admins exist (initial bootstrap), allows creating the first Admin.
     """
     if request.method != "POST":
         return JsonResponse({
             "status": "error",
             "message": "Method not allowed. Only POST requests are supported."
         }, status=405)
+
+    # Enforce admin authorization once an administrator exists
+    if User.objects.filter(is_staff=True).exists():
+        caller = request.user if request.user.is_authenticated else _authenticate_basic_header(request)
+        if not caller:
+            return JsonResponse({
+                "status": "error",
+                "message": "Authentication required. Only existing administrators can register new admins."
+            }, status=401)
+        if not (caller.is_staff or caller.is_superuser):
+            return JsonResponse({
+                "status": "error",
+                "message": "Forbidden. Administrator privileges are required."
+            }, status=403)
 
     # Parse payload (supports both application/json and form-data)
     data = {}
@@ -1122,7 +1547,6 @@ def admin_register_api(request):
 
     errors = {}
 
-    # 1. Username validation
     if not username:
         errors["username"] = "Username is required."
     elif len(username) < 3:
@@ -1130,7 +1554,6 @@ def admin_register_api(request):
     elif User.objects.filter(username=username).exists():
         errors["username"] = "A user with this username already exists."
 
-    # 2. Email validation
     if not email:
         errors["email"] = "Email address is required."
     else:
@@ -1141,11 +1564,15 @@ def admin_register_api(request):
         if User.objects.filter(email=email).exists():
             errors["email"] = "An account with this email already exists."
 
-    # 3. Password validation
     if not password:
         errors["password"] = "Password is required."
     elif len(password) < 8:
         errors["password"] = "Password must be at least 8 characters long."
+    else:
+        try:
+            validate_password(password)
+        except ValidationError as exc:
+            errors["password"] = exc.messages[0]
 
     if errors:
         return JsonResponse({
@@ -1186,18 +1613,25 @@ def admin_register_api(request):
 
 
 # ==============================================================================
-# ADMIN FRONTEND REGISTRATION VIEW
+# ADMIN FRONTEND REGISTRATION VIEW (LOCKED DOWN)
 # ==============================================================================
 
 def admin_register_view(request):
     """
     Frontend view for Admin registration.
-    Renders admin_register.html on GET.
-    Processes submission, validates input, and provisions Admin user on POST.
+    Security policy:
+      - If an Admin already exists, ONLY an authenticated Admin can access this view.
+      - If zero Admins exist (initial bootstrap), allows creating the first Admin.
     """
-    if request.user.is_authenticated:
-        if request.user.is_staff:
-            return redirect("admin_dashboard")
+    admins_exist = User.objects.filter(is_staff=True).exists()
+    if admins_exist:
+        if not request.user.is_authenticated:
+            messages.error(request, "Admin registration is restricted. Please sign in as an Administrator.")
+            return redirect("login")
+        if not (request.user.is_staff or request.user.is_superuser):
+            messages.error(request, "Access restricted to Administrator accounts.")
+            return redirect("distributor_dashboard")
+    elif request.user.is_authenticated and not (request.user.is_staff or request.user.is_superuser):
         return redirect("distributor_dashboard")
 
     if request.method == "POST":
@@ -1213,17 +1647,14 @@ def admin_register_view(request):
             "email": email,
         }
 
-        # Required fields validation
         if not all([name, username, email, password, confirm_password]):
             context["error"] = "Please fill in all required fields."
             return render(request, "accounts/admin_register.html", context)
 
-        # Name length validation
         if len(name) < 3:
             context["error"] = "Full name must be at least 3 characters long."
             return render(request, "accounts/admin_register.html", context)
 
-        # Username validation
         if len(username) < 3:
             context["error"] = "Username must be at least 3 characters long."
             return render(request, "accounts/admin_register.html", context)
@@ -1232,7 +1663,6 @@ def admin_register_view(request):
             context["error"] = "An account with this username already exists."
             return render(request, "accounts/admin_register.html", context)
 
-        # Email validation
         try:
             validate_email(email)
         except ValidationError:
@@ -1243,13 +1673,18 @@ def admin_register_view(request):
             context["error"] = "An account with this email already exists."
             return render(request, "accounts/admin_register.html", context)
 
-        # Password validation
         if len(password) < 8:
             context["error"] = "Password must be at least 8 characters long."
             return render(request, "accounts/admin_register.html", context)
 
         if password != confirm_password:
             context["error"] = "Passwords do not match."
+            return render(request, "accounts/admin_register.html", context)
+
+        try:
+            validate_password(password)
+        except ValidationError as exc:
+            context["error"] = exc.messages[0]
             return render(request, "accounts/admin_register.html", context)
 
         try:
@@ -1267,6 +1702,8 @@ def admin_register_view(request):
                 request,
                 f"Administrator account '{username}' registered successfully! Please sign in."
             )
+            if request.user.is_authenticated and request.user.is_staff:
+                return redirect("admin_dashboard")
             return redirect("login")
 
         except Exception as e:
@@ -1304,7 +1741,6 @@ def admin_forgot_password(request):
                 return JsonResponse({"status": "error", "message": error_msg}, status=400)
             return render(request, "accounts/forgot_password.html", {"error": error_msg, "is_admin": True})
 
-        # Check if user exists and verify admin role (is_staff=True)
         user = User.objects.filter(email=email).first()
         if not user:
             error_msg = "No administrator account found with this email address."
@@ -1326,10 +1762,10 @@ def admin_forgot_password(request):
         expires_at = timezone.now() + timedelta(minutes=5)
         PasswordResetOTP.objects.create(email=email, otp=otp, expires_at=expires_at)
 
-        # Send OTP email for Administrator
-        send_otp_email(email=email, otp=otp, user_name=user.first_name, is_admin=True)
+        request.session.pop("admin_pwd_reset_email", None)
+        request.session.pop("admin_pwd_reset_otp_id", None)
 
-        print(f"[AUTH-ADMIN] Generated Password Recovery OTP for Admin {email}: {otp}")
+        send_otp_email(email=email, otp=otp, user_name=user.first_name, is_admin=True)
 
         success_msg = f"A 6-digit admin verification code has been generated for {email}."
         if request.content_type == "application/json":
@@ -1354,7 +1790,7 @@ def admin_forgot_password(request):
 def admin_verify_otp(request):
     """
     Backend logic for Admin password recovery - Step 2: Verify OTP.
-    Validates OTP matches and is not expired, ensuring admin role.
+    Enforces attempt limits, constant-time OTP check, expiry, and session binding.
     """
     if request.method != "POST":
         return redirect("admin_forgot_password")
@@ -1377,7 +1813,6 @@ def admin_verify_otp(request):
             return JsonResponse({"status": "error", "message": error_msg}, status=400)
         return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "is_admin": True})
 
-    # Verify admin role
     admin_user = User.objects.filter(email=email, is_staff=True).first()
     if not admin_user:
         error_msg = "Administrator privilege verification failed for this account."
@@ -1387,21 +1822,45 @@ def admin_verify_otp(request):
 
     otp_record = PasswordResetOTP.objects.filter(email=email, is_verified=False).order_by("-created_at").first()
 
-    if not otp_record or otp_record.otp != otp:
+    if not otp_record:
         error_msg = "Invalid OTP code. Please verify and try again."
         if request.content_type == "application/json":
             return JsonResponse({"status": "error", "message": error_msg}, status=400)
         return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "is_admin": True})
 
-    if not otp_record.is_valid():
+    if otp_record.failed_attempts >= PasswordResetOTP.MAX_ATTEMPTS:
+        otp_record.delete()
+        error_msg = "Too many failed OTP attempts. Please request a new code."
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=429)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "is_admin": True})
+
+    if not hmac.compare_digest(otp_record.otp, otp):
+        otp_record.failed_attempts += 1
+        otp_record.save(update_fields=["failed_attempts"])
+        if otp_record.failed_attempts >= PasswordResetOTP.MAX_ATTEMPTS:
+            otp_record.delete()
+            error_msg = "Too many failed OTP attempts. Please request a new code."
+            status_code = 429
+        else:
+            error_msg = "Invalid OTP code. Please verify and try again."
+            status_code = 400
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=status_code)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "is_admin": True})
+
+    if timezone.now() > otp_record.expires_at:
         error_msg = "OTP has expired. Please request a new code."
         if request.content_type == "application/json":
             return JsonResponse({"status": "error", "message": error_msg}, status=400)
         return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "is_admin": True})
 
-    # Mark OTP as verified
+    # Mark OTP as verified and bind to current session
     otp_record.is_verified = True
     otp_record.save(update_fields=["is_verified"])
+
+    request.session["admin_pwd_reset_email"] = email
+    request.session["admin_pwd_reset_otp_id"] = otp_record.id
 
     success_msg = "Administrator OTP verified successfully. You may now reset your password."
     if request.content_type == "application/json":
@@ -1425,7 +1884,7 @@ def admin_verify_otp(request):
 def admin_reset_password(request):
     """
     Backend logic for Admin password recovery - Step 3: Set New Password.
-    Verifies valid verified OTP session, updates admin password, clears OTP records.
+    Verifies session-bound verified & unexpired OTP, updates admin password, clears OTP records.
     """
     if request.method != "POST":
         return redirect("admin_forgot_password")
@@ -1449,15 +1908,25 @@ def admin_reset_password(request):
             return JsonResponse({"status": "error", "message": error_msg}, status=400)
         return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "otp_verified": True, "is_admin": True})
 
-    # Verify that a verified OTP session exists
-    otp_record = PasswordResetOTP.objects.filter(email=email, is_verified=True).order_by("-created_at").first()
-    if not otp_record:
+    session_email = request.session.get("admin_pwd_reset_email")
+    session_otp_id = request.session.get("admin_pwd_reset_otp_id")
+    if session_email != email or not session_otp_id:
         error_msg = "Verification session expired. Please request a new OTP."
         if request.content_type == "application/json":
             return JsonResponse({"status": "error", "message": error_msg}, status=400)
         return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "is_admin": True})
 
-    # Validate admin user
+    otp_record = PasswordResetOTP.objects.filter(
+        pk=session_otp_id,
+        email=email,
+        is_verified=True
+    ).first()
+    if not otp_record or not otp_record.is_reset_window_valid():
+        error_msg = "Verification session expired. Please request a new OTP."
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=400)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "is_admin": True})
+
     admin_user = User.objects.filter(email=email, is_staff=True).first()
     if not admin_user:
         error_msg = "Administrator account verification failed."
@@ -1477,12 +1946,22 @@ def admin_reset_password(request):
             return JsonResponse({"status": "error", "message": error_msg}, status=400)
         return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "otp_verified": True, "is_admin": True})
 
+    try:
+        validate_password(password, user=admin_user)
+    except ValidationError as exc:
+        error_msg = exc.messages[0]
+        if request.content_type == "application/json":
+            return JsonResponse({"status": "error", "message": error_msg}, status=400)
+        return render(request, "accounts/forgot_password.html", {"error": error_msg, "email": email, "otp_sent": True, "otp_verified": True, "is_admin": True})
+
     # Set new password
     admin_user.set_password(password)
     admin_user.save()
 
-    # Clear OTP records
+    # Clear OTP records & session binding
     PasswordResetOTP.objects.filter(email=email).delete()
+    request.session.pop("admin_pwd_reset_email", None)
+    request.session.pop("admin_pwd_reset_otp_id", None)
 
     success_msg = f"Administrator password for '{admin_user.username}' has been updated successfully!"
     if request.content_type == "application/json":
@@ -1493,5 +1972,3 @@ def admin_reset_password(request):
 
     messages.success(request, success_msg)
     return redirect("login")
-
-

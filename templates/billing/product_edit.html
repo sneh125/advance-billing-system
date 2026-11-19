@@ -12,69 +12,7 @@
 
 <div class="dashboard-container">
 
-    <!-- UNIFIED APP HEADER -->
-    <header class="app-shell-header">
-        <div class="app-header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
-                <div class="brand-badge-icon">AB</div>
-                <div class="brand-text-group">
-                    <h1>Advance Billing System</h1>
-                    <span class="brand-tagline">Distributor Cloud Workspace</span>
-                </div>
-            </a>
-
-            <!-- NAVIGATION PILL TABS -->
-            <nav class="app-nav-pills" aria-label="Main Navigation">
-                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
-                    📊 Dashboard
-                </a>
-                <a href="{% url 'customer_list' %}" class="app-nav-link">
-                    👥 Customers
-                </a>
-                <a href="{% url 'product_list' %}" class="app-nav-link active">
-                    📦 Products
-                </a>
-                <a href="{% url 'invoice_list' %}" class="app-nav-link">
-                    🧾 Invoices
-                </a>
-                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
-                    👤 My Profile
-                </a>
-            </nav>
-        </div>
-
-        <div class="app-header-right">
-            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
-                ⚡ + Quick Bill
-            </a>
-            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
-                <div class="user-avatar-circle">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
-                    <span class="avatar-online-dot"></span>
-                </div>
-                <div class="user-info-text-col">
-                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
-                    <span class="user-role-subtag">Distributor</span>
-                </div>
-            </a>
-            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
-                Logout
-            </a>
-            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
-                ☰
-            </button>
-        </div>
-    </header>
-
-    <!-- MOBILE NAV DRAWER -->
-    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
-        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
-        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
-        <a href="{% url 'product_list' %}" class="app-nav-link active">📦 Products</a>
-        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
-        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
-        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
-    </nav>
+    {% include 'includes/app_header.html' with active_page='products' %}
 
     <!-- FORM PAGE CONTENT -->
     <main class="product-form-page-container">
@@ -165,6 +103,20 @@
                                 <option value="18.00" {% if form_data.gst_rate == '18.00' or product.gst_rate == 18 %}selected{% endif %}>18% GST (Standard)</option>
                                 <option value="28.00" {% if form_data.gst_rate == '28.00' or product.gst_rate == 28 %}selected{% endif %}>28% GST</option>
                             </select>
+                        </div>
+
+                        <div class="form-group-field">
+                            <label for="id_sku" class="form-label">
+                                SKU Code <small style="color: var(--text-muted); font-weight: normal;">(Optional)</small>
+                            </label>
+                            <input type="text" id="id_sku" name="sku" class="form-control-input" value="{{ form_data.sku|default:product.sku }}" placeholder="e.g. SKU-1001">
+                        </div>
+
+                        <div class="form-group-field">
+                            <label for="id_hsn_code" class="form-label">
+                                HSN / SAC Code <small style="color: var(--text-muted); font-weight: normal;">(Optional)</small>
+                            </label>
+                            <input type="text" id="id_hsn_code" name="hsn_code" class="form-control-input" value="{{ form_data.hsn_code|default:product.hsn_code }}" placeholder="e.g. 8471">
                         </div>
 
                         <div class="form-group-field full-span">

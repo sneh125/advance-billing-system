@@ -10,54 +10,7 @@
 </head>
 <body>
 
-    <!-- UNIFIED APP HEADER -->
-    <header class="app-shell-header">
-        <div class="app-header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
-                <div class="brand-badge-icon">AB</div>
-                <div class="brand-text-group">
-                    <h1>Advance Billing System</h1>
-                    <span class="brand-tagline">Distributor Cloud Workspace</span>
-                </div>
-            </a>
-            <nav class="app-nav-pills" aria-label="Main Navigation">
-                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
-                <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
-                <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
-                <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
-                <a href="{% url 'distributor_profile' %}" class="app-nav-link active">👤 My Profile</a>
-            </nav>
-        </div>
-        <div class="app-header-right">
-            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
-                ⚡ + Quick Bill
-            </a>
-            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
-                <div class="user-avatar-circle">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
-                    <span class="avatar-online-dot"></span>
-                </div>
-                <div class="user-info-text-col">
-                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
-                    <span class="user-role-subtag">Distributor</span>
-                </div>
-            </a>
-            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">Logout</a>
-            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
-                ☰
-            </button>
-        </div>
-    </header>
-
-    <!-- MOBILE NAV DRAWER -->
-    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
-        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
-        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
-        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
-        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
-        <a href="{% url 'distributor_profile' %}" class="app-nav-link active">👤 My Profile</a>
-        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
-    </nav>
+    {% include 'includes/app_header.html' with active_page='profile' %}
 
     <main class="dashboard-content" style="max-width: 760px; margin: 40px auto; padding: 0 20px;">
         <div style="background: #ffffff; border-radius: var(--radius-2xl); border: 1px solid var(--border-color); box-shadow: var(--shadow-lg); padding: 36px;">

@@ -5,43 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard & Reports | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-    <link rel="stylesheet" href="{% static 'css/admin_reports.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/admin_reports.css' %}?v=2">
 </head>
 <body>
 
 <div class="dashboard-container">
 
-    <!-- ADMIN APP HEADER -->
-    <header class="app-shell-header">
-        <div class="app-header-left">
-            <div class="app-brand-logo">
-                <div class="brand-badge-icon" style="background: linear-gradient(135deg, #f43f5e, #e11d48);">AB</div>
-                <div class="brand-text-group">
-                    <h1>Advance Billing System</h1>
-                    <span class="brand-tagline" style="color: #fda4af;">Super Admin Portal</span>
-                </div>
-            </div>
-            <nav class="app-nav-pills" style="margin-left: 20px;">
-                <a href="#system-overview" class="nav-pill active">Overview</a>
-                <a href="#reports-section" class="nav-pill" style="background: rgba(244, 63, 94, 0.15); color: #be123c; font-weight: 800;">📊 Reports</a>
-                <a href="/admin/" target="_blank" class="nav-pill">Django Admin ↗</a>
-            </nav>
-        </div>
-
-        <div class="app-header-right">
-            <div class="app-user-profile-badge">
-                <div class="user-avatar-circle" style="background: linear-gradient(135deg, #f43f5e, #be123c);">
-                    A
-                </div>
-                <span class="user-name-label">{{ request.user.username }} (Admin)</span>
-            </div>
-            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
-                Logout
-            </a>
-        </div>
-    </header>
+    {% include 'includes/app_header.html' with active_page='dashboard' %}
 
     <!-- ADMIN CONTENT -->
     <main class="dashboard-content">
@@ -135,6 +107,9 @@
                     <a href="?period={{ period }}&export=csv" class="btn-report-action" title="Download CSV Report">
                         📥 Export CSV
                     </a>
+                    <a href="{% url 'admin_backup_db' %}?format=json" id="btnAdminBackupDb" class="btn-report-action" title="Download Full Database Backup">
+                        💾 Backup DB
+                    </a>
                     <button type="button" onclick="window.print()" class="btn-report-action primary" title="Print Executive Summary">
                         🖨️ Print Report
                     </button>
@@ -188,24 +163,162 @@
                 </div>
             </div>
 
-            <!-- TWO-COLUMN REPORT BREAKDOWNS -->
+            <!-- VISUAL ANALYTICS CHARTS (ROW 1: TREND & DISTRIBUTOR COMPARISON) -->
             <div class="reports-two-col">
 
-                <!-- SETTLEMENT STATUS PANEL -->
+                <!-- CHART 1: REVENUE & GST TREND GRAPH -->
+                <div class="report-card-panel" id="adminRevenueTrendChart">
+                    <div class="report-panel-header">
+                        <h3>📈 Revenue &amp; GST Trend Graph</h3>
+                        <div class="chart-toggle-group" role="group" aria-label="Chart Type Toggle">
+                            <button
+                                type="button"
+                                class="chart-toggle-btn active"
+                                id="btnTrendBar"
+                                onclick="switchAdminTrendView('bar')"
+                            >
+                                Bar
+                            </button>
+                            <button
+                                type="button"
+                                class="chart-toggle-btn"
+                                id="btnTrendLine"
+                                onclick="switchAdminTrendView('line')"
+                            >
+                                Line
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="chart-legend-row">
+                        <span>
+                            <span class="legend-dot" style="background: #e11d48;"></span>
+                            Gross Billed (₹)
+                        </span>
+                        <span>
+                            <span class="legend-dot" style="background: #0284c7;"></span>
+                            GST Tax (₹)
+                        </span>
+                    </div>
+
+                    <!-- BAR GRAPH VIEW -->
+                    <div id="trendBarView" class="trend-bar-stage">
+                        {% for pt in trend_chart_data %}
+                        <div class="trend-bar-col">
+                            <div class="trend-bar-tooltip">
+                                {{ pt.label }}: ₹{{ pt.revenue|floatformat:0 }}
+                                (GST ₹{{ pt.gst|floatformat:0 }} • {{ pt.count }} inv)
+                            </div>
+                            <div class="trend-bars-pair">
+                                <div
+                                    class="trend-bar-rev"
+                                    style="height: {{ pt.rev_pct }}%;"
+                                ></div>
+                                <div
+                                    class="trend-bar-gst"
+                                    style="height: {{ pt.gst_pct }}%;"
+                                ></div>
+                            </div>
+                            <span class="trend-bar-label">{{ pt.label }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- SVG LINE / AREA GRAPH VIEW -->
+                    <div id="trendLineView" style="display: none;">
+                        <svg
+                            id="adminTrendLineSvg"
+                            viewBox="0 0 540 205"
+                            style="width: 100%; height: 210px; display: block;"
+                            aria-label="Revenue Line Chart"
+                        ></svg>
+                    </div>
+                </div>
+
+                <!-- CHART 2: DISTRIBUTOR REVENUE COMPARISON BAR CHART -->
+                <div class="report-card-panel" id="adminDistributorBarChart">
+                    <div class="report-panel-header">
+                        <h3>🏢 Distributor Revenue Comparison</h3>
+                        <span class="report-panel-badge">Top Performers</span>
+                    </div>
+
+                    <div class="dist-chart-list">
+                        {% for d in distributor_reports|slice:":5" %}
+                        <div class="dist-chart-row">
+                            <div class="dist-chart-meta">
+                                <span>
+                                    <strong>#{{ forloop.counter }}</strong>
+                                    {{ d.user.get_full_name|default:d.user.username }}
+                                    <small style="color: var(--text-muted);">
+                                        ({{ d.invoice_count }} inv)
+                                    </small>
+                                </span>
+                                <span style="font-weight: 800; color: var(--slate-900);">
+                                    ₹{{ d.revenue|floatformat:2 }}
+                                    <small style="color: #0f766e;">
+                                        ({{ d.share_pct }}%)
+                                    </small>
+                                </span>
+                            </div>
+                            <div class="dist-chart-track">
+                                <div
+                                    class="dist-chart-fill"
+                                    style="width: {{ d.bar_pct }}%;"
+                                ></div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div style="padding: 28px; text-align: center; color: var(--text-muted);">
+                            No distributor billing activity available yet.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TWO-COLUMN REPORT BREAKDOWNS (ROW 2: DONUT CHARTS + METRICS) -->
+            <div class="reports-two-col">
+
+                <!-- SETTLEMENT STATUS PANEL WITH DONUT CHART -->
                 <div class="report-card-panel">
                     <div class="report-panel-header">
                         <h3>📊 Invoice Settlement Ratio</h3>
                         <span class="report-panel-badge">Cash Flow Health</span>
                     </div>
 
-                    <div class="ratio-bar-wrap">
-                        <div class="ratio-bar-labels">
-                            <span style="color: #059669;">✓ Paid: ₹{{ paid_revenue|default:"0"|floatformat:2 }} ({{ paid_percentage }}%)</span>
-                            <span style="color: #d97706;">⏳ Pending: ₹{{ pending_revenue|default:"0"|floatformat:2 }} ({{ pending_percentage }}%)</span>
+                    <div class="donut-summary-row">
+                        <div
+                            id="adminSettlementDonut"
+                            class="donut-ring-chart"
+                            style="background: {% if gross_revenue > 0 %}conic-gradient(#10b981 0% {{ paid_percentage }}%, #f59e0b {{ paid_percentage }}% 100%){% else %}#e2e8f0{% endif %};"
+                        >
+                            <div class="donut-ring-hole">
+                                <strong>{{ paid_percentage }}%</strong>
+                                <span>Paid</span>
+                            </div>
                         </div>
-                        <div class="ratio-progress-track">
-                            <div class="ratio-progress-fill-paid" style="width: {{ paid_percentage }}%;"></div>
-                            <div class="ratio-progress-fill-pending" style="width: {{ pending_percentage }}%;"></div>
+                        <div style="flex: 1; min-width: 180px;">
+                            <div class="ratio-bar-wrap">
+                                <div class="ratio-bar-labels">
+                                    <span style="color: #059669;">
+                                        ✓ Paid: ₹{{ paid_revenue|default:"0"|floatformat:2 }} ({{ paid_percentage }}%)
+                                    </span>
+                                    <span style="color: #d97706;">
+                                        ⏳ Pending: ₹{{ pending_revenue|default:"0"|floatformat:2 }} ({{ pending_percentage }}%)
+                                    </span>
+                                </div>
+                                <div class="ratio-progress-track">
+                                    <div
+                                        class="ratio-progress-fill-paid"
+                                        style="width: {{ paid_percentage }}%;"
+                                    ></div>
+                                    <div
+                                        class="ratio-progress-fill-pending"
+                                        style="width: {{ pending_percentage }}%;"
+                                    ></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -223,11 +336,38 @@
                     </div>
                 </div>
 
-                <!-- INVENTORY & ASSET REPORT PANEL -->
+                <!-- INVENTORY & ASSET REPORT PANEL WITH DONUT CHART -->
                 <div class="report-card-panel">
                     <div class="report-panel-header">
                         <h3>📦 Catalog Valuation & Stock Health</h3>
                         <span class="report-panel-badge">Asset Audit</span>
+                    </div>
+
+                    <div class="donut-summary-row">
+                        <div
+                            id="adminStockDonut"
+                            class="donut-ring-chart"
+                            style="background: {% if total_products_count > 0 %}conic-gradient(#0284c7 0% {{ in_stock_end_pct }}%, #ea580c {{ in_stock_end_pct }}% {{ low_stock_end_pct }}%, #dc2626 {{ low_stock_end_pct }}% 100%){% else %}#e2e8f0{% endif %};"
+                        >
+                            <div class="donut-ring-hole">
+                                <strong>{{ total_products_count|default:"0" }}</strong>
+                                <span>SKUs</span>
+                            </div>
+                        </div>
+                        <div class="chart-legend-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                            <span>
+                                <span class="legend-dot" style="background: #0284c7;"></span>
+                                Healthy In-Stock: {{ in_stock_pct }}% ({{ in_stock_products_count }})
+                            </span>
+                            <span>
+                                <span class="legend-dot" style="background: #ea580c;"></span>
+                                Low Stock: {{ low_stock_pct }}% ({{ low_stock_products_count }})
+                            </span>
+                            <span>
+                                <span class="legend-dot" style="background: #dc2626;"></span>
+                                Out of Stock: {{ out_of_stock_pct }}% ({{ out_of_stock_products_count }})
+                            </span>
+                        </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
@@ -277,6 +417,7 @@
                                 <th style="text-align: center;">Invoices</th>
                                 <th style="text-align: right;">Gross Billed (₹)</th>
                                 <th style="text-align: center;">Account Status</th>
+                                <th style="text-align: center;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -303,10 +444,24 @@
                                     <span class="status-pill danger">Inactive</span>
                                     {% endif %}
                                 </td>
+                                <td style="text-align: center;">
+                                    <form method="POST" action="{% url 'admin_toggle_distributor_active' d.user.pk %}" style="display: inline; margin: 0;">
+                                        {% csrf_token %}
+                                        {% if d.is_active %}
+                                        <button type="submit" style="padding: 4px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; cursor: pointer;">
+                                            Deactivate
+                                        </button>
+                                        {% else %}
+                                        <button type="submit" style="padding: 4px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #065f46; cursor: pointer;">
+                                            Activate
+                                        </button>
+                                        {% endif %}
+                                    </form>
+                                </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">
                                     No distributor accounts registered in the system.
                                 </td>
                             </tr>
@@ -341,7 +496,9 @@
                             {% for inv in recent_invoices %}
                             <tr>
                                 <td>
-                                    <strong style="color: var(--primary);">{{ inv.invoice_number }}</strong>
+                                    <a href="{% url 'invoice_detail' inv.pk %}" style="text-decoration: none;">
+                                        <strong style="color: var(--primary);">{{ inv.invoice_number }}</strong>
+                                    </a>
                                 </td>
                                 <td>{{ inv.invoice_date|date:"d M Y, H:i" }}</td>
                                 <td>{{ inv.distributor.username }}</td>
@@ -409,6 +566,102 @@
     </main>
 
 </div>
+
+{{ chart_payload|json_script:"adminChartData" }}
+
+<script>
+    function switchAdminTrendView(mode) {
+        const barView = document.getElementById('trendBarView');
+        const lineView = document.getElementById('trendLineView');
+        const btnBar = document.getElementById('btnTrendBar');
+        const btnLine = document.getElementById('btnTrendLine');
+        if (!barView || !lineView) return;
+
+        if (mode === 'line') {
+            barView.style.display = 'none';
+            lineView.style.display = 'block';
+            btnBar.classList.remove('active');
+            btnLine.classList.add('active');
+            renderAdminLineChart();
+        } else {
+            barView.style.display = 'flex';
+            lineView.style.display = 'none';
+            btnBar.classList.add('active');
+            btnLine.classList.remove('active');
+        }
+    }
+
+    function renderAdminLineChart() {
+        const svg = document.getElementById('adminTrendLineSvg');
+        const dataEl = document.getElementById('adminChartData');
+        if (!svg || !dataEl || svg.dataset.rendered === '1') return;
+
+        const payload = JSON.parse(dataEl.textContent || '{}');
+        const trend = payload.trend || [];
+        if (trend.length === 0) return;
+
+        const W = 540, H = 205, padL = 32, padR = 24, padT = 24, padB = 34;
+        const chartW = W - padL - padR;
+        const chartH = H - padT - padB;
+        const maxVal = Math.max(...trend.map(d => d.revenue), 1);
+
+        const ptsRev = trend.map((d, idx) => {
+            const x = padL + (trend.length === 1 ? chartW / 2 : (idx / (trend.length - 1)) * chartW);
+            const y = padT + chartH - (d.revenue / maxVal) * chartH;
+            return { x, y, ...d };
+        });
+        const ptsGst = trend.map((d, idx) => {
+            const x = padL + (trend.length === 1 ? chartW / 2 : (idx / (trend.length - 1)) * chartW);
+            const y = padT + chartH - (d.gst / maxVal) * chartH;
+            return { x, y };
+        });
+
+        const revLine = ptsRev.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+        const revArea = `${padL},${padT + chartH} ${revLine} ${ptsRev[ptsRev.length - 1].x.toFixed(1)},${padT + chartH}`;
+        const gstLine = ptsGst.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+        const ns = 'http://www.w3.org/2000/svg';
+        svg.innerHTML = `
+            <defs>
+                <linearGradient id="revAreaFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.28"/>
+                    <stop offset="100%" stop-color="#f43f5e" stop-opacity="0.02"/>
+                </linearGradient>
+            </defs>
+            <line x1="${padL}" y1="${padT}" x2="${W - padR}" y2="${padT}" stroke="#e2e8f0" stroke-dasharray="4 4"/>
+            <line x1="${padL}" y1="${padT + chartH / 2}" x2="${W - padR}" y2="${padT + chartH / 2}" stroke="#e2e8f0" stroke-dasharray="4 4"/>
+            <line x1="${padL}" y1="${padT + chartH}" x2="${W - padR}" y2="${padT + chartH}" stroke="#cbd5e1"/>
+            <polygon points="${revArea}" fill="url(#revAreaFill)"/>
+            <polyline points="${revLine}" fill="none" stroke="#e11d48" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="${gstLine}" fill="none" stroke="#0284c7" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" stroke-linejoin="round"/>
+        `;
+
+        ptsRev.forEach(p => {
+            const c = document.createElementNS(ns, 'circle');
+            c.setAttribute('cx', p.x.toFixed(1));
+            c.setAttribute('cy', p.y.toFixed(1));
+            c.setAttribute('r', '4.5');
+            c.setAttribute('fill', '#ffffff');
+            c.setAttribute('stroke', '#e11d48');
+            c.setAttribute('stroke-width', '2.5');
+            const title = document.createElementNS(ns, 'title');
+            title.textContent = `${p.label}: ₹${p.revenue.toFixed(2)} (GST ₹${p.gst.toFixed(2)}, ${p.count} inv)`;
+            c.appendChild(title);
+            svg.appendChild(c);
+
+            const lbl = document.createElementNS(ns, 'text');
+            lbl.setAttribute('x', p.x.toFixed(1));
+            lbl.setAttribute('y', (H - 10).toString());
+            lbl.setAttribute('text-anchor', 'middle');
+            lbl.setAttribute('font-size', '11');
+            lbl.setAttribute('font-weight', '700');
+            lbl.setAttribute('fill', '#64748b');
+            lbl.textContent = p.label;
+            svg.appendChild(lbl);
+        });
+        svg.dataset.rendered = '1';
+    }
+</script>
 
 </body>
 </html>

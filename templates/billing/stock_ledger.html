@@ -1,0 +1,189 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Movement &amp; Purchase Ledger | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/product_list.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/customers.css' %}?v=3">
+</head>
+
+<body>
+
+    <div class="dashboard-container">
+
+        {% include 'includes/app_header.html' with active_page='products' %}
+
+        <main class="products-page-wrapper">
+
+            <div class="page-header-row">
+                <div class="page-title-wrap">
+                    <h2>📋 Stock-In &amp; Inventory Audit Ledger</h2>
+                    <p>Complete chronological trail of opening stock, purchase restocks, invoice sales, cancellations,
+                        and manual adjustments.</p>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <a href="?export=csv{% if selected_product %}&product={{ selected_product }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                        class="btn-clear-filter" style="text-decoration: none; padding: 10px 16px;">
+                        📥 Export CSV
+                    </a>
+                    <a href="{% url 'product_list' %}" class="btn-primary-add">
+                        ← Back to Products
+                    </a>
+                </div>
+            </div>
+
+            <section class="stats-row" style="margin-bottom: 20px;">
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <div class="stat-icon blue">📋</div>
+                        <span class="stat-trend-tag">Audit Trail</span>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Total Stock Events</span>
+                        <div class="stat-value">{{ total_events|default:"0" }}</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <div class="stat-icon teal">📥</div>
+                        <span class="stat-trend-tag">Stock-In</span>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Total Units Added</span>
+                        <div class="stat-value" style="color: #059669;">+{{ total_in|default:"0" }}</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <div class="stat-icon orange">📤</div>
+                        <span class="stat-trend-tag" style="background: #fef2f2; color: #b91c1c;">Stock-Out</span>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Total Units Deducted</span>
+                        <div class="stat-value" style="color: #dc2626;">-{{ total_out|default:"0" }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FILTERS -->
+            <div class="search-filter-card">
+                <form method="GET" action="{% url 'stock_ledger' %}" class="search-form-wrap" style="flex-wrap: wrap;">
+                    <input type="text" name="q" value="{{ search_query }}"
+                        placeholder="Search product, SKU, or invoice/supplier ref..." class="search-input-box">
+                    <select name="product" id="filterProductSelect" class="search-input-box" style="max-width: 220px;">
+                        <option value="">All Products</option>
+                        {% for prod in products %}
+                        <option value="{{ prod.id }}">{{ prod.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="type" id="filterTypeSelect" class="search-input-box" style="max-width: 190px;">
+                        <option value="">All Event Types</option>
+                        <option value="OPENING">Opening Stock</option>
+                        <option value="RESTOCK">Stock-In / Purchase</option>
+                        <option value="SALE">Invoice Sale</option>
+                        <option value="CANCEL_RESTORE">Cancel Restore</option>
+                        <option value="ADJUSTMENT">Manual Adjustment</option>
+                    </select>
+                    <script>
+                        document.getElementById('filterProductSelect').value = "{{ selected_product|escapejs }}";
+                        document.getElementById('filterTypeSelect').value = "{{ selected_type|escapejs }}";
+                    </script>
+                    <button type="submit" class="btn-search-submit">Filter</button>
+                    {% if search_query or selected_product or selected_type %}
+                    <a href="{% url 'stock_ledger' %}" class="btn-clear-filter">Clear</a>
+                    {% endif %}
+                </form>
+            </div>
+
+            <div class="table-card-container">
+                {% if movements %}
+                <div class="table-responsive">
+                    <table class="saas-data-table">
+                        <thead>
+                            <tr>
+                                <th>Date &amp; Time</th>
+                                <th>Product</th>
+                                <th>Movement Type</th>
+                                <th style="text-align: center;">Change</th>
+                                <th style="text-align: center;">Before → After</th>
+                                <th>Reference &amp; Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mv in movements %}
+                            <tr>
+                                <td style="font-size: 13px; color: var(--text-secondary);">
+                                    {{ mv.created_at|date:"d M Y, h:i A" }}
+                                </td>
+                                <td>
+                                    <a href="{% url 'product_detail' mv.product.pk %}"
+                                        style="font-weight: 700; color: var(--text-main); text-decoration: none;">
+                                        {{ mv.product.name }}
+                                    </a>
+                                    {% if mv.product.sku %}
+                                    <br>
+                                    <small style="color: var(--text-muted); font-family: var(--font-mono);">
+                                        SKU: {{ mv.product.sku }}
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span
+                                        style="padding: 3px 10px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; background: var(--slate-100); color: var(--text-secondary);">
+                                        {{ mv.get_movement_type_display }}
+                                    </span>
+                                </td>
+                                <td
+                                    style="text-align: center; font-family: var(--font-mono); font-weight: 800; color: {% if mv.quantity_change > 0 %}#059669{% else %}#dc2626{% endif %};">
+                                    {% if mv.quantity_change > 0 %}+{% endif %}{{ mv.quantity_change }}
+                                </td>
+                                <td style="text-align: center; font-family: var(--font-mono); font-size: 13px;">
+                                    {{ mv.stock_before }} → <strong>{{ mv.stock_after }}</strong>
+                                </td>
+                                <td>
+                                    <strong style="font-size: 13px;">{{ mv.reference|default:"-" }}</strong>
+                                    {% if mv.notes %}
+                                    <br><small style="color: var(--text-muted);">{{ mv.notes }}</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if page_obj.has_other_pages %}
+                <div class="pagination-wrapper">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if selected_product %}&product={{ selected_product }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                        class="page-btn">« Prev</a>
+                    {% endif %}
+                    <span class="page-btn active">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if selected_product %}&product={{ selected_product }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                        class="page-btn">Next »</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="empty-state-wrap">
+                    <div class="empty-icon-circle">📋</div>
+                    <h3>No Stock Movements Recorded Yet</h3>
+                    <p>Add stock, restock items, or generate invoices to automatically populate the inventory audit
+                        trail.</p>
+                </div>
+                {% endif %}
+            </div>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>

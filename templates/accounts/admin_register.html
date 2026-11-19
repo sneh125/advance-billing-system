@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Registration | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/admin_register.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/admin_register.css' %}?v=3">
 </head>
 <body>
 
@@ -16,7 +16,7 @@
     <section class="admin-brand-panel">
         <div>
             <div class="admin-brand-header">
-                <div class="admin-brand-mark">AB</div>
+                <div class="admin-brand-mark" style="padding: 0; overflow: hidden; background: transparent;">{% include 'includes/logo_svg.html' with uid='adminreg' %}</div>
                 <div>
                     <div class="admin-brand-title">Advance Billing</div>
                     <div class="admin-brand-subtitle">System Administration</div>

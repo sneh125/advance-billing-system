@@ -5,81 +5,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice {{ invoice.invoice_number }} | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/invoices.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=3">
 </head>
 <body>
 
 <div class="invoice-page-layout">
 
-    <!-- UNIFIED APP HEADER -->
-    <header class="app-shell-header">
-        <div class="app-header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
-                <div class="brand-badge-icon">AB</div>
-                <div class="brand-text-group">
-                    <h1>Advance Billing System</h1>
-                    <span class="brand-tagline">Distributor Cloud Workspace</span>
-                </div>
-            </a>
+    {% include 'includes/app_header.html' with active_page='invoices' %}
 
-            <!-- NAVIGATION PILL TABS -->
-            <nav class="app-nav-pills" aria-label="Main Navigation">
-                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
-                    📊 Dashboard
-                </a>
-                <a href="{% url 'customer_list' %}" class="app-nav-link">
-                    👥 Customers
-                </a>
-                <a href="{% url 'product_list' %}" class="app-nav-link">
-                    📦 Products
-                </a>
-                <a href="{% url 'invoice_list' %}" class="app-nav-link active">
-                    🧾 Invoices
-                </a>
-                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
-                    👤 My Profile
-                </a>
-            </nav>
-        </div>
+    <!-- FLASH TOAST MESSAGES -->
+    <div class="toast-container" id="toastContainer">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
+                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
 
-        <div class="app-header-right">
-            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
-                ⚡ + Quick Bill
-            </a>
-            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
-                <div class="user-avatar-circle">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
-                    <span class="avatar-online-dot"></span>
-                </div>
-                <div class="user-info-text-col">
-                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
-                    <span class="user-role-subtag">Distributor</span>
-                </div>
-            </a>
-            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
-                Logout
-            </a>
-            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
-                ☰
-            </button>
-        </div>
-    </header>
-
-    <!-- MOBILE NAV DRAWER -->
-    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
-        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
-        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
-        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
-        <a href="{% url 'invoice_list' %}" class="app-nav-link active">🧾 Invoices</a>
-        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
-        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
-    </nav>
-
-    <main class="invoice-page-content" style="max-width: 960px;">
+    <main class="invoice-page-content" style="max-width: 1020px;">
 
         <!-- ACTION & BREADCRUMB BAR -->
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
             <nav class="breadcrumbs-nav" aria-label="Breadcrumb">
                 <a href="{% url 'distributor_dashboard' %}">Dashboard</a>
                 <span>/</span>
@@ -88,16 +38,51 @@
                 <span class="current-crumb">Preview Invoice ({{ invoice.invoice_number }})</span>
             </nav>
 
-            <div style="display: flex; align-items: center; gap: 10px;" class="action-buttons-group">
-                <a href="{% url 'invoice_pdf' invoice.pk %}" id="btnDownloadInvoicePdf" class="btn-form-submit" style="text-decoration: none; padding: 9px 18px; font-size: 13.5px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;" class="action-buttons-group">
+                {% if invoice.status != 'Cancelled' %}
+                <form method="POST" action="{% url 'invoice_toggle_status' invoice.pk %}" style="display: inline; margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'invoice_detail' invoice.pk %}">
+                    {% if invoice.status == 'Paid' %}
+                    <button type="submit" id="btnToggleInvoiceStatus" class="btn-form-cancel" style="padding: 8px 14px; font-size: 13px; cursor: pointer; background: #fffbeb; color: #b45309; border-color: #fde68a; font-weight: 700;">
+                        ⏳ Mark Pending
+                    </button>
+                    {% else %}
+                    <button type="submit" id="btnToggleInvoiceStatus" class="btn-form-cancel" style="padding: 8px 14px; font-size: 13px; cursor: pointer; background: #ecfdf5; color: #065f46; border-color: #a7f3d0; font-weight: 700;">
+                        ✓ Mark Paid Full
+                    </button>
+                    {% endif %}
+                </form>
+                <form method="POST" action="{% url 'invoice_cancel' invoice.pk %}" style="display: inline; margin: 0;" onsubmit="return confirm('Cancel this invoice and restore product stock?');">
+                    {% csrf_token %}
+                    <button type="submit" id="btnCancelInvoice" class="btn-form-cancel" style="padding: 8px 12px; font-size: 13px; cursor: pointer; background: #fef2f2; color: #b91c1c; border-color: #fecaca; font-weight: 700;">
+                        ✖ Cancel
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'invoice_pdf' invoice.pk %}" id="btnDownloadInvoicePdf" class="btn-form-submit" style="text-decoration: none; padding: 8px 16px; font-size: 13px;">
                     📄 Download PDF
                 </a>
-                <button type="button" class="btn-form-cancel" onclick="window.print()" style="padding: 9px 16px; font-size: 13.5px; cursor: pointer;">
-                    🖨️ Print Invoice
-                </button>
-                <a href="{% url 'invoice_create' %}" class="btn-form-cancel" style="padding: 9px 16px; font-size: 13.5px;">
-                    + New Invoice
+                <form method="POST" action="{% url 'invoice_send_email' invoice.pk %}" style="display: inline; margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" id="btnEmailInvoice" class="btn-form-cancel" style="padding: 8px 12px; font-size: 13px; cursor: pointer;">
+                        ✉️ Email PDF
+                    </button>
+                </form>
+                <a href="{{ whatsapp_share_url }}" target="_blank" rel="noopener noreferrer" id="btnWhatsappShare" class="btn-form-cancel" style="padding: 8px 12px; font-size: 13px; text-decoration: none; background: #ecfdf5; color: #047857; border-color: #a7f3d0; font-weight: 600;">
+                    💬 WhatsApp
                 </a>
+                {% if balance_due > 0 and invoice.status != 'Cancelled' %}
+                <a href="{{ whatsapp_reminder_url }}" target="_blank" rel="noopener noreferrer" id="btnWhatsappReminder" class="btn-form-cancel" style="padding: 8px 12px; font-size: 13px; text-decoration: none; background: #fffbeb; color: #b45309; border-color: #fde68a; font-weight: 700;">
+                    🔔 Remind Due
+                </a>
+                {% endif %}
+                <a href="{% url 'customer_ledger' invoice.customer.pk %}" class="btn-form-cancel" style="padding: 8px 12px; font-size: 13px; text-decoration: none;">
+                    📒 Customer Khata
+                </a>
+                <button type="button" class="btn-form-cancel" onclick="window.print()" style="padding: 8px 14px; font-size: 13px; cursor: pointer;">
+                    🖨️ Print
+                </button>
             </div>
         </div>
 
@@ -107,13 +92,35 @@
             <!-- PAPER HEADER -->
             <div class="invoice-paper-top">
                 <div>
-                    <div class="paper-brand-title">Advance Billing System</div>
-                    <div style="font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">Smart GST Billing Engine</div>
+                    <div class="paper-brand-title">{{ seller_name }}</div>
+                    <div style="font-size: 12.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;">
+                        {% if distributor_profile.gstin %}GSTIN: {{ distributor_profile.gstin }}{% else %}Smart GST Billing Engine{% endif %}
+                    </div>
                 </div>
-                <div>
+                <div style="text-align: right;">
                     <div class="paper-invoice-title">TAX INVOICE</div>
-                    <div style="font-size: 13px; color: var(--text-muted); font-family: var(--font-mono); text-align: right; margin-top: 4px;"><strong>Invoice #:</strong> {{ invoice.invoice_number }}</div>
-                    <div style="font-size: 12.5px; color: var(--text-muted); text-align: right;"><strong>Date:</strong> {{ invoice.created_at|date:"d M Y, h:i A" }}</div>
+                    <div style="font-size: 13px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 4px;"><strong>Invoice #:</strong> {{ invoice.invoice_number }}</div>
+                    <div style="font-size: 12.5px; color: var(--text-muted);"><strong>Date:</strong> {{ invoice.created_at|date:"d M Y, h:i A" }}</div>
+                    {% if invoice.due_date %}
+                    <div style="font-size: 12.5px; color: {% if is_overdue %}#b91c1c; font-weight: 700;{% else %}var(--text-muted);{% endif %}">
+                        <strong>Due Date:</strong> {{ invoice.due_date|date:"d M Y" }}
+                    </div>
+                    {% endif %}
+                    <div style="font-size: 12.5px; color: var(--text-muted);"><strong>Place of Supply:</strong> {{ place_of_supply }}</div>
+                    <div style="margin-top: 6px; display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap;">
+                        {% if invoice.status == 'Paid' %}
+                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">● Paid ({{ invoice.payment_mode|default:"Cash" }})</span>
+                        {% elif invoice.status == 'Partial' %}
+                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">◑ Partial Paid</span>
+                        {% elif invoice.status == 'Cancelled' %}
+                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">✖ Cancelled</span>
+                        {% else %}
+                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; background: #fffbeb; color: #b45309; border: 1px solid #fde68a;">⏳ {{ invoice.status|default:"Pending" }}</span>
+                        {% endif %}
+                        {% if is_overdue %}
+                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">⚠ OVERDUE</span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
@@ -121,10 +128,18 @@
             <div class="paper-parties-grid">
                 <div class="party-info-box">
                     <div class="party-box-title">Billed By (Distributor)</div>
-                    <div class="party-name-bold">{{ invoice.distributor.get_full_name|default:invoice.distributor.username }}</div>
+                    <div class="party-name-bold">{{ seller_name }}</div>
                     <div class="party-detail-line">✉️ {{ invoice.distributor.email }}</div>
-                    {% if invoice.distributor.distributor_profile.phone %}
-                    <div class="party-detail-line">📞 {{ invoice.distributor.distributor_profile.phone }}</div>
+                    {% if distributor_profile.phone %}
+                    <div class="party-detail-line">📞 {{ distributor_profile.phone }}</div>
+                    {% endif %}
+                    {% if distributor_profile.gstin %}
+                    <div class="party-detail-line">🏛️ GSTIN: <strong>{{ distributor_profile.gstin }}</strong></div>
+                    {% endif %}
+                    {% if distributor_profile.state %}
+                    <div class="party-detail-line">
+                        📍 {% if distributor_profile.address %}{{ distributor_profile.address }}, {% endif %}{% if distributor_profile.city %}{{ distributor_profile.city }}, {% endif %}{{ distributor_profile.state }}
+                    </div>
                     {% endif %}
                 </div>
 
@@ -135,21 +150,26 @@
                     {% if invoice.customer.email %}
                     <div class="party-detail-line">✉️ {{ invoice.customer.email }}</div>
                     {% endif %}
+                    {% if invoice.customer.gstin %}
+                    <div class="party-detail-line">🏛️ GSTIN: <strong>{{ invoice.customer.gstin }}</strong></div>
+                    {% endif %}
                     <div class="party-detail-line">📍 {{ invoice.customer.address|default:"N/A" }}, {{ invoice.customer.city }}, {{ invoice.customer.state }} - {{ invoice.customer.pincode }}</div>
                 </div>
             </div>
 
             <!-- LINE ITEMS TABLE -->
-            <div style="overflow-x: auto; margin-bottom: 28px;">
+            <div style="overflow-x: auto; margin-bottom: 20px;">
                 <table class="saas-data-table">
                     <thead>
                         <tr>
-                            <th style="width: 6%; text-align: center;">#</th>
-                            <th style="width: 38%;">Item & Description</th>
-                            <th style="width: 14%; text-align: right;">Price (₹)</th>
-                            <th style="width: 10%; text-align: center;">Qty</th>
-                            <th style="width: 14%; text-align: right;">Subtotal</th>
-                            <th style="width: 8%; text-align: center;">GST</th>
+                            <th style="width: 5%; text-align: center;">#</th>
+                            <th style="width: 30%;">Item &amp; Description</th>
+                            <th style="width: 11%; text-align: center;">HSN/SAC</th>
+                            <th style="width: 12%; text-align: right;">Price (₹)</th>
+                            <th style="width: 7%; text-align: center;">Qty</th>
+                            <th style="width: 8%; text-align: center;">Disc %</th>
+                            <th style="width: 11%; text-align: right;">Taxable</th>
+                            <th style="width: 6%; text-align: center;">GST</th>
                             <th style="width: 10%; text-align: right;">Total</th>
                         </tr>
                     </thead>
@@ -159,12 +179,16 @@
                             <td style="text-align: center;">{{ forloop.counter }}</td>
                             <td>
                                 <strong style="color: var(--text-main);">{{ item.product.name }}</strong>
-                                {% if item.product.description %}
+                                {% if item.product.sku %}
+                                <br><small style="color: var(--text-muted); font-size: 11.5px;">SKU: {{ item.product.sku }}</small>
+                                {% elif item.product.description %}
                                 <br><small style="color: var(--text-muted); font-size: 12px;">{{ item.product.description }}</small>
                                 {% endif %}
                             </td>
+                            <td style="text-align: center; font-family: var(--font-mono); font-size: 12.5px;">{{ item.product.hsn_code|default:"-" }}</td>
                             <td style="text-align: right; font-family: var(--font-mono);">₹{{ item.unit_price }}</td>
                             <td style="text-align: center;">{{ item.quantity }}</td>
+                            <td style="text-align: center; font-family: var(--font-mono);">{{ item.discount_percent|floatformat:1 }}%</td>
                             <td style="text-align: right; font-family: var(--font-mono);">₹{{ item.subtotal }}</td>
                             <td style="text-align: center;"><span class="gst-rate-tag">{{ item.gst_rate }}%</span></td>
                             <td style="text-align: right; font-family: var(--font-mono); font-weight: 700;">₹{{ item.total }}</td>
@@ -174,30 +198,204 @@
                 </table>
             </div>
 
+            <!-- AMOUNT IN WORDS -->
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 11px 16px; margin-bottom: 20px; font-size: 13px; color: var(--text-main);">
+                <strong style="color: var(--primary-700);">Amount Chargeable (in Words):</strong> {{ amount_in_words }}
+            </div>
+
             <!-- TOTALS & TERMS -->
-            <div style="display: grid; grid-template-columns: 1fr 320px; gap: 32px; align-items: start;">
-                <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
-                    <strong style="color: var(--text-main);">Terms & Conditions:</strong><br>
-                    1. Goods once sold will not be returned.<br>
-                    2. Payment is due immediately upon receipt.<br>
-                    3. This is a computer-generated tax invoice.
+            <div style="display: grid; grid-template-columns: 1fr 340px; gap: 28px; align-items: start; margin-bottom: 24px;">
+                <div>
+                    {% if hsn_summary %}
+                    <div style="margin-bottom: 14px;">
+                        <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px;">HSN-Wise GST Tax Summary</div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid var(--border-color);">
+                            <thead>
+                                <tr style="background: var(--slate-100); color: var(--text-secondary);">
+                                    <th style="padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border-color);">HSN</th>
+                                    <th style="padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--border-color);">Rate</th>
+                                    <th style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color);">Taxable</th>
+                                    {% if is_interstate %}
+                                    <th style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color);">IGST</th>
+                                    {% else %}
+                                    <th style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color);">CGST</th>
+                                    <th style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color);">SGST</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in hsn_summary %}
+                                <tr>
+                                    <td style="padding: 5px 8px; font-family: var(--font-mono); border-bottom: 1px solid var(--slate-100);">{{ row.hsn_code }}</td>
+                                    <td style="padding: 5px 8px; text-align: center; border-bottom: 1px solid var(--slate-100);">{{ row.gst_rate|floatformat:0 }}%</td>
+                                    <td style="padding: 5px 8px; text-align: right; font-family: var(--font-mono); border-bottom: 1px solid var(--slate-100);">₹{{ row.taxable_value|floatformat:2 }}</td>
+                                    {% if is_interstate %}
+                                    <td style="padding: 5px 8px; text-align: right; font-family: var(--font-mono); border-bottom: 1px solid var(--slate-100);">₹{{ row.igst|floatformat:2 }}</td>
+                                    {% else %}
+                                    <td style="padding: 5px 8px; text-align: right; font-family: var(--font-mono); border-bottom: 1px solid var(--slate-100);">₹{{ row.cgst|floatformat:2 }}</td>
+                                    <td style="padding: 5px 8px; text-align: right; font-family: var(--font-mono); border-bottom: 1px solid var(--slate-100);">₹{{ row.sgst|floatformat:2 }}</td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                    <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.55;">
+                        <strong style="color: var(--text-main);">Terms &amp; Conditions:</strong><br>
+                        1. Goods once sold will not be returned.<br>
+                        2. Payment is due on or before the due date.<br>
+                        3. This is a computer-generated GST tax invoice.
+                        {% if invoice.notes %}
+                        <div style="margin-top: 8px; padding: 8px 10px; background: var(--slate-50); border-left: 3px solid var(--primary); border-radius: 6px; color: var(--text-secondary);">
+                            <strong>Notes:</strong> {{ invoice.notes }}
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <div style="background: var(--slate-50); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="background: var(--slate-50); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 18px; display: flex; flex-direction: column; gap: 9px;">
+                    {% if invoice.discount_total > 0 %}
+                    <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: var(--text-secondary);">
+                        <span>Total Discount:</span>
+                        <strong style="font-family: var(--font-mono); color: #059669;">- ₹{{ invoice.discount_total }}</strong>
+                    </div>
+                    {% endif %}
                     <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: var(--text-secondary);">
                         <span>Taxable Subtotal:</span>
                         <strong style="font-family: var(--font-mono); color: var(--text-main);">₹{{ invoice.subtotal }}</strong>
                     </div>
+                    {% if is_interstate %}
+                    <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: var(--text-secondary);">
+                        <span>IGST (Inter-State):</span>
+                        <strong style="font-family: var(--font-mono); color: #7c3aed;">₹{{ igst_amount }}</strong>
+                    </div>
+                    {% else %}
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary);">
+                        <span>CGST (Intra-State):</span>
+                        <strong style="font-family: var(--font-mono); color: #7c3aed;">₹{{ cgst_amount }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary);">
+                        <span>SGST (Intra-State):</span>
+                        <strong style="font-family: var(--font-mono); color: #7c3aed;">₹{{ sgst_amount }}</strong>
+                    </div>
+                    {% endif %}
                     <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: var(--text-secondary);">
                         <span>GST Tax Total:</span>
                         <strong style="font-family: var(--font-mono); color: #7c3aed;">₹{{ invoice.gst_amount }}</strong>
                     </div>
-                    <div style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
+                    {% if invoice.round_off %}
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary);">
+                        <span>Round Off:</span>
+                        <strong style="font-family: var(--font-mono);">₹{{ invoice.round_off }}</strong>
+                    </div>
+                    {% endif %}
+                    <div style="height: 1px; background: var(--border-color); margin: 3px 0;"></div>
                     <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; color: var(--primary-800);">
                         <span>Grand Total:</span>
                         <span style="font-family: var(--font-mono); color: var(--primary-700);">₹{{ invoice.total_amount }}</span>
                     </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: #065f46; padding-top: 4px; border-top: 1px dashed var(--slate-200);">
+                        <span>Amount Paid:</span>
+                        <strong style="font-family: var(--font-mono);">₹{{ amount_paid|floatformat:2 }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 800; color: {% if balance_due > 0 %}#b45309{% else %}#065f46{% endif %};">
+                        <span>Balance Due:</span>
+                        <span style="font-family: var(--font-mono);">₹{{ balance_due|floatformat:2 }}</span>
+                    </div>
                 </div>
+            </div>
+
+            <!-- PARTIAL PAYMENT HISTORY & RECORD PAYMENT CARD (NO-PRINT) -->
+            <div style="border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 20px; background: #ffffff; margin-bottom: 24px;" class="no-print-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0; font-size: 15px; font-weight: 800; color: var(--text-main);">💳 Payment History &amp; Partial Settlement</h3>
+                    <span style="font-size: 12.5px; font-weight: 700; color: var(--text-muted);">
+                        {{ payments|length }} Payment{{ payments|length|pluralize }} Recorded
+                    </span>
+                </div>
+
+                {% if payments %}
+                <div style="overflow-x: auto; margin-bottom: 16px;">
+                    <table class="saas-data-table" style="font-size: 13px;">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Mode</th>
+                                <th>UTR / Ref #</th>
+                                <th>Notes</th>
+                                <th style="text-align: right;">Amount (₹)</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pay in payments %}
+                            <tr>
+                                <td>{{ pay.payment_date|date:"d M Y" }}</td>
+                                <td><strong>{{ pay.payment_mode }}</strong></td>
+                                <td style="font-family: var(--font-mono);">{{ pay.reference_number|default:"-" }}</td>
+                                <td>{{ pay.notes|default:"-" }}</td>
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #059669;">₹{{ pay.amount|floatformat:2 }}</td>
+                                <td style="text-align: right;">
+                                    {% if invoice.status != 'Cancelled' %}
+                                    <form method="POST" action="{% url 'invoice_delete_payment' invoice.pk pay.pk %}" style="display: inline;" onsubmit="return confirm('Remove this payment entry?');">
+                                        {% csrf_token %}
+                                        <button type="submit" style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 6px; padding: 3px 9px; font-size: 12px; cursor: pointer; font-weight: 600;">Remove</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+
+                {% if invoice.status != 'Cancelled' and balance_due > 0 %}
+                <form method="POST" action="{% url 'invoice_add_payment' invoice.pk %}" id="recordPaymentForm" style="background: var(--slate-50); border: 1px dashed var(--slate-300); border-radius: var(--radius-lg); padding: 14px;">
+                    {% csrf_token %}
+                    <div style="font-size: 12.5px; font-weight: 700; color: var(--primary-800); margin-bottom: 10px;">
+                        + Record Partial or Full Payment (Remaining Due: ₹{{ balance_due|floatformat:2 }})
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end;">
+                        <div>
+                            <label style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">Amount (₹) *</label>
+                            <input type="number" name="amount" step="0.01" min="0.01" max="{{ balance_due }}" value="{{ balance_due }}" required style="width: 100%; padding: 8px 10px; border: 1px solid var(--slate-300); border-radius: 8px; font-family: var(--font-mono); font-size: 13px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">Mode</label>
+                            <select name="payment_mode" style="width: 100%; padding: 8px 10px; border: 1px solid var(--slate-300); border-radius: 8px; font-size: 13px; background: #fff;">
+                                <option value="UPI">UPI</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Card">Card</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">Date</label>
+                            <input type="date" name="payment_date" value="{{ today_iso }}" style="width: 100%; padding: 8px 10px; border: 1px solid var(--slate-300); border-radius: 8px; font-size: 13px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">UTR / Cheque / Ref #</label>
+                            <input type="text" name="reference_number" placeholder="Optional Ref #" style="width: 100%; padding: 8px 10px; border: 1px solid var(--slate-300); border-radius: 8px; font-size: 13px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">Notes</label>
+                            <input type="text" name="notes" placeholder="Optional note" style="width: 100%; padding: 8px 10px; border: 1px solid var(--slate-300); border-radius: 8px; font-size: 13px;">
+                        </div>
+                        <div>
+                            <button type="submit" id="btnRecordPayment" class="btn-form-submit" style="width: 100%; padding: 9px 14px; font-size: 13px; cursor: pointer;">
+                                ✓ Save Payment
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                {% elif invoice.status == 'Paid' %}
+                <div style="font-size: 13px; color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 10px 14px; border-radius: 8px; font-weight: 600;">
+                    ✓ This invoice is fully settled. Balance Due: ₹0.00.
+                </div>
+                {% endif %}
             </div>
 
             <!-- DUAL QR SECTION: UPI PAYMENT & VERIFICATION -->
@@ -209,7 +407,7 @@
                     <div style="flex: 1;">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
                             <span class="upi-brand-pill">⚡ UPI Instant Pay</span>
-                            <span style="font-size: 12px; font-weight: 700; color: #0f766e;">Scan & Pay via any UPI App</span>
+                            <span style="font-size: 12px; font-weight: 700; color: #0f766e;">Scan &amp; Pay via any UPI App</span>
                         </div>
                         <div class="upi-app-tags">
                             <span class="upi-app-tag">Google Pay</span>
@@ -219,19 +417,19 @@
                             <span class="upi-app-tag">Cred</span>
                         </div>
                         <p style="margin: 4px 0 8px 0; color: var(--text-secondary); font-size: 13px;">
-                            Scan with your mobile camera or UPI app to pay <strong>₹{{ invoice.total_amount }}</strong> directly to <strong>{{ invoice.distributor.get_full_name|default:invoice.distributor.username }}</strong>.
+                            Scan with your mobile camera or UPI app to pay <strong>₹{% if invoice.status == 'Partial' %}{{ balance_due|floatformat:2 }}{% else %}{{ invoice.total_amount }}{% endif %}</strong> directly to <strong>{{ seller_name }}</strong>.
                         </p>
                         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                             <span style="font-size: 12px; color: var(--text-muted);">
                                 <strong>UPI ID:</strong> <code style="font-family: var(--font-mono); color: #0f766e; font-weight: 700;">{{ upi_id }}</code>
                             </span>
                             <span style="font-size: 12px; color: var(--text-muted);">
-                                <strong>Amount:</strong> <code style="font-family: var(--font-mono); color: #0f766e; font-weight: 700;">₹{{ invoice.total_amount }}</code>
+                                <strong>Amount:</strong> <code style="font-family: var(--font-mono); color: #0f766e; font-weight: 700;">₹{% if invoice.status == 'Partial' %}{{ balance_due|floatformat:2 }}{% else %}{{ invoice.total_amount }}{% endif %}</code>
                             </span>
                         </div>
                         <div style="margin-top: 10px;">
                             <a href="{{ upi_uri }}" class="btn-upi-mobile-launch" title="Launch default UPI App on phone">
-                                📱 Tap to Pay ₹{{ invoice.total_amount }} via UPI App
+                                📱 Tap to Pay via UPI App
                             </a>
                         </div>
                     </div>
@@ -274,6 +472,16 @@
 
 </div>
 
+<style>
+    @media print {
+        .no-print-section,
+        .action-buttons-group,
+        .breadcrumbs-nav {
+            display: none !important;
+        }
+    }
+</style>
+
 <script>
     function toggleMobileNav() {
         const drawer = document.getElementById('mobileNavDrawer');
@@ -281,6 +489,11 @@
             drawer.classList.toggle('active');
         }
     }
+
+    setTimeout(() => {
+        const toasts = document.querySelectorAll('.toast-card');
+        toasts.forEach(t => t.remove());
+    }, 4000);
 </script>
 
 </body>

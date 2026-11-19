@@ -119,7 +119,7 @@ body {
 
 /* RIGHT FORM SECTION */
 .form-section {
-    padding: 48px;
+    padding: 40px 44px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -127,16 +127,16 @@ body {
 }
 
 .login-card-inner {
-    max-width: 380px;
+    max-width: 420px;
     width: 100%;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 16px;
 }
 
 .auth-header-wrap h2 {
-    font-size: 26px;
+    font-size: 23px;
     font-weight: 800;
     color: var(--text-main);
     letter-spacing: -0.5px;
@@ -216,7 +216,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    margin-top: -6px;
 }
 
 .link-forgot-pw {
@@ -277,7 +276,6 @@ body {
     background: var(--slate-100);
     padding: 5px;
     border-radius: var(--radius-full);
-    margin-bottom: 22px;
     gap: 4px;
     border: 1px solid var(--slate-200);
 }
@@ -337,7 +335,6 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 20px;
     flex-wrap: wrap;
     background: #f8fafc;
     border: 1px dashed var(--slate-300);

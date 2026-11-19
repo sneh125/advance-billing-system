@@ -1,6 +1,20 @@
+import logging
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
+
+
+def sanitize_csv_cell(value):
+    """
+    Prevent CSV / Spreadsheet Formula Injection (CWE-1236) by prefixing cells
+    that start with dangerous formula trigger characters with a single quote.
+    """
+    text = "" if value is None else str(value)
+    if text and text[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return f"'{text}"
+    return text
 
 
 def send_otp_email(email, otp, user_name=None, is_admin=False):
@@ -40,8 +54,8 @@ def send_otp_email(email, otp, user_name=None, is_admin=False):
 
     try:
         msg.send(fail_silently=False)
-        print(f"[AUTH-EMAIL] OTP verification email dispatched successfully to {email}")
+        logger.info("OTP verification email dispatched to %s", email)
         return True
     except Exception as e:
-        print(f"[AUTH-EMAIL-ERROR] Failed to send OTP email to {email}: {e}")
+        logger.error("Failed to send OTP email to %s: %s", email, e)
         return False

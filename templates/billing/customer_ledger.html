@@ -1,0 +1,278 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ customer.name }} — Customer Khata | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/customers.css' %}?v=3">
+</head>
+
+<body>
+
+    <div class="dashboard-container">
+
+        {% include 'includes/app_header.html' with active_page='customers' %}
+
+        <div class="toast-container" id="toastContainer">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
+                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <main class="customers-page-wrapper">
+
+            <div class="page-header-row">
+                <div class="page-title-wrap">
+                    <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px;">
+                        <a href="{% url 'customer_list' %}"
+                            style="color: var(--primary); text-decoration: none; font-weight: 600;">← Customers</a> /
+                        Customer Khata (Udhar Ledger)
+                    </div>
+                    <h2>📒 {{ customer.name }}</h2>
+                    <p>
+                        📞 {{ customer.phone }}
+                        {% if customer.email %} • ✉️ {{ customer.email }}{% endif %}
+                        {% if customer.gstin %} • 🏛️ GSTIN: <strong>{{ customer.gstin }}</strong>{% endif %}
+                        • 📍 {{ customer.city }}, {{ customer.state }}
+                    </p>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    {% if total_due > 0 %}
+                    <a href="{{ whatsapp_reminder_url }}" target="_blank" rel="noopener noreferrer"
+                        id="btnKhataWhatsapp" class="btn-primary-add"
+                        style="background: linear-gradient(135deg, #059669, #10b981);">
+                        💬 WhatsApp Udhar Reminder
+                    </a>
+                    {% endif %}
+                    <a href="?export=csv" class="btn-clear-filter" style="text-decoration: none; padding: 10px 16px;">
+                        📥 Export Statement CSV
+                    </a>
+                    <a href="{% url 'invoice_create' %}" class="btn-primary-add">
+                        + New Bill
+                    </a>
+                </div>
+            </div>
+
+            <!-- KHATA KPI STATS -->
+            <section class="stats-row" aria-label="Customer Ledger KPIs">
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <div class="stat-icon blue">🧾</div>
+                        <span class="stat-trend-tag">Total Debit</span>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Total Billed</span>
+                        <div class="stat-value" style="font-family: var(--font-mono);">₹{{ total_billed|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <div class="stat-icon teal">✓</div>
+                        <span class="stat-trend-tag">Total Credit</span>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Total Received</span>
+                        <div class="stat-value" style="font-family: var(--font-mono); color: #059669;">
+                            ₹{{ total_paid|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <div class="stat-icon orange">💰</div>
+                        <span class="stat-trend-tag" style="background: #fffbeb; color: #b45309;">Udhar /
+                            Receivable</span>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Balance Due</span>
+                        <div class="stat-value"
+                            style="font-family: var(--font-mono); color: {% if total_due > 0 %}#b45309{% else %}#059669{% endif %};">
+                            ₹{{ total_due|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <div class="stat-icon purple">⏰</div>
+                        <span class="stat-trend-tag" style="background: #fef2f2; color: #b91c1c;">Due Alerts</span>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Overdue Invoices</span>
+                        <div class="stat-value"
+                            style="color: {% if overdue_count > 0 %}#dc2626{% else %}var(--text-main){% endif %};">
+                            {{ overdue_count }}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- QUICK RECORD PAYMENT FOR UNPAID BILLS -->
+            {% if unpaid_invoices %}
+            <div class="table-card-container" style="padding: 20px 24px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 800; color: var(--text-main);">💳 Quick
+                    Payment Entry (Against Pending / Partial Bills)</h3>
+                <form method="POST" id="khataQuickPayForm" action="{% url 'invoice_add_payment' unpaid_invoices.0.pk %}"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; align-items: end;">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'customer_ledger' customer.pk %}">
+                    <div>
+                        <label
+                            style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">Select
+                            Invoice *</label>
+                        <select id="khataInvoiceSelect" onchange="updateKhataPayAction()"
+                            style="width: 100%; padding: 9px 10px; border: 1px solid var(--slate-300); border-radius: 8px; font-size: 13px; background: #fff;">
+                            {% for uinv in unpaid_invoices %}
+                            <option value="{{ uinv.pk }}" data-due="{{ uinv.balance_due }}">
+                                {{ uinv.invoice_number }} (Due: ₹{{ uinv.balance_due|floatformat:2 }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">Amount
+                            Received (₹) *</label>
+                        <input type="number" name="amount" id="khataAmountInput" step="0.01" min="0.01"
+                            value="{{ unpaid_invoices.0.balance_due }}" required
+                            style="width: 100%; padding: 9px 10px; border: 1px solid var(--slate-300); border-radius: 8px; font-family: var(--font-mono); font-size: 13px;">
+                    </div>
+                    <div>
+                        <label
+                            style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">Mode</label>
+                        <select name="payment_mode"
+                            style="width: 100%; padding: 9px 10px; border: 1px solid var(--slate-300); border-radius: 8px; font-size: 13px; background: #fff;">
+                            <option value="UPI">UPI</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Card">Card</option>
+                            <option value="Cheque">Cheque</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">UTR
+                            / Ref #</label>
+                        <input type="text" name="reference_number" placeholder="Optional Ref"
+                            style="width: 100%; padding: 9px 10px; border: 1px solid var(--slate-300); border-radius: 8px; font-size: 13px;">
+                    </div>
+                    <div>
+                        <label
+                            style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">Date</label>
+                        <input type="date" name="payment_date" value="{{ today_iso }}"
+                            style="width: 100%; padding: 9px 10px; border: 1px solid var(--slate-300); border-radius: 8px; font-size: 13px;">
+                    </div>
+                    <div>
+                        <button type="submit" class="btn-primary-add"
+                            style="width: 100%; justify-content: center; border: none; cursor: pointer;">
+                            ✓ Record Payment
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- CHRONOLOGICAL KHATA STATEMENT -->
+            <div class="table-card-container">
+                <div
+                    style="padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; font-size: 15px; font-weight: 800;">Account Ledger Statement (Debit / Credit)
+                    </h3>
+                    <span class="search-stats-badge">{{ ledger_entries|length }} Entries</span>
+                </div>
+                {% if ledger_entries %}
+                <div class="table-responsive">
+                    <table class="saas-data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Invoice #</th>
+                                <th>Details</th>
+                                <th style="text-align: right;">Debit (Billed)</th>
+                                <th style="text-align: right;">Credit (Paid)</th>
+                                <th style="text-align: right;">Running Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in ledger_entries %}
+                            <tr>
+                                <td>{{ row.date|date:"d M Y" }}</td>
+                                <td>
+                                    {% if row.entry_type == 'Payment' %}
+                                    <span
+                                        style="padding: 3px 9px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">Payment</span>
+                                    {% else %}
+                                    <span
+                                        style="padding: 3px 9px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">Invoice</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'invoice_detail' row.invoice_pk %}"
+                                        style="font-family: var(--font-mono); font-weight: 700; color: var(--primary-700); text-decoration: none;">
+                                        {{ row.reference }}
+                                    </a>
+                                </td>
+                                <td>{{ row.details }}</td>
+                                <td style="text-align: right; font-family: var(--font-mono); color: #b91c1c;">
+                                    {% if row.debit > 0 %}₹{{ row.debit|floatformat:2 }}{% else %}-{% endif %}
+                                </td>
+                                <td
+                                    style="text-align: right; font-family: var(--font-mono); color: #059669; font-weight: 700;">
+                                    {% if row.credit > 0 %}₹{{ row.credit|floatformat:2 }}{% else %}-{% endif %}
+                                </td>
+                                <td
+                                    style="text-align: right; font-family: var(--font-mono); font-weight: 800; color: {% if row.running_balance > 0 %}#b45309{% else %}#059669{% endif %};">
+                                    ₹{{ row.running_balance|floatformat:2 }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state-wrap">
+                    <div class="empty-icon-circle">📒</div>
+                    <h3>No Transactions Yet</h3>
+                    <p>Create an invoice for {{ customer.name }} to start tracking their Khata ledger.</p>
+                </div>
+                {% endif %}
+            </div>
+
+        </main>
+
+    </div>
+
+    <script>
+        function updateKhataPayAction() {
+            const sel = document.getElementById('khataInvoiceSelect');
+            const form = document.getElementById('khataQuickPayForm');
+            const amt = document.getElementById('khataAmountInput');
+            if (!sel || !form) return;
+            const opt = sel.options[sel.selectedIndex];
+            form.action = `/invoices/${encodeURIComponent(sel.value)}/payments/add/`;
+            if (opt && opt.dataset.due && amt) {
+                amt.value = opt.dataset.due;
+                amt.max = opt.dataset.due;
+            }
+        }
+        setTimeout(() => {
+            document.querySelectorAll('.toast-card').forEach(t => t.remove());
+        }, 4500);
+    </script>
+
+</body>
+
+</html>

@@ -9,6 +9,7 @@ urlpatterns = [
     path('customer-register/', views.customer_register_view, name='customer_register_page'),
     path('customers/<int:pk>/edit/', views.customer_edit, name='customer_edit'),
     path('customers/<int:pk>/delete/', views.customer_delete, name='customer_delete'),
+    path('customers/<int:pk>/ledger/', views.customer_ledger, name='customer_ledger'),
 
     # Customer Registration API for Distributor
     path('api/customers/register/', views.customer_register_api, name='customer_register_api'),
@@ -17,24 +18,40 @@ urlpatterns = [
     path('api/distributor/customer/register/', views.customer_register_api, name='api_distributor_customer_reg'),
     path('api/customers/', views.customer_register_api, name='api_customers'),
 
-    path("products/add/",views.product_add,name="product_add"),
-    path("products/",views.product_list,name="product_list"),
-    path("products/<int:pk>/",views.product_detail,name="product_detail"),
-    path("products/<int:pk>/edit/",views.product_edit,name="product_edit"),
-    path("products/<int:pk>/delete/",views.product_delete,name="product_delete"),
+    path("products/add/", views.product_add, name="product_add"),
+    path("products/", views.product_list, name="product_list"),
+    path("products/stock-ledger/", views.stock_ledger, name="stock_ledger"),
+    path("products/<int:pk>/", views.product_detail, name="product_detail"),
+    path("products/<int:pk>/edit/", views.product_edit, name="product_edit"),
+    path("products/<int:pk>/delete/", views.product_delete, name="product_delete"),
+    path("products/<int:pk>/restock/", views.product_restock, name="product_restock"),
 
     # Product CRUD REST API
     path("api/products/", views.product_api_list_create, name="api_products"),
     path("api/products/<int:pk>/", views.product_api_detail, name="api_product_detail"),
+
     path("invoices/", views.invoice_list, name="invoice_list"),
     path("invoices/create/", views.invoice_create, name="invoice_create"),
     path("invoices/report/", views.invoice_report, name="invoice_report"),
     path("reports/invoices/", views.invoice_report, name="reports_invoices"),
     path("reports/invoices/pdf/", views.invoice_report_pdf, name="invoice_report_pdf"),
     path("invoices/report/pdf/", views.invoice_report_pdf, name="invoices_report_pdf"),
+    path("reports/gstr1/export/", views.gstr1_export_csv, name="gstr1_export_csv"),
     path("invoices/<int:pk>/", views.invoice_detail, name="invoice_detail"),
     path("invoices/<int:pk>/preview/", views.invoice_preview, name="invoice_preview"),
+    path("invoices/<int:pk>/status/", views.invoice_toggle_status, name="invoice_toggle_status"),
+    path("invoices/<int:pk>/payments/add/", views.invoice_add_payment, name="invoice_add_payment"),
+    path("invoices/<int:pk>/payments/<int:payment_id>/delete/", views.invoice_delete_payment, name="invoice_delete_payment"),
+    path("invoices/<int:pk>/cancel/", views.invoice_cancel, name="invoice_cancel"),
+    path("invoices/<int:pk>/email/", views.invoice_send_email, name="invoice_send_email"),
     path("invoices/<int:pk>/pdf/", views.invoice_pdf, name="invoice_pdf"),
+
+    # Quotations / Estimates -> 1-Click Tax Invoice
+    path("quotations/", views.quotation_list, name="quotation_list"),
+    path("quotations/create/", views.quotation_create, name="quotation_create"),
+    path("quotations/<int:pk>/", views.quotation_detail, name="quotation_detail"),
+    path("quotations/<int:pk>/pdf/", views.quotation_pdf, name="quotation_pdf"),
+    path("quotations/<int:pk>/convert/", views.quotation_convert_to_invoice, name="quotation_convert_to_invoice"),
 
     # Task 47 & 48: QR Code Decoder (UI and REST API endpoints)
     path("qr/decode/", views.qr_decoder_view, name="qr_decoder"),
@@ -43,4 +60,3 @@ urlpatterns = [
     path("api/qr-decode/", views.qr_decoder_api, name="api_qr_decode_alias"),
     path("api/decode-qr/", views.qr_decoder_api, name="api_decode_qr"),
 ]
-

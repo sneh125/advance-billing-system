@@ -12,69 +12,7 @@
 
 <div class="dashboard-container">
 
-    <!-- UNIFIED APP HEADER -->
-    <header class="app-shell-header">
-        <div class="app-header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
-                <div class="brand-badge-icon">AB</div>
-                <div class="brand-text-group">
-                    <h1>Advance Billing System</h1>
-                    <span class="brand-tagline">Distributor Cloud Workspace</span>
-                </div>
-            </a>
-
-            <!-- NAVIGATION PILL TABS -->
-            <nav class="app-nav-pills" aria-label="Main Navigation">
-                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
-                    📊 Dashboard
-                </a>
-                <a href="{% url 'customer_list' %}" class="app-nav-link active">
-                    👥 Customers
-                </a>
-                <a href="{% url 'product_list' %}" class="app-nav-link">
-                    📦 Products
-                </a>
-                <a href="{% url 'invoice_list' %}" class="app-nav-link">
-                    🧾 Invoices
-                </a>
-                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
-                    👤 My Profile
-                </a>
-            </nav>
-        </div>
-
-        <div class="app-header-right">
-            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
-                ⚡ + Quick Bill
-            </a>
-            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
-                <div class="user-avatar-circle">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
-                    <span class="avatar-online-dot"></span>
-                </div>
-                <div class="user-info-text-col">
-                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
-                    <span class="user-role-subtag">Distributor</span>
-                </div>
-            </a>
-            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
-                Logout
-            </a>
-            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
-                ☰
-            </button>
-        </div>
-    </header>
-
-    <!-- MOBILE NAV DRAWER -->
-    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
-        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
-        <a href="{% url 'customer_list' %}" class="app-nav-link active">👥 Customers</a>
-        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
-        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
-        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
-        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
-    </nav>
+    {% include 'includes/app_header.html' with active_page='customers' %}
 
     <!-- FORM PAGE WRAPPER -->
     <main class="form-page-container">
@@ -143,6 +81,14 @@
                             </label>
                             <input type="email" id="id_email" name="email" class="form-control-input {% if errors.email %}has-error{% endif %}" value="{% if form_data.email %}{{ form_data.email }}{% elif customer %}{{ customer.email }}{% endif %}" placeholder="e.g. rahul@example.com">
                             <span class="field-error-msg" id="emailError">{% if errors.email %}{{ errors.email }}{% endif %}</span>
+                        </div>
+
+                        <div class="form-group-field full-span">
+                            <label for="id_gstin" class="form-label">
+                                GSTIN <small style="color: var(--text-muted); font-weight: normal;">(Optional, 15 chars)</small>
+                            </label>
+                            <input type="text" id="id_gstin" name="gstin" maxlength="15" style="text-transform: uppercase;" class="form-control-input {% if errors.gstin %}has-error{% endif %}" value="{% if form_data.gstin %}{{ form_data.gstin }}{% elif customer %}{{ customer.gstin }}{% endif %}" placeholder="e.g. 24ABCDE1234F1Z5">
+                            <span class="field-error-msg" id="gstinError">{% if errors.gstin %}{{ errors.gstin }}{% endif %}</span>
                         </div>
                     </div>
 

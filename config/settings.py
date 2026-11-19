@@ -10,22 +10,43 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
+def _env_bool(name, default=False):
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    return val.strip().lower() in ("1", "true", "yes", "on")
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ncqx^wip^v%-rcb@hzfokgp@_ddyvf#)ai8+ng@2y%_m9s%ser'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Load optional .env file from project root without requiring third-party packages
+_env_path = BASE_DIR / ".env"
+if _env_path.is_file():
+    for _raw_line in _env_path.read_text(encoding="utf-8").splitlines():
+        _line = _raw_line.strip()
+        if not _line or _line.startswith("#") or "=" not in _line:
+            continue
+        _key, _val = _line.split("=", 1)
+        os.environ.setdefault(_key.strip(), _val.strip().strip('"').strip("'"))
 
-ALLOWED_HOSTS = []
+
+# Security & environment settings
+# SECURITY WARNING: set DJANGO_SECRET_KEY via environment variable in production!
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "dev-only-local-fallback-key-change-in-production-9f4e2a7c1b8d3e6f0a5c2b9d",
+)
+
+# SECURITY WARNING: set DJANGO_DEBUG=False in production!
+DEBUG = _env_bool("DJANGO_DEBUG", default=True)
+
+_raw_hosts = os.environ.get("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
+ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(",") if h.strip()]
 
 
 # Application definition
@@ -74,11 +95,40 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+# Set DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/DBNAME in .env for PostgreSQL production.
 
+def _parse_database_url(url):
+    from urllib.parse import urlparse, parse_qs, unquote
+    parsed = urlparse(url)
+    scheme = (parsed.scheme or "").lower()
+    if scheme in ("postgres", "postgresql", "psql"):
+        query = parse_qs(parsed.query)
+        options = {}
+        if "sslmode" in query and query["sslmode"]:
+            options["sslmode"] = query["sslmode"][0]
+        cfg = {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": unquote((parsed.path or "").lstrip("/")),
+            "USER": unquote(parsed.username or ""),
+            "PASSWORD": unquote(parsed.password or ""),
+            "HOST": parsed.hostname or "127.0.0.1",
+            "PORT": str(parsed.port or 5432),
+            "CONN_MAX_AGE": int(os.environ.get("DJANGO_DB_CONN_MAX_AGE", "600")),
+        }
+        if options:
+            cfg["OPTIONS"] = options
+        return cfg
+    return {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+
+
+_DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": _parse_database_url(_DATABASE_URL) if _DATABASE_URL else {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -107,7 +157,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = os.environ.get('DJANGO_TIME_ZONE', 'Asia/Kolkata')
 
 USE_I18N = True
 
@@ -121,6 +171,10 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -128,9 +182,22 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/login/"
 
-# Email Configuration for OTP Password Recovery
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'Advance Billing System <no-reply@advancebilling.local>'
+# Email Configuration for OTP Password Recovery & Invoice Sharing
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = _env_bool('EMAIL_USE_TLS', default=True)
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '').strip()
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').strip()
+_default_email_backend = (
+    'django.core.mail.backends.smtp.EmailBackend'
+    if (EMAIL_HOST_USER and EMAIL_HOST_PASSWORD)
+    else 'django.core.mail.backends.console.EmailBackend'
+)
+EMAIL_BACKEND = os.environ.get('DJANGO_EMAIL_BACKEND', '').strip() or _default_email_backend
+DEFAULT_FROM_EMAIL = os.environ.get(
+    'DEFAULT_FROM_EMAIL',
+    f'Advance Billing System <{EMAIL_HOST_USER or "no-reply@advancebilling.local"}>'
+)
 EMAIL_SUBJECT_PREFIX = '[Advance Billing] '
 
 # ==============================================================================
@@ -145,4 +212,14 @@ SESSION_COOKIE_SAMESITE = 'Lax'  # Prevent CSRF session fixation
 SESSION_SAVE_EVERY_REQUEST = True  # Rolling session updates: active users keep session alive
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
-
+# Production HTTPS & Header Hardening (auto-enabled when DEBUG=False)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = _env_bool('DJANGO_SECURE_SSL_REDIRECT', default=True)
+    SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

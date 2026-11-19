@@ -14,69 +14,7 @@
 
 <div class="dashboard-container">
 
-    <!-- UNIFIED APP HEADER -->
-    <header class="app-shell-header">
-        <div class="app-header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
-                <div class="brand-badge-icon">AB</div>
-                <div class="brand-text-group">
-                    <h1>Advance Billing System</h1>
-                    <span class="brand-tagline">Distributor Cloud Workspace</span>
-                </div>
-            </a>
-
-            <!-- NAVIGATION PILL TABS -->
-            <nav class="app-nav-pills" aria-label="Main Navigation">
-                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
-                    📊 Dashboard
-                </a>
-                <a href="{% url 'customer_list' %}" class="app-nav-link">
-                    👥 Customers
-                </a>
-                <a href="{% url 'product_list' %}" class="app-nav-link active">
-                    📦 Products
-                </a>
-                <a href="{% url 'invoice_list' %}" class="app-nav-link">
-                    🧾 Invoices
-                </a>
-                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
-                    👤 My Profile
-                </a>
-            </nav>
-        </div>
-
-        <div class="app-header-right">
-            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
-                ⚡ + Quick Bill
-            </a>
-            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
-                <div class="user-avatar-circle">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
-                    <span class="avatar-online-dot"></span>
-                </div>
-                <div class="user-info-text-col">
-                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
-                    <span class="user-role-subtag">Distributor</span>
-                </div>
-            </a>
-            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
-                Logout
-            </a>
-            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
-                ☰
-            </button>
-        </div>
-    </header>
-
-    <!-- MOBILE NAV DRAWER -->
-    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
-        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
-        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
-        <a href="{% url 'product_list' %}" class="app-nav-link active">📦 Products</a>
-        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
-        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
-        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
-    </nav>
+    {% include 'includes/app_header.html' with active_page='products' %}
 
     <!-- FLASH TOAST MESSAGES -->
     <div class="toast-container" id="toastContainer">
@@ -99,7 +37,10 @@
                 <h2>Product Catalog & Stock</h2>
                 <p>Manage product inventories, live stock counts, GST slab rates, and unit pricing.</p>
             </div>
-            <div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="{% url 'stock_ledger' %}" class="btn-clear-filter" style="text-decoration: none; padding: 10px 16px;">
+                    📋 Stock Ledger
+                </a>
                 <a href="{% url 'product_add' %}" class="btn-primary-add">
                     + Add New Product
                 </a>
@@ -191,6 +132,11 @@
                                     <a href="{% url 'product_detail' product.pk %}" style="font-size: 14.5px; font-weight: 700; color: var(--text-main); text-decoration: none;" title="View Product Details">
                                         {{ product.name }}
                                     </a>
+                                    {% if product.sku or product.hsn_code %}
+                                    <small style="color: var(--primary-700); font-family: var(--font-mono); font-size: 11px;">
+                                        {% if product.sku %}SKU: {{ product.sku }}{% endif %}{% if product.sku and product.hsn_code %} • {% endif %}{% if product.hsn_code %}HSN: {{ product.hsn_code }}{% endif %}
+                                    </small>
+                                    {% endif %}
                                     {% if product.description %}
                                     <small style="color: var(--text-muted); font-size: 12px;">{{ product.description|truncatechars:45 }}</small>
                                     {% endif %}
@@ -216,6 +162,9 @@
                             </td>
                             <td style="text-align: right;">
                                 <div class="action-buttons-wrap">
+                                    <button type="button" class="btn-table-edit" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0; cursor: pointer;" onclick="openRestockModal('{{ product.pk }}', '{{ product.name|escapejs }}', '{{ product.stock }}')" title="Add Stock-In">
+                                        + Stock
+                                    </button>
                                     <a href="{% url 'product_detail' product.pk %}" class="btn-table-edit" style="background: var(--slate-100); color: var(--text-secondary); border-color: var(--border-color);" title="View Details">
                                         👁️ View
                                     </a>
@@ -272,6 +221,35 @@
 
 </div>
 
+<!-- RESTOCK / STOCK-IN MODAL -->
+<div class="modal-backdrop" id="restockModal">
+    <div class="modal-card" style="text-align: left; max-width: 440px;">
+        <h3 style="margin-bottom: 6px;">📥 Stock-In / Purchase Restock</h3>
+        <p id="restockModalTitle" style="margin-bottom: 14px; font-size: 13px; color: var(--text-muted);"></p>
+        <form method="POST" id="restockForm" action="">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <input type="hidden" name="movement_type" value="RESTOCK">
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px;">Quantity to Add *</label>
+                <input type="number" name="quantity" min="1" value="10" required style="width: 100%; padding: 9px 12px; border: 1px solid var(--slate-300); border-radius: 8px; font-size: 14px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px;">Supplier Bill / PO Ref #</label>
+                <input type="text" name="reference" placeholder="e.g., PO-2026-041" style="width: 100%; padding: 9px 12px; border: 1px solid var(--slate-300); border-radius: 8px; font-size: 13.5px;">
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px;">Notes</label>
+                <input type="text" name="notes" placeholder="Optional purchase note" style="width: 100%; padding: 9px 12px; border: 1px solid var(--slate-300); border-radius: 8px; font-size: 13.5px;">
+            </div>
+            <div class="modal-actions-row">
+                <button type="button" class="btn-modal-cancel" onclick="closeRestockModal()">Cancel</button>
+                <button type="submit" class="btn-primary-add" style="border: none; cursor: pointer;">✓ Add Stock</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- DELETE MODAL -->
 <div class="modal-backdrop" id="deleteModal">
     <div class="modal-card">
@@ -295,9 +273,26 @@
         const form = document.getElementById('deleteForm');
         const msg = document.getElementById('deleteModalMessage');
 
-        form.action = `/billing/products/${productId}/delete/`;
-        msg.innerHTML = `Are you sure you want to delete <strong>${productName}</strong>? This item will be permanently removed.`;
+        form.action = `/products/${encodeURIComponent(productId)}/delete/`;
+        msg.textContent = '';
+        msg.append('Are you sure you want to delete ');
+        const strong = document.createElement('strong');
+        strong.textContent = productName;
+        msg.append(strong, '? This item will be permanently removed.');
         modal.classList.add('active');
+    }
+
+    function openRestockModal(productId, productName, currentStock) {
+        const modal = document.getElementById('restockModal');
+        const form = document.getElementById('restockForm');
+        const title = document.getElementById('restockModalTitle');
+        form.action = `/products/${encodeURIComponent(productId)}/restock/`;
+        title.textContent = `Product: ${productName} (Current Stock: ${currentStock})`;
+        modal.classList.add('active');
+    }
+
+    function closeRestockModal() {
+        document.getElementById('restockModal').classList.remove('active');
     }
 
     function closeDeleteModal() {

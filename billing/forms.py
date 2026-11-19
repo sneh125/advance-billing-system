@@ -1,8 +1,9 @@
-from django import forms
+import re
 from decimal import Decimal
-from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
+from django import forms
 from .models import Invoice, Customer, Product
+
+GSTIN_REGEX = re.compile(r"^[0-9A-Z]{15}$")
 
 
 class CustomerForm(forms.ModelForm):
@@ -11,11 +12,12 @@ class CustomerForm(forms.ModelForm):
     """
     class Meta:
         model = Customer
-        fields = ['name', 'email', 'phone', 'address', 'city', 'state', 'pincode', 'is_active']
+        fields = ['name', 'email', 'phone', 'gstin', 'address', 'city', 'state', 'pincode', 'is_active']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Full Name'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'}),
             'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '10-digit Phone'}),
+            'gstin': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '15-char GSTIN (Optional)'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Address'}),
             'city': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'City'}),
             'state': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'State'}),
@@ -37,6 +39,12 @@ class CustomerForm(forms.ModelForm):
             raise forms.ValidationError("Please enter a valid 10-digit phone number.")
         return phone
 
+    def clean_gstin(self):
+        gstin = (self.cleaned_data.get('gstin') or '').strip().upper()
+        if gstin and not GSTIN_REGEX.match(gstin):
+            raise forms.ValidationError("Please enter a valid 15-character alphanumeric GSTIN.")
+        return gstin
+
     def clean_pincode(self):
         pincode = self.cleaned_data.get('pincode', '').strip()
         if not pincode.isdigit() or len(pincode) < 5 or len(pincode) > 6:
@@ -50,9 +58,11 @@ class ProductForm(forms.ModelForm):
     """
     class Meta:
         model = Product
-        fields = ['name', 'category', 'price', 'stock', 'gst_rate', 'description']
+        fields = ['name', 'sku', 'hsn_code', 'category', 'price', 'stock', 'gst_rate', 'description']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Product Name'}),
+            'sku': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'SKU (Optional)'}),
+            'hsn_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'HSN / SAC Code (Optional)'}),
             'category': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Category'}),
             'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'stock': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
@@ -144,7 +154,9 @@ class InvoiceReportFilterForm(forms.Form):
         choices=[
             ('', '-- All Statuses --'),
             ('Paid', 'Paid'),
+            ('Partial', 'Partial'),
             ('Pending', 'Pending'),
+            ('Cancelled', 'Cancelled'),
         ],
         widget=forms.Select(attrs={
             'class': 'form-control',
@@ -165,8 +177,11 @@ class InvoiceReportFilterForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         distributor = kwargs.pop('distributor', None)
+        is_admin = kwargs.pop('is_admin', False)
         super().__init__(*args, **kwargs)
-        if distributor:
+        if is_admin:
+            self.fields['customer'].queryset = Customer.objects.all().order_by('name')
+        elif distributor:
             self.fields['customer'].queryset = Customer.objects.filter(
                 distributor=distributor
             ).order_by('name')
@@ -198,4 +213,3 @@ class InvoiceReportFilterForm(forms.Form):
             raise forms.ValidationError("From Date cannot be later than To Date.")
 
         return cleaned_data
-

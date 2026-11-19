@@ -1,8 +1,117 @@
 import io
+from decimal import Decimal, ROUND_HALF_UP
 from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 import reportlab
+
+
+_ONES = [
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+    "Seventeen", "Eighteen", "Nineteen",
+]
+_TENS = [
+    "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety",
+]
+
+
+def _two_digit_words(n):
+    if n < 20:
+        return _ONES[n]
+    return (_TENS[n // 10] + (" " + _ONES[n % 10] if n % 10 else "")).strip()
+
+
+def _indian_integer_words(n):
+    if n == 0:
+        return "Zero"
+    parts = []
+    crore, rem = divmod(n, 10000000)
+    if crore:
+        parts.append(f"{_indian_integer_words(crore)} Crore")
+    lakh, rem = divmod(rem, 100000)
+    if lakh:
+        parts.append(f"{_two_digit_words(lakh)} Lakh")
+    thousand, rem = divmod(rem, 1000)
+    if thousand:
+        parts.append(f"{_two_digit_words(thousand)} Thousand")
+    hundred, rem = divmod(rem, 100)
+    if hundred:
+        parts.append(f"{_ONES[hundred]} Hundred")
+    if rem:
+        parts.append(_two_digit_words(rem))
+    return " ".join(parts).strip()
+
+
+def amount_to_indian_words(amount):
+    """
+    Convert a Decimal/numeric INR amount into Indian legal invoice wording
+    (e.g., 12450.50 -> 'Rupees Twelve Thousand Four Hundred Fifty and Fifty Paise Only').
+    """
+    try:
+        dec = Decimal(str(amount or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    except Exception:
+        dec = Decimal("0.00")
+    is_neg = dec < 0
+    dec = abs(dec)
+    rupees = int(dec)
+    paise = int(((dec - Decimal(rupees)) * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+    rupee_words = _indian_integer_words(rupees)
+    prefix = "Minus " if is_neg else ""
+    if paise > 0:
+        return f"{prefix}Rupees {rupee_words} and {_two_digit_words(paise)} Paise Only"
+    return f"{prefix}Rupees {rupee_words} Only"
+
+
+def build_hsn_tax_summary(items, is_interstate=False):
+    """
+    Group invoice or quotation line items by (HSN/SAC code, GST rate) for
+    Indian GST-compliant tax breakdown tables and GSTR-1 HSN summaries.
+    """
+    grouped = {}
+    for item in items:
+        hsn = ((getattr(item.product, "hsn_code", "") or "").strip()) or "N/A"
+        gst_rate = Decimal(str(item.gst_rate or 0)).quantize(Decimal("0.01"))
+        key = (hsn, gst_rate)
+        taxable = Decimal(str(item.subtotal or 0)).quantize(Decimal("0.01"))
+        total_val = Decimal(str(item.total or 0)).quantize(Decimal("0.01"))
+        tax_amt = (total_val - taxable).quantize(Decimal("0.01"))
+        if tax_amt < Decimal("0.00"):
+            tax_amt = (taxable * (gst_rate / Decimal("100"))).quantize(Decimal("0.01"))
+
+        if is_interstate:
+            cgst = Decimal("0.00")
+            sgst = Decimal("0.00")
+            igst = tax_amt
+        else:
+            cgst = (tax_amt / Decimal("2")).quantize(Decimal("0.01"))
+            sgst = (tax_amt - cgst).quantize(Decimal("0.01"))
+            igst = Decimal("0.00")
+
+        if key not in grouped:
+            grouped[key] = {
+                "hsn_code": hsn,
+                "description": item.product.name,
+                "gst_rate": gst_rate,
+                "quantity": 0,
+                "taxable_value": Decimal("0.00"),
+                "cgst": Decimal("0.00"),
+                "sgst": Decimal("0.00"),
+                "igst": Decimal("0.00"),
+                "total_tax": Decimal("0.00"),
+                "total_value": Decimal("0.00"),
+            }
+        row = grouped[key]
+        row["quantity"] += int(item.quantity or 0)
+        row["taxable_value"] += taxable
+        row["cgst"] += cgst
+        row["sgst"] += sgst
+        row["igst"] += igst
+        row["total_tax"] += tax_amt
+        row["total_value"] += total_val
+
+    return sorted(grouped.values(), key=lambda r: (r["hsn_code"], r["gst_rate"]))
 
 
 def generate_invoice_pdf_bytes(template_src, context_dict=None):

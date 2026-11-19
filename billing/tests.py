@@ -792,7 +792,7 @@ class CustomerRegistrationAPITests(TestCase):
         self.assertEqual(res_data["data"]["distributor_id"], self.distributor.id)
 
     def test_customer_register_api_with_distributor_id_payload(self):
-        """Client specifies distributor_id in payload when unauthenticated"""
+        """Unauthenticated distributor_id payload is rejected (401); authenticated admin can assign distributor_id."""
         payload = {
             "distributor_id": self.distributor2.id,
             "name": "Dhaval Jani",
@@ -801,6 +801,23 @@ class CustomerRegistrationAPITests(TestCase):
             "state": "Gujarat",
             "pincode": "390001"
         }
+        # Unauthenticated attempt must be blocked
+        response_unauth = self.client.post(
+            reverse("customer_register_api"),
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(response_unauth.status_code, 401)
+
+        # Authenticated admin may assign customer to distributor2
+        admin_user = User.objects.create_user(
+            username="api_assign_admin",
+            email="api_assign_admin@example.com",
+            password="AdminPassword@123",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.client.force_login(admin_user)
         response = self.client.post(
             reverse("customer_register_api"),
             data=json.dumps(payload),
@@ -2605,3 +2622,702 @@ class Task81To85RoleBasedAndPaginationTests(TestCase):
         del_p = self.client.post(reverse("product_delete", kwargs={"pk": prod.pk}))
         self.assertEqual(del_p.status_code, 302)
         self.assertFalse(Product.objects.filter(pk=prod.pk).exists())
+
+    def test_invoice_toggle_status_and_isolation(self):
+        """Verify 1-click invoice payment status toggle (Pending <-> Paid) and isolation"""
+        cust = Customer.objects.filter(distributor=self.distributor1).first()
+        inv = Invoice.objects.create(
+            invoice_number="INV-STATUS-TEST-001",
+            customer=cust,
+            distributor=self.distributor1,
+            subtotal=Decimal("100.00"),
+            gst_amount=Decimal("18.00"),
+            total_amount=Decimal("118.00"),
+            status="Pending",
+        )
+
+        # Distributor 2 cannot toggle Distributor 1's invoice
+        self.client.login(username="dist_role_2", password="Password@123")
+        res_other = self.client.post(reverse("invoice_toggle_status", kwargs={"pk": inv.pk}))
+        self.assertEqual(res_other.status_code, 404)
+
+        # Distributor 1 can toggle Pending -> Paid -> Pending
+        self.client.login(username="dist_role_1", password="Password@123")
+        res_paid = self.client.post(reverse("invoice_toggle_status", kwargs={"pk": inv.pk}))
+        self.assertEqual(res_paid.status_code, 302)
+        inv.refresh_from_db()
+        self.assertEqual(inv.status, "Paid")
+
+        res_pending = self.client.post(reverse("invoice_toggle_status", kwargs={"pk": inv.pk}))
+        self.assertEqual(res_pending.status_code, 302)
+        inv.refresh_from_db()
+        self.assertEqual(inv.status, "Pending")
+
+        # Admin can also toggle any invoice
+        self.client.login(username="admin_role_tester", password="AdminPassword@123")
+        res_admin = self.client.post(reverse("invoice_toggle_status", kwargs={"pk": inv.pk}))
+        self.assertEqual(res_admin.status_code, 302)
+        inv.refresh_from_db()
+        self.assertEqual(inv.status, "Paid")
+
+    def test_customer_list_single_pagination_and_inactive_badge(self):
+        """Verify customer_list renders pagination once and shows Inactive badge for inactive customers"""
+        Customer.objects.create(
+            distributor=self.distributor1,
+            name="Inactive Client Test",
+            phone="9998887776",
+            city="Ahmedabad",
+            state="Gujarat",
+            pincode="380001",
+            is_active=False,
+        )
+        self.client.login(username="dist_role_1", password="Password@123")
+        res = self.client.get(reverse("customer_list"))
+        self.assertEqual(res.status_code, 200)
+        html = res.content.decode("utf-8")
+        self.assertEqual(html.count('class="pagination-wrapper"'), 1)
+        self.assertContains(res, "Inactive")
+
+
+class SecurityFixesAndNewBillingFeaturesTests(TestCase):
+    """Comprehensive tests for security hardening, bug fixes, stock deduction, cancel, GST split, and email sharing."""
+
+    def setUp(self):
+        from accounts.models import DistributorProfile
+        self.client = Client()
+        self.admin = User.objects.create_user(
+            username="feat_admin",
+            email="feat_admin@billing.local",
+            password="AdminPassword@2026",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.dist1 = User.objects.create_user(
+            username="feat_dist1",
+            email="feat_dist1@billing.local",
+            password="DistPassword@2026",
+            first_name="Gujarat Traders",
+        )
+        DistributorProfile.objects.create(
+            user=self.dist1,
+            phone="9876543210",
+            business_name="Gujarat Traders Pvt Ltd",
+            gstin="24ABCDE1234F1Z5",
+            state="Gujarat",
+            upi_id="gujarattraders@okicici",
+        )
+        self.dist2 = User.objects.create_user(
+            username="feat_dist2",
+            email="feat_dist2@billing.local",
+            password="DistPassword@2026",
+            first_name="Mumbai Distributors",
+        )
+        DistributorProfile.objects.create(user=self.dist2, phone="9876500000", state="Maharashtra")
+
+        self.cust_gj = Customer.objects.create(
+            distributor=self.dist1,
+            name="Ahmedabad Buyer",
+            email="buyer.gj@example.com",
+            phone="9825012345",
+            gstin="24XYZAB1234C1Z2",
+            city="Ahmedabad",
+            state="Gujarat",
+            pincode="380001",
+        )
+        self.cust_mh = Customer.objects.create(
+            distributor=self.dist1,
+            name="Mumbai Buyer",
+            email="buyer.mh@example.com",
+            phone="9825054321",
+            city="Mumbai",
+            state="Maharashtra",
+            pincode="400001",
+        )
+        self.cust_d2 = Customer.objects.create(
+            distributor=self.dist2,
+            name="Pune Buyer",
+            phone="9811122233",
+            city="Pune",
+            state="Maharashtra",
+            pincode="411001",
+        )
+        self.prod1 = Product.objects.create(
+            distributor=self.dist1,
+            name="Industrial Router",
+            sku="RTR-100",
+            hsn_code="8517",
+            category="Networking",
+            price=Decimal("1000.00"),
+            stock=10,
+            gst_rate=Decimal("18.00"),
+        )
+        self.prod2 = Product.objects.create(
+            distributor=self.dist2,
+            name="Fiber Switch",
+            category="Networking",
+            price=Decimal("2000.00"),
+            stock=5,
+            gst_rate=Decimal("18.00"),
+        )
+
+    def test_product_api_blocks_unauthenticated_distributor_id_bypass(self):
+        res_get = self.client.get(reverse("api_products") + f"?distributor_id={self.dist1.id}")
+        self.assertEqual(res_get.status_code, 401)
+        res_post = self.client.post(
+            reverse("api_products") + f"?distributor_id={self.dist1.id}",
+            data=json.dumps({
+                "name": "Injected Item",
+                "category": "Hack",
+                "price": "100.00",
+                "stock": 5,
+                "gst_rate": "18.00",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(res_post.status_code, 401)
+
+    def test_qr_decoder_api_does_not_leak_invoice_to_anonymous(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        inv = Invoice.objects.create(
+            invoice_number="INV-LEAK-TEST-01",
+            customer=self.cust_gj,
+            distributor=self.dist1,
+            subtotal=Decimal("1000.00"),
+            gst_amount=Decimal("180.00"),
+            total_amount=Decimal("1180.00"),
+            status="Paid",
+        )
+        qr_bytes = base64.b64decode(inv.qr_code_data)
+        uploaded_anon = SimpleUploadedFile("inv.png", qr_bytes, content_type="image/png")
+        res_anon = self.client.post(reverse("qr_decoder_api"), {"file": uploaded_anon})
+        self.assertEqual(res_anon.status_code, 200)
+        self.assertIsNone(res_anon.json()["data"]["matched_invoice"])
+
+        # Authenticated owner receives matched_invoice
+        self.client.login(username="feat_dist1", password="DistPassword@2026")
+        uploaded_auth = SimpleUploadedFile("inv2.png", qr_bytes, content_type="image/png")
+        res_auth = self.client.post(reverse("qr_decoder_api"), {"file": uploaded_auth})
+        self.assertEqual(res_auth.status_code, 200)
+        self.assertEqual(res_auth.json()["data"]["matched_invoice"]["invoice_number"], "INV-LEAK-TEST-01")
+
+    def test_invoice_create_deducts_stock_persists_discount_and_splits_gst(self):
+        self.client.login(username="feat_dist1", password="DistPassword@2026")
+
+        # 1. Rejects insufficient stock
+        res_over = self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_gj.id,
+            "product[]": [str(self.prod1.id)],
+            "quantity[]": ["25"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+        })
+        self.assertEqual(res_over.status_code, 200)
+        self.prod1.refresh_from_db()
+        self.assertEqual(self.prod1.stock, 10)
+
+        # 2. Rejects >100% discount
+        res_bad_disc = self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_gj.id,
+            "product[]": [str(self.prod1.id)],
+            "quantity[]": ["1"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["150"],
+        })
+        self.assertEqual(res_bad_disc.status_code, 200)
+        self.prod1.refresh_from_db()
+        self.assertEqual(self.prod1.stock, 10)
+
+        # 3. Intra-state (Gujarat -> Gujarat): CGST + SGST split & stock deduction & discount saved
+        res_intra = self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_gj.id,
+            "status": "Paid",
+            "payment_mode": "UPI",
+            "product[]": [str(self.prod1.id)],
+            "quantity[]": ["2"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["10"],
+        })
+        self.assertEqual(res_intra.status_code, 302)
+        self.prod1.refresh_from_db()
+        self.assertEqual(self.prod1.stock, 8)
+        inv_intra = Invoice.objects.filter(customer=self.cust_gj).latest("id")
+        self.assertEqual(inv_intra.discount_total, Decimal("200.00"))
+        self.assertEqual(inv_intra.subtotal, Decimal("1800.00"))
+        self.assertEqual(inv_intra.gst_amount, Decimal("324.00"))
+        self.assertFalse(inv_intra.is_interstate)
+        self.assertEqual(inv_intra.cgst_amount, Decimal("162.00"))
+        self.assertEqual(inv_intra.sgst_amount, Decimal("162.00"))
+        self.assertEqual(inv_intra.igst_amount, Decimal("0.00"))
+        self.assertEqual(inv_intra.payment_mode, "UPI")
+        self.assertIsNotNone(inv_intra.paid_at)
+
+        # 4. Inter-state (Gujarat -> Maharashtra): IGST split
+        res_inter = self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_mh.id,
+            "status": "Pending",
+            "product[]": [str(self.prod1.id)],
+            "quantity[]": ["1"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+        })
+        self.assertEqual(res_inter.status_code, 302)
+        inv_inter = Invoice.objects.filter(customer=self.cust_mh).latest("id")
+        self.assertTrue(inv_inter.is_interstate)
+        self.assertEqual(inv_inter.igst_amount, Decimal("180.00"))
+        self.assertEqual(inv_inter.cgst_amount, Decimal("0.00"))
+        self.assertEqual(inv_inter.sgst_amount, Decimal("0.00"))
+        self.prod1.refresh_from_db()
+        self.assertEqual(self.prod1.stock, 7)
+
+        # 5. Cancel Invoice restores stock & blocks status toggle
+        res_cancel = self.client.post(reverse("invoice_cancel", kwargs={"pk": inv_intra.pk}))
+        self.assertRedirects(res_cancel, reverse("invoice_detail", kwargs={"pk": inv_intra.pk}))
+        inv_intra.refresh_from_db()
+        self.prod1.refresh_from_db()
+        self.assertEqual(inv_intra.status, "Cancelled")
+        self.assertEqual(self.prod1.stock, 9)
+
+        # Toggling cancelled invoice must keep it Cancelled
+        self.client.post(reverse("invoice_toggle_status", kwargs={"pk": inv_intra.pk}))
+        inv_intra.refresh_from_db()
+        self.assertEqual(inv_intra.status, "Cancelled")
+
+    def test_multi_distributor_invoice_numbers_never_collide(self):
+        self.client.login(username="feat_dist1", password="DistPassword@2026")
+        r1 = self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_gj.id,
+            "product[]": [str(self.prod1.id)],
+            "quantity[]": ["1"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+        })
+        self.assertEqual(r1.status_code, 302)
+
+        self.client.logout()
+        self.client.login(username="feat_dist2", password="DistPassword@2026")
+        r2 = self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_d2.id,
+            "product[]": [str(self.prod2.id)],
+            "quantity[]": ["1"],
+            "unit_price[]": ["2000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+        })
+        self.assertEqual(r2.status_code, 302)
+        nums = list(Invoice.objects.values_list("invoice_number", flat=True))
+        self.assertEqual(len(nums), len(set(nums)))
+
+    def test_protected_error_handled_on_customer_and_product_delete(self):
+        self.client.login(username="feat_dist1", password="DistPassword@2026")
+        self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_gj.id,
+            "product[]": [str(self.prod1.id)],
+            "quantity[]": ["1"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+        })
+        # Customer delete should redirect with error, not 500
+        res_cust = self.client.post(reverse("customer_delete", kwargs={"pk": self.cust_gj.pk}))
+        self.assertRedirects(res_cust, reverse("customer_list"))
+        self.assertTrue(Customer.objects.filter(pk=self.cust_gj.pk).exists())
+
+        # Product delete should redirect with error, not 500
+        res_prod = self.client.post(reverse("product_delete", kwargs={"pk": self.prod1.pk}))
+        self.assertRedirects(res_prod, reverse("product_list"))
+        self.assertTrue(Product.objects.filter(pk=self.prod1.pk).exists())
+
+        # Product API DELETE should return 409 Conflict, not 500
+        res_api = self.client.delete(reverse("api_product_detail", kwargs={"pk": self.prod1.pk}))
+        self.assertEqual(res_api.status_code, 409)
+
+    def test_open_redirect_blocked_and_invoice_email_and_upi_id_used(self):
+        from django.core import mail
+        self.client.login(username="feat_dist1", password="DistPassword@2026")
+        self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_gj.id,
+            "product[]": [str(self.prod1.id)],
+            "quantity[]": ["1"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+        })
+        inv = Invoice.objects.filter(customer=self.cust_gj).latest("id")
+
+        # Open redirect blocked -> redirects safely to invoice_detail
+        res_redir = self.client.post(
+            reverse("invoice_toggle_status", kwargs={"pk": inv.pk}),
+            {"next": "https://evil.example.com/phish"},
+        )
+        self.assertRedirects(res_redir, reverse("invoice_detail", kwargs={"pk": inv.pk}))
+
+        # Detail page renders configured UPI ID and WhatsApp link
+        res_detail = self.client.get(reverse("invoice_detail", kwargs={"pk": inv.pk}))
+        self.assertContains(res_detail, "gujarattraders@okicici")
+        self.assertContains(res_detail, "https://wa.me/919825012345")
+
+        # Email Invoice PDF attaches PDF and sends
+        mail.outbox.clear()
+        res_email = self.client.post(reverse("invoice_send_email", kwargs={"pk": inv.pk}))
+        self.assertRedirects(res_email, reverse("invoice_detail", kwargs={"pk": inv.pk}))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["buyer.gj@example.com"])
+        self.assertEqual(len(mail.outbox[0].attachments), 1)
+
+    def test_product_list_delete_url_fixed_and_admin_can_view_reports(self):
+        self.client.login(username="feat_dist1", password="DistPassword@2026")
+        res_list = self.client.get(reverse("product_list"))
+        self.assertNotContains(res_list, "/billing/products/")
+        self.assertContains(res_list, "/products/${encodeURIComponent(productId)}/delete/")
+
+        self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_gj.id,
+            "product[]": [str(self.prod1.id)],
+            "quantity[]": ["1"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+        })
+        self.client.logout()
+        self.client.login(username="feat_admin", password="AdminPassword@2026")
+        res_report = self.client.get(reverse("invoice_report"))
+        self.assertEqual(res_report.status_code, 200)
+        self.assertContains(res_report, "Ahmedabad Buyer")
+
+
+class RealBusinessFivePhasesTests(TestCase):
+    """Comprehensive tests covering Phases 1–5 real-business upgrades."""
+
+    def setUp(self):
+        from accounts.models import DistributorProfile
+        self.client = Client()
+        self.admin = User.objects.create_user(
+            username="rb_admin",
+            email="rb_admin@billing.local",
+            password="AdminPassword@2026",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.dist1 = User.objects.create_user(
+            username="rb_dist1",
+            email="rb_dist1@billing.local",
+            password="DistPassword@2026",
+        )
+        DistributorProfile.objects.create(
+            user=self.dist1,
+            phone="9876501234",
+            business_name="Patel Agro & Distributors",
+            gstin="24ABCDE1234F1Z5",
+            address="SG Highway",
+            city="Ahmedabad",
+            state="Gujarat",
+            upi_id="patelagro@okaxis",
+        )
+        self.dist2 = User.objects.create_user(
+            username="rb_dist2",
+            email="rb_dist2@billing.local",
+            password="DistPassword@2026",
+        )
+        self.cust_b2b = Customer.objects.create(
+            distributor=self.dist1,
+            name="Surat Wholesale Mart",
+            email="surat@example.com",
+            phone="9825011111",
+            gstin="24ZZZZZ9999Z1Z9",
+            address="Ring Road",
+            city="Surat",
+            state="Gujarat",
+            pincode="395002",
+        )
+        self.cust_b2c = Customer.objects.create(
+            distributor=self.dist1,
+            name="Mumbai Retail Buyer",
+            email="mumbai@example.com",
+            phone="9820022222",
+            gstin="",
+            address="Andheri",
+            city="Mumbai",
+            state="Maharashtra",
+            pincode="400053",
+        )
+        self.prod = Product.objects.create(
+            distributor=self.dist1,
+            name="Solar Inverter 2kVA",
+            sku="SOL-2000",
+            hsn_code="8504",
+            category="Electrical",
+            price=Decimal("1000.00"),
+            stock=25,
+            gst_rate=Decimal("18.00"),
+        )
+
+    def test_phase1_amount_to_words_and_gst_compliant_pdf_and_preview(self):
+        from .utils import amount_to_indian_words
+        self.assertEqual(
+            amount_to_indian_words(Decimal("12450.50")),
+            "Rupees Twelve Thousand Four Hundred Fifty and Fifty Paise Only",
+        )
+        self.assertEqual(
+            amount_to_indian_words(Decimal("100000.00")),
+            "Rupees One Lakh Only",
+        )
+        self.assertEqual(
+            amount_to_indian_words(Decimal("0.00")),
+            "Rupees Zero Only",
+        )
+
+        self.client.login(username="rb_dist1", password="DistPassword@2026")
+        res = self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_b2b.id,
+            "product[]": [str(self.prod.id)],
+            "quantity[]": ["2"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["10.00"],
+            "status": "Pending",
+            "notes": "PO #7781",
+        })
+        self.assertEqual(res.status_code, 302)
+        inv = Invoice.objects.filter(distributor=self.dist1).latest("id")
+
+        detail = self.client.get(reverse("invoice_detail", kwargs={"pk": inv.pk}))
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, "Patel Agro &amp; Distributors")
+        self.assertContains(detail, "8504")
+        self.assertContains(detail, "10.0%")
+        self.assertContains(detail, "Place of Supply:")
+        self.assertContains(detail, "Rupees Two Thousand One Hundred Twenty Four Only")
+        self.assertContains(detail, "HSN-Wise GST Tax Summary")
+        self.assertContains(detail, "PO #7781")
+
+        pdf_res = self.client.get(reverse("invoice_pdf", kwargs={"pk": inv.pk}))
+        self.assertEqual(pdf_res.status_code, 200)
+        self.assertEqual(pdf_res["Content-Type"], "application/pdf")
+        self.assertTrue(pdf_res.content.startswith(b"%PDF"))
+
+    def test_phase2_partial_payments_due_dates_overdue_and_customer_khata(self):
+        from datetime import date, timedelta
+        from .models import InvoicePayment
+
+        self.client.login(username="rb_dist1", password="DistPassword@2026")
+        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        res = self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_b2b.id,
+            "product[]": [str(self.prod.id)],
+            "quantity[]": ["1"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+            "status": "Partial",
+            "payment_mode": "UPI",
+            "initial_paid": "500.00",
+            "payment_reference": "UTR12345",
+            "due_date": yesterday,
+        })
+        self.assertEqual(res.status_code, 302)
+        inv = Invoice.objects.filter(distributor=self.dist1).latest("id")
+        self.assertEqual(inv.status, "Partial")
+        self.assertEqual(inv.amount_paid, Decimal("500.00"))
+        self.assertEqual(inv.balance_due, Decimal("680.00"))
+        self.assertTrue(inv.is_overdue)
+        self.assertEqual(inv.payments.count(), 1)
+
+        # Overpayment rejected
+        res_over = self.client.post(reverse("invoice_add_payment", kwargs={"pk": inv.pk}), {
+            "amount": "900.00",
+            "payment_mode": "Cash",
+        })
+        self.assertEqual(res_over.status_code, 302)
+        inv.refresh_from_db()
+        self.assertEqual(inv.amount_paid, Decimal("500.00"))
+
+        # Record remaining balance -> invoice becomes Paid
+        res_settle = self.client.post(reverse("invoice_add_payment", kwargs={"pk": inv.pk}), {
+            "amount": "680.00",
+            "payment_mode": "Bank Transfer",
+            "reference_number": "NEFT999",
+        })
+        self.assertEqual(res_settle.status_code, 302)
+        inv.refresh_from_db()
+        self.assertEqual(inv.status, "Paid")
+        self.assertEqual(inv.balance_due, Decimal("0.00"))
+        self.assertFalse(inv.is_overdue)
+
+        # Delete second payment -> reverts to Partial
+        second_pay = InvoicePayment.objects.filter(invoice=inv, reference_number="NEFT999").first()
+        self.assertIsNotNone(second_pay)
+        self.client.post(reverse("invoice_delete_payment", kwargs={"pk": inv.pk, "payment_id": second_pay.pk}))
+        inv.refresh_from_db()
+        self.assertEqual(inv.status, "Partial")
+        self.assertEqual(inv.balance_due, Decimal("680.00"))
+
+        # Customer Khata page + CSV export
+        khata = self.client.get(reverse("customer_ledger", kwargs={"pk": self.cust_b2b.pk}))
+        self.assertEqual(khata.status_code, 200)
+        self.assertContains(khata, "Surat Wholesale Mart")
+        self.assertContains(khata, "680.00")
+        self.assertContains(khata, "https://wa.me/919825011111")
+
+        khata_csv = self.client.get(reverse("customer_ledger", kwargs={"pk": self.cust_b2b.pk}) + "?export=csv")
+        self.assertEqual(khata_csv.status_code, 200)
+        self.assertIn("Running Balance", khata_csv.content.decode("utf-8"))
+
+        # Cross-tenant isolation: dist2 cannot access dist1's customer ledger
+        self.client.logout()
+        self.client.login(username="rb_dist2", password="DistPassword@2026")
+        res_denied = self.client.get(reverse("customer_ledger", kwargs={"pk": self.cust_b2b.pk}))
+        self.assertEqual(res_denied.status_code, 404)
+
+    def test_phase3_gstr1_exports_and_stock_ledger(self):
+        from .models import StockMovement
+        self.client.login(username="rb_dist1", password="DistPassword@2026")
+
+        # Create 1 B2B invoice, 1 B2C invoice, and 1 Cancelled invoice (excluded from GSTR-1)
+        self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_b2b.id,
+            "product[]": [str(self.prod.id)],
+            "quantity[]": ["2"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+        })
+        self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_b2c.id,
+            "product[]": [str(self.prod.id)],
+            "quantity[]": ["3"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+        })
+        self.client.post(reverse("invoice_create"), {
+            "customer": self.cust_b2b.id,
+            "product[]": [str(self.prod.id)],
+            "quantity[]": ["1"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+        })
+        cancelled_inv = Invoice.objects.filter(distributor=self.dist1).latest("id")
+        self.client.post(reverse("invoice_cancel", kwargs={"pk": cancelled_inv.pk}))
+
+        # GSTR-1 B2B includes GSTIN customer but excludes cancelled invoice & B2C
+        b2b = self.client.get(reverse("gstr1_export_csv") + "?section=b2b")
+        self.assertEqual(b2b.status_code, 200)
+        b2b_text = b2b.content.decode("utf-8")
+        self.assertIn("24ZZZZZ9999Z1Z9", b2b_text)
+        self.assertNotIn(cancelled_inv.invoice_number, b2b_text)
+        self.assertNotIn("Mumbai Retail Buyer", b2b_text)
+
+        # GSTR-1 B2C includes Maharashtra interstate IGST
+        b2c = self.client.get(reverse("gstr1_export_csv") + "?section=b2c")
+        self.assertEqual(b2c.status_code, 200)
+        b2c_text = b2c.content.decode("utf-8")
+        self.assertIn("Maharashtra", b2c_text)
+        self.assertIn("540.00", b2c_text)
+
+        # GSTR-1 HSN aggregates 2 + 3 = 5 non-cancelled units under HSN 8504
+        hsn = self.client.get(reverse("gstr1_export_csv") + "?section=hsn")
+        self.assertEqual(hsn.status_code, 200)
+        hsn_text = hsn.content.decode("utf-8")
+        self.assertIn("8504", hsn_text)
+        self.assertIn(",5,", hsn_text)
+
+        # Stock-In restock + audit ledger
+        self.prod.refresh_from_db()
+        self.assertEqual(self.prod.stock, 20)  # 25 - 2 - 3 - 1 + 1 = 20
+        res_restock = self.client.post(reverse("product_restock", kwargs={"pk": self.prod.pk}), {
+            "movement_type": "RESTOCK",
+            "quantity": "15",
+            "reference": "PO-SUP-501",
+            "notes": "Factory batch",
+        })
+        self.assertEqual(res_restock.status_code, 302)
+        self.prod.refresh_from_db()
+        self.assertEqual(self.prod.stock, 35)
+        self.assertTrue(
+            StockMovement.objects.filter(product=self.prod, movement_type="RESTOCK", reference="PO-SUP-501").exists()
+        )
+        self.assertTrue(
+            StockMovement.objects.filter(product=self.prod, movement_type="CANCEL_RESTORE").exists()
+        )
+
+        ledger_res = self.client.get(reverse("stock_ledger"))
+        self.assertEqual(ledger_res.status_code, 200)
+        self.assertContains(ledger_res, "PO-SUP-501")
+
+    def test_phase4_quotation_create_pdf_and_convert_to_invoice(self):
+        from .models import Quotation
+        self.client.login(username="rb_dist1", password="DistPassword@2026")
+
+        res = self.client.post(reverse("quotation_create"), {
+            "customer": self.cust_b2b.id,
+            "product[]": [str(self.prod.id)],
+            "quantity[]": ["4"],
+            "unit_price[]": ["1000.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["5.00"],
+            "notes": "Bulk order quote",
+        })
+        self.assertEqual(res.status_code, 302)
+        quote = Quotation.objects.filter(distributor=self.dist1).latest("id")
+        self.assertEqual(quote.total_amount, Decimal("4484.00"))
+        # Quotation creation MUST NOT deduct stock
+        self.prod.refresh_from_db()
+        self.assertEqual(self.prod.stock, 25)
+
+        pdf_res = self.client.get(reverse("quotation_pdf", kwargs={"pk": quote.pk}))
+        self.assertEqual(pdf_res.status_code, 200)
+        self.assertEqual(pdf_res["Content-Type"], "application/pdf")
+
+        # Convert quotation -> real Tax Invoice deducts stock & links invoice
+        conv_res = self.client.post(reverse("quotation_convert_to_invoice", kwargs={"pk": quote.pk}))
+        self.assertEqual(conv_res.status_code, 302)
+        quote.refresh_from_db()
+        self.assertEqual(quote.status, "Converted")
+        self.assertIsNotNone(quote.converted_invoice)
+        self.prod.refresh_from_db()
+        self.assertEqual(self.prod.stock, 21)
+
+    def test_phase5_database_url_parser_backup_command_smtp_and_admin_backup_endpoint(self):
+        import tempfile
+        from pathlib import Path
+        from django.core.management import call_command
+        from django.core import mail
+        from config.settings import _parse_database_url
+
+        pg_cfg = _parse_database_url("postgresql://billuser:SecPass@db.example.com:5433/prod_db?sslmode=require")
+        self.assertEqual(pg_cfg["ENGINE"], "django.db.backends.postgresql")
+        self.assertEqual(pg_cfg["NAME"], "prod_db")
+        self.assertEqual(pg_cfg["USER"], "billuser")
+        self.assertEqual(pg_cfg["PORT"], "5433")
+        self.assertEqual(pg_cfg["OPTIONS"]["sslmode"], "require")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            call_command("backup_db", format="json", output_dir=tmpdir, keep=5)
+            files = list(Path(tmpdir).glob("advance_billing_*.json"))
+            self.assertEqual(len(files), 1)
+            self.assertGreater(files[0].stat().st_size, 10)
+
+        mail.outbox.clear()
+        call_command("test_smtp", "owner@example.com")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["owner@example.com"])
+
+        # Non-staff distributor cannot download full DB backup
+        self.client.login(username="rb_dist1", password="DistPassword@2026")
+        res_dist = self.client.get(reverse("admin_backup_db"))
+        self.assertNotEqual(res_dist.status_code, 200)
+
+        # Admin can download JSON snapshot backup
+        self.client.logout()
+        self.client.login(username="rb_admin", password="AdminPassword@2026")
+        res_adm = self.client.get(reverse("admin_backup_db") + "?format=json")
+        self.assertEqual(res_adm.status_code, 200)
+        self.assertIn("application/json", res_adm["Content-Type"])
+
+

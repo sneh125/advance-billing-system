@@ -5,76 +5,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create New Invoice | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/invoices.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=3">
+    <style>
+        .quick-pos-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f0fdfa;
+            border: 1.5px solid #99f6e4;
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .quick-pos-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 13.5px;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+        .quick-pos-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid var(--slate-300);
+            border-radius: 10px;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 60;
+            display: none;
+        }
+        .quick-pos-dropdown.open {
+            display: block;
+        }
+        .quick-pos-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--slate-100);
+            font-size: 13px;
+        }
+        .quick-pos-item:hover {
+            background: #f0fdfa;
+        }
+        .term-chip {
+            padding: 4px 9px;
+            border-radius: 9999px;
+            border: 1px solid var(--slate-300);
+            background: #ffffff;
+            color: var(--text-secondary);
+            font-size: 11.5px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .term-chip:hover {
+            border-color: var(--primary);
+            color: var(--primary-700);
+            background: #f0fdfa;
+        }
+        .billing-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .meta-input-control {
+            width: 100%;
+            padding: 9px 11px;
+            border: 1px solid var(--slate-300);
+            border-radius: 9px;
+            font-size: 13px;
+            background: #ffffff;
+            color: var(--text-main);
+        }
+    </style>
 </head>
 <body>
 
 <div class="invoice-page-layout">
 
-    <!-- UNIFIED APP HEADER -->
-    <header class="app-shell-header">
-        <div class="app-header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
-                <div class="brand-badge-icon">AB</div>
-                <div class="brand-text-group">
-                    <h1>Advance Billing System</h1>
-                    <span class="brand-tagline">Distributor Cloud Workspace</span>
-                </div>
-            </a>
-
-            <!-- NAVIGATION PILL TABS -->
-            <nav class="app-nav-pills" aria-label="Main Navigation">
-                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">
-                    📊 Dashboard
-                </a>
-                <a href="{% url 'customer_list' %}" class="app-nav-link">
-                    👥 Customers
-                </a>
-                <a href="{% url 'product_list' %}" class="app-nav-link">
-                    📦 Products
-                </a>
-                <a href="{% url 'invoice_list' %}" class="app-nav-link active">
-                    🧾 Invoices
-                </a>
-                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
-                    👤 My Profile
-                </a>
-            </nav>
-        </div>
-
-        <div class="app-header-right">
-            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
-                ⚡ + Quick Bill
-            </a>
-            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
-                <div class="user-avatar-circle">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
-                    <span class="avatar-online-dot"></span>
-                </div>
-                <div class="user-info-text-col">
-                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
-                    <span class="user-role-subtag">Distributor</span>
-                </div>
-            </a>
-            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
-                Logout
-            </a>
-            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
-                ☰
-            </button>
-        </div>
-    </header>
-
-    <!-- MOBILE NAV DRAWER -->
-    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
-        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
-        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
-        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
-        <a href="{% url 'invoice_list' %}" class="app-nav-link active">🧾 Invoices</a>
-        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
-        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
-    </nav>
+    {% include 'includes/app_header.html' with active_page='invoices' %}
 
     <!-- FLASH TOAST MESSAGES -->
     <div class="toast-container" id="toastContainer">
@@ -92,13 +111,18 @@
     <main class="invoice-page-content">
 
         <!-- BREADCRUMBS -->
-        <nav class="breadcrumbs-nav" aria-label="Breadcrumb">
-            <a href="{% url 'distributor_dashboard' %}">Dashboard</a>
-            <span>/</span>
-            <a href="{% url 'invoice_list' %}">Invoices</a>
-            <span>/</span>
-            <span class="current-crumb">New Invoice</span>
-        </nav>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <nav class="breadcrumbs-nav" aria-label="Breadcrumb">
+                <a href="{% url 'distributor_dashboard' %}">Dashboard</a>
+                <span>/</span>
+                <a href="{% url 'invoice_list' %}">Invoices</a>
+                <span>/</span>
+                <span class="current-crumb">New Tax Invoice</span>
+            </nav>
+            <a href="{% url 'quotation_create' %}" style="font-size: 12.5px; font-weight: 700; color: #6d28d9; text-decoration: none; background: #f5f3ff; border: 1px solid #ddd6fe; padding: 6px 12px; border-radius: 9999px;">
+                📝 Need a Quotation / Estimate instead? →
+            </a>
+        </div>
 
         <form method="POST" id="invoiceForm" class="invoice-create-form">
             {% csrf_token %}
@@ -109,13 +133,13 @@
                 <div class="invoice-main-card">
 
                     <div class="card-header-bar">
-                        <h2>Create New Tax Invoice</h2>
-                        <p>Select customer and add products with real-time tax and auto-discount engine.</p>
+                        <h2>Create New GST Tax Invoice</h2>
+                        <p>Fast SKU/barcode billing with live CGST/SGST/IGST preview, credit due dates, and partial payment support.</p>
                     </div>
 
                     <div class="invoice-form-body">
 
-                        <!-- CUSTOMER SELECTION -->
+                        <!-- CUSTOMER & PAYMENT SELECTION -->
                         <div class="billing-section-box">
                             <div class="section-label-row">
                                 <span class="section-label-title">
@@ -125,23 +149,79 @@
                                     + Add New Customer
                                 </a>
                             </div>
-                            <div class="customer-select-control-row">
-                                {{ form.customer }}
+
+                            <div style="margin-bottom: 8px;">
+                                <input type="text" id="customerQuickFilter" placeholder="🔍 Quick-filter customer by name or phone..." class="meta-input-control" autocomplete="off">
+                            </div>
+
+                            <div class="customer-select-control-row" style="display: grid; grid-template-columns: 1fr 170px 170px; gap: 12px; align-items: center;">
+                                <div>
+                                    {{ form.customer }}
+                                </div>
+                                <div>
+                                    <select name="status" id="id_payment_status" class="item-select-product" aria-label="Payment Status" title="Initial Payment Status" style="width: 100%;">
+                                        <option value="Pending" selected>⏳ Payment: Pending</option>
+                                        <option value="Partial">◑ Payment: Partial</option>
+                                        <option value="Paid">✓ Payment: Paid</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <select name="payment_mode" id="id_payment_mode" class="item-select-product" aria-label="Payment Mode" title="Payment Mode" style="width: 100%;">
+                                        <option value="Unpaid" selected>💳 Mode: Unpaid</option>
+                                        <option value="UPI">⚡ Mode: UPI</option>
+                                        <option value="Cash">💵 Mode: Cash</option>
+                                        <option value="Bank Transfer">🏦 Mode: Bank Transfer</option>
+                                        <option value="Card">💳 Mode: Card</option>
+                                        <option value="Cheque">🧾 Mode: Cheque</option>
+                                    </select>
+                                </div>
                             </div>
                             {% if form.customer.errors %}
                             <div style="color: var(--danger); font-size: 12.5px; margin-top: 6px;">
                                 {{ form.customer.errors }}
                             </div>
                             {% endif %}
+
+                            <!-- CREDIT TERMS, DUE DATE & PARTIAL PAYMENT -->
+                            <div class="billing-meta-grid">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                        <label for="id_due_date" style="font-size: 11.5px; font-weight: 700; color: var(--text-secondary);">Due Date (Credit Terms)</label>
+                                        <span style="display: inline-flex; gap: 4px;">
+                                            <button type="button" class="term-chip" onclick="setDueDays(0)">0d</button>
+                                            <button type="button" class="term-chip" onclick="setDueDays(7)">7d</button>
+                                            <button type="button" class="term-chip" onclick="setDueDays(15)">15d</button>
+                                            <button type="button" class="term-chip" onclick="setDueDays(30)">30d</button>
+                                        </span>
+                                    </div>
+                                    <input type="date" name="due_date" id="id_due_date" class="meta-input-control">
+                                </div>
+                                <div>
+                                    <label for="id_initial_paid" style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">Initial Paid ₹ (Partial / Advance)</label>
+                                    <input type="number" name="initial_paid" id="id_initial_paid" step="0.01" min="0" placeholder="0.00 (Optional)" class="meta-input-control" style="font-family: var(--font-mono);">
+                                </div>
+                                <div>
+                                    <label for="id_payment_ref" style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">UTR / Payment Ref #</label>
+                                    <input type="text" name="payment_reference" id="id_payment_ref" placeholder="Optional UPI / Cheque Ref" class="meta-input-control">
+                                </div>
+                            </div>
                         </div>
 
                         <!-- PRODUCT LINE ITEMS TABLE -->
                         <div>
                             <div class="items-header-bar">
                                 <h3>📦 Product Line Items</h3>
-                                <button type="button" class="btn-add-product-row" id="btnAddRow">
+                                <button type="button" class="btn-add-product-row" id="btnAddRow" title="Shortcut: Alt+A">
                                     + Add Product Row
                                 </button>
+                            </div>
+
+                            <!-- FAST SEARCH / BARCODE / SKU QUICK ADD -->
+                            <div class="quick-pos-bar">
+                                <span style="font-size: 16px;">⚡</span>
+                                <input type="text" id="productQuickAddInput" class="quick-pos-input" placeholder="Scan SKU/Barcode or type product name / HSN & press Enter to add instantly..." autocomplete="off">
+                                <span style="font-size: 11px; font-weight: 700; color: #0f766e; background: #ccfbf1; padding: 3px 8px; border-radius: 9999px;">Fast POS Search</span>
+                                <div id="productQuickMatches" class="quick-pos-dropdown"></div>
                             </div>
 
                             <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: var(--radius-xl);">
@@ -164,11 +244,8 @@
                                                 <select name="product[]" class="item-select-product product-select" required>
                                                     <option value="" disabled selected>-- Select Product --</option>
                                                     {% for prod in products %}
-                                                    <option value="{{ prod.id }}" 
-                                                            data-price="{{ prod.price }}" 
-                                                            data-gst="{{ prod.gst_rate }}" 
-                                                            data-stock="{{ prod.stock }}">
-                                                        {{ prod.name }} (₹{{ prod.price }} | Stock: {{ prod.stock }})
+                                                    <option value="{{ prod.id }}" data-name="{{ prod.name }}" data-sku="{{ prod.sku }}" data-hsn="{{ prod.hsn_code }}" data-price="{{ prod.price }}" data-gst="{{ prod.gst_rate }}" data-stock="{{ prod.stock }}">
+                                                        {{ prod.name }}{% if prod.sku %} [{{ prod.sku }}]{% endif %} (₹{{ prod.price }} | Stock: {{ prod.stock }})
                                                     </option>
                                                     {% endfor %}
                                                 </select>
@@ -194,6 +271,12 @@
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+
+                            <!-- OPTIONAL INVOICE NOTES -->
+                            <div style="margin-top: 14px;">
+                                <label for="id_notes" style="display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 5px;">Invoice Remarks / PO Number / Delivery Note (Optional)</label>
+                                <input type="text" name="notes" id="id_notes" placeholder="e.g., PO #4509 | Vehicle No. GJ01AB1234" class="meta-input-control">
                             </div>
                         </div>
 
@@ -226,9 +309,18 @@
                             </div>
 
                             <div class="summary-calc-row">
-                                <span>GST Tax Total:</span>
+                                <span id="taxModeLabel">GST Tax Total:</span>
                                 <span class="summary-calc-val" id="summaryGstAmount" style="color: #7c3aed;">+₹0.00</span>
                             </div>
+
+                            <div style="font-size: 11.5px; color: var(--text-muted); background: var(--slate-50); padding: 7px 10px; border-radius: 8px; border: 1px solid var(--slate-200);" id="taxSplitPreview">
+                                CGST: ₹0.00 | SGST: ₹0.00
+                            </div>
+
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-secondary); cursor: pointer; margin-top: 2px;">
+                                <input type="checkbox" name="apply_round_off" id="chkRoundOff" value="1">
+                                <span>Auto Round-Off to nearest ₹1</span>
+                            </label>
 
                             <div class="summary-divider"></div>
 
@@ -240,6 +332,9 @@
                             <button type="submit" class="btn-generate-invoice-main" id="btnSubmitInvoice">
                                 💾 Generate Invoice Now
                             </button>
+                            <div style="text-align: center; font-size: 11px; color: var(--text-muted);">
+                                Shortcuts: Alt+A (New Row) • Ctrl+Enter (Save)
+                            </div>
                         </div>
                     </div>
 
@@ -260,11 +355,8 @@
             <select name="product[]" class="item-select-product product-select" required>
                 <option value="" disabled selected>-- Select Product --</option>
                 {% for prod in products %}
-                <option value="{{ prod.id }}" 
-                        data-price="{{ prod.price }}" 
-                        data-gst="{{ prod.gst_rate }}" 
-                        data-stock="{{ prod.stock }}">
-                    {{ prod.name }} (₹{{ prod.price }} | Stock: {{ prod.stock }})
+                <option value="{{ prod.id }}" data-name="{{ prod.name }}" data-sku="{{ prod.sku }}" data-hsn="{{ prod.hsn_code }}" data-price="{{ prod.price }}" data-gst="{{ prod.gst_rate }}" data-stock="{{ prod.stock }}">
+                    {{ prod.name }}{% if prod.sku %} [{{ prod.sku }}]{% endif %} (₹{{ prod.price }} | Stock: {{ prod.stock }})
                 </option>
                 {% endfor %}
             </select>
@@ -290,12 +382,94 @@
     </tr>
 </template>
 
-<!-- JAVASCRIPT REAL-TIME CALCULATION ENGINE (100% PRESERVED FORMULAS) -->
 <script>
+    const DISTRIBUTOR_STATE = "{{ distributor_state|escapejs }}".trim().toLowerCase();
+    const CUSTOMER_STATES = {{ customer_states_json|default:"{}"|safe }};
+
+    function setDueDays(days) {
+        const dueInput = document.getElementById('id_due_date');
+        if (!dueInput) return;
+        const dt = new Date();
+        dt.setDate(dt.getDate() + days);
+        dueInput.value = dt.toISOString().split('T')[0];
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const tableBody = document.getElementById('itemsTableBody');
         const btnAddRow = document.getElementById('btnAddRow');
         const rowTemplate = document.getElementById('itemRowTemplate');
+        const customerSelect = document.getElementById('customerSelect');
+        const customerFilter = document.getElementById('customerQuickFilter');
+        const quickSearchInput = document.getElementById('productQuickAddInput');
+        const quickDropdown = document.getElementById('productQuickMatches');
+        const chkRoundOff = document.getElementById('chkRoundOff');
+        const statusSel = document.getElementById('id_payment_status');
+        const modeSel = document.getElementById('id_payment_mode');
+        const initialPaidInput = document.getElementById('id_initial_paid');
+
+        // Build product catalog index from template options
+        const catalog = [];
+        const tplSelect = rowTemplate.content.querySelector('.product-select');
+        if (tplSelect) {
+            Array.from(tplSelect.options).forEach(opt => {
+                if (opt.value) {
+                    catalog.push({
+                        id: opt.value,
+                        name: opt.dataset.name || opt.textContent.trim(),
+                        sku: opt.dataset.sku || '',
+                        hsn: opt.dataset.hsn || '',
+                        price: opt.dataset.price || '0',
+                        gst: opt.dataset.gst || '18',
+                        stock: opt.dataset.stock || '0',
+                    });
+                }
+            });
+        }
+
+        // Live Customer Search Filter
+        if (customerFilter && customerSelect) {
+            const allCustOptions = Array.from(customerSelect.options).map(o => ({
+                value: o.value,
+                text: o.textContent,
+                selected: o.selected,
+            }));
+            customerFilter.addEventListener('input', function() {
+                const q = this.value.trim().toLowerCase();
+                const currentVal = customerSelect.value;
+                customerSelect.innerHTML = '';
+                allCustOptions.forEach(item => {
+                    if (!item.value || !q || item.text.toLowerCase().includes(q)) {
+                        const opt = document.createElement('option');
+                        opt.value = item.value;
+                        opt.textContent = item.text;
+                        if (item.value === currentVal) opt.selected = true;
+                        customerSelect.appendChild(opt);
+                    }
+                });
+            });
+        }
+
+        // Sync initial_paid & status cleanly
+        if (initialPaidInput && statusSel && modeSel) {
+            initialPaidInput.addEventListener('input', function() {
+                const val = parseFloat(this.value) || 0;
+                if (val > 0 && statusSel.value === 'Pending') {
+                    statusSel.value = 'Partial';
+                    if (modeSel.value === 'Unpaid') modeSel.value = 'UPI';
+                }
+            });
+            statusSel.addEventListener('change', function() {
+                if ((this.value === 'Paid' || this.value === 'Partial') && modeSel.value === 'Unpaid') {
+                    modeSel.value = 'UPI';
+                }
+            });
+        }
+
+        function isInterstateSelected() {
+            if (!customerSelect || !DISTRIBUTOR_STATE) return false;
+            const cState = (CUSTOMER_STATES[customerSelect.value] || '').trim().toLowerCase();
+            return Boolean(cState && cState !== DISTRIBUTOR_STATE);
+        }
 
         function recalculateRow(row) {
             const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
@@ -335,11 +509,25 @@
                 grandTotal += parseFloat(row.dataset.lineTotal) || 0;
             });
 
+            if (chkRoundOff && chkRoundOff.checked) {
+                grandTotal = Math.round(grandTotal);
+            }
+
             document.getElementById('summaryBaseAmount').textContent = '₹' + totalBase.toFixed(2);
             document.getElementById('summaryDiscount').textContent = '-₹' + totalDiscount.toFixed(2);
             document.getElementById('summaryTaxableSubtotal').textContent = '₹' + totalTaxable.toFixed(2);
             document.getElementById('summaryGstAmount').textContent = '+₹' + totalGst.toFixed(2);
             document.getElementById('summaryGrandTotal').textContent = '₹' + grandTotal.toFixed(2);
+
+            const splitBox = document.getElementById('taxSplitPreview');
+            if (splitBox) {
+                if (isInterstateSelected()) {
+                    splitBox.textContent = 'Inter-State IGST: ₹' + totalGst.toFixed(2);
+                } else {
+                    const half = totalGst / 2;
+                    splitBox.textContent = 'Intra-State CGST: ₹' + half.toFixed(2) + ' | SGST: ₹' + (totalGst - half).toFixed(2);
+                }
+            }
         }
 
         function attachRowListeners(row) {
@@ -375,17 +563,108 @@
             recalculateRow(row);
         }
 
-        // Attach listeners to initial row
+        function addOrIncrementProduct(prodId) {
+            const rows = Array.from(tableBody.querySelectorAll('.item-row'));
+            // If product already exists in a row, increment qty by 1
+            for (const row of rows) {
+                const sel = row.querySelector('.product-select');
+                if (sel && sel.value === String(prodId)) {
+                    const qtyInput = row.querySelector('.qty-input');
+                    qtyInput.value = (parseInt(qtyInput.value, 10) || 1) + 1;
+                    recalculateRow(row);
+                    return;
+                }
+            }
+            // Otherwise reuse an empty row or append a new one
+            let targetRow = rows.find(r => !r.querySelector('.product-select').value);
+            if (!targetRow) {
+                targetRow = rowTemplate.content.cloneNode(true).querySelector('tr');
+                tableBody.appendChild(targetRow);
+                attachRowListeners(targetRow);
+            }
+            const sel = targetRow.querySelector('.product-select');
+            sel.value = String(prodId);
+            sel.dispatchEvent(new Event('change'));
+        }
+
+        // Fast POS Search / Barcode Scanner Handler
+        if (quickSearchInput && quickDropdown) {
+            function renderQuickMatches(term) {
+                const q = term.trim().toLowerCase();
+                if (!q) {
+                    quickDropdown.classList.remove('open');
+                    quickDropdown.innerHTML = '';
+                    return;
+                }
+                const matches = catalog.filter(p =>
+                    p.name.toLowerCase().includes(q) ||
+                    p.sku.toLowerCase().includes(q) ||
+                    p.hsn.toLowerCase().includes(q)
+                ).slice(0, 8);
+                if (!matches.length) {
+                    quickDropdown.innerHTML = '<div style="padding: 10px 14px; font-size: 12.5px; color: #64748b;">No matching products found.</div>';
+                    quickDropdown.classList.add('open');
+                    return;
+                }
+                quickDropdown.innerHTML = '';
+                matches.forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = 'quick-pos-item';
+                    div.innerHTML = `<div><strong>${p.name}</strong>${p.sku ? ' <code style="font-size:11px;color:#0f766e;">[' + p.sku + ']</code>' : ''}${p.hsn ? ' <small style="color:#64748b;">HSN:' + p.hsn + '</small>' : ''}</div><div style="font-family:var(--font-mono);font-size:12px;"><strong>₹${p.price}</strong> • Stock: ${p.stock}</div>`;
+                    div.addEventListener('mousedown', function(ev) {
+                        ev.preventDefault();
+                        addOrIncrementProduct(p.id);
+                        quickSearchInput.value = '';
+                        quickDropdown.classList.remove('open');
+                    });
+                    quickDropdown.appendChild(div);
+                });
+                quickDropdown.classList.add('open');
+            }
+
+            quickSearchInput.addEventListener('input', () => renderQuickMatches(quickSearchInput.value));
+            quickSearchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const q = this.value.trim().toLowerCase();
+                    if (!q) return;
+                    const exact = catalog.find(p => p.sku.toLowerCase() === q) ||
+                        catalog.find(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.hsn.toLowerCase().includes(q));
+                    if (exact) {
+                        addOrIncrementProduct(exact.id);
+                        this.value = '';
+                        quickDropdown.classList.remove('open');
+                    }
+                }
+            });
+            document.addEventListener('click', function(e) {
+                if (!quickSearchInput.contains(e.target) && !quickDropdown.contains(e.target)) {
+                    quickDropdown.classList.remove('open');
+                }
+            });
+        }
+
+        if (customerSelect) customerSelect.addEventListener('change', recalculateGrandTotals);
+        if (chkRoundOff) chkRoundOff.addEventListener('change', recalculateGrandTotals);
+
         tableBody.querySelectorAll('.item-row').forEach(row => attachRowListeners(row));
 
-        // Add row handler
         btnAddRow.addEventListener('click', function() {
             const newRow = rowTemplate.content.cloneNode(true).querySelector('tr');
             tableBody.appendChild(newRow);
             attachRowListeners(newRow);
         });
 
-        // Form submit validation
+        // Keyboard shortcuts: Alt+A adds row, Ctrl+Enter submits
+        document.addEventListener('keydown', function(e) {
+            if (e.altKey && (e.key === 'a' || e.key === 'A')) {
+                e.preventDefault();
+                btnAddRow.click();
+            } else if (e.ctrlKey && e.key === 'Enter') {
+                document.getElementById('invoiceForm').requestSubmit();
+            }
+        });
+
         document.getElementById('invoiceForm').addEventListener('submit', function(e) {
             const products = tableBody.querySelectorAll('.product-select');
             let hasValid = false;

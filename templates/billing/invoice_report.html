@@ -14,48 +14,7 @@
 
 <div class="invoice-page-layout">
 
-    <!-- UNIFIED APP HEADER -->
-    <header class="app-shell-header">
-        <div class="app-header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
-                <div class="brand-badge-icon">AB</div>
-                <div class="brand-text-group">
-                    <h1>Advance Billing System</h1>
-                    <span class="brand-tagline">Distributor Cloud Workspace</span>
-                </div>
-            </a>
-
-            <!-- NAVIGATION PILL TABS -->
-            <nav class="app-nav-pills" aria-label="Main Navigation">
-                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link">📊 Dashboard</a>
-                <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
-                <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
-                <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
-                <a href="{% url 'invoice_report' %}" class="app-nav-link active" style="color: var(--primary); font-weight: 800;">📅 Date Reports</a>
-                <a href="{% url 'qr_decoder' %}" class="app-nav-link">📷 QR Decoder</a>
-                <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
-            </nav>
-        </div>
-
-        <div class="app-header-right">
-            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
-                ⚡ + Quick Bill
-            </a>
-            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
-                <div class="user-avatar-circle">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
-                    <span class="avatar-online-dot"></span>
-                </div>
-                <div class="user-info-text-col">
-                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
-                    <span class="user-role-subtag">Distributor</span>
-                </div>
-            </a>
-            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
-                Logout
-            </a>
-        </div>
-    </header>
+    {% include 'includes/app_header.html' with active_page='reports' %}
 
     <!-- MAIN REPORT PAGE CONTENT -->
     <main class="invoice-page-content">
@@ -142,6 +101,29 @@
                     </button>
                 </div>
             </form>
+        </div>
+
+        <!-- CA-READY GSTR-1 TAX FILING EXPORTS -->
+        <div class="report-filter-card" style="background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 100%); border: 1px solid #99f6e4; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                <div>
+                    <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 800; color: #0f766e;">🏛️ CA-Ready GSTR-1 GST Filing Exports (CSV)</h3>
+                    <p style="margin: 0; font-size: 12.5px; color: var(--text-secondary);">
+                        Download monthly or date-filtered GST sheets (excludes Cancelled invoices automatically) ready for your CA / GST portal.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <a href="{% url 'gstr1_export_csv' %}?section=b2b{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" id="btnGstr1B2B" class="btn-filter-submit" style="text-decoration: none; padding: 9px 14px; font-size: 12.5px;">
+                        📊 GSTR-1 B2B (GSTIN)
+                    </a>
+                    <a href="{% url 'gstr1_export_csv' %}?section=b2c{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" id="btnGstr1B2C" class="btn-filter-reset" style="text-decoration: none; padding: 9px 14px; font-size: 12.5px; border-color: #0f766e; color: #0f766e;">
+                        🧾 GSTR-1 B2C Summary
+                    </a>
+                    <a href="{% url 'gstr1_export_csv' %}?section=hsn{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" id="btnGstr1HSN" class="btn-filter-reset" style="text-decoration: none; padding: 9px 14px; font-size: 12.5px; border-color: #7c3aed; color: #6d28d9;">
+                        🏷️ GSTR-1 HSN Summary
+                    </a>
+                </div>
+            </div>
         </div>
 
         <!-- SUMMARY METRICS KPI CARDS (TASK 44) -->

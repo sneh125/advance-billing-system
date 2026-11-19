@@ -1,0 +1,246 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotation {{ quotation.quotation_number }} | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=3">
+</head>
+
+<body>
+
+    <div class="invoice-page-layout">
+
+        {% include 'includes/app_header.html' with active_page='quotations' %}
+
+        <div class="toast-container" id="toastContainer">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
+                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <main class="invoice-page-content" style="max-width: 1000px;">
+
+            <div
+                style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
+                <nav class="breadcrumbs-nav" aria-label="Breadcrumb">
+                    <a href="{% url 'distributor_dashboard' %}">Dashboard</a>
+                    <span>/</span>
+                    <a href="{% url 'quotation_list' %}">Quotations</a>
+                    <span>/</span>
+                    <span class="current-crumb">{{ quotation.quotation_number }}</span>
+                </nav>
+
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    {% if quotation.status == 'Converted' and quotation.converted_invoice %}
+                    <a href="{% url 'invoice_detail' quotation.converted_invoice.pk %}" class="btn-form-submit"
+                        style="text-decoration: none; padding: 8px 16px; font-size: 13px;">
+                        🧾 Open Tax Invoice ({{ quotation.converted_invoice.invoice_number }})
+                    </a>
+                    {% else %}
+                    <form method="POST" action="{% url 'quotation_convert_to_invoice' quotation.pk %}"
+                        style="display: inline; margin: 0;"
+                        onsubmit="return confirm('Convert this quotation to a GST Tax Invoice and deduct inventory stock?');">
+                        {% csrf_token %}
+                        <button type="submit" id="btnConvertToInvoice" class="btn-form-submit"
+                            style="padding: 8px 16px; font-size: 13px; cursor: pointer;">
+                            ⚡ Convert to Tax Invoice
+                        </button>
+                    </form>
+                    {% endif %}
+                    <a href="{% url 'quotation_pdf' quotation.pk %}" class="btn-form-cancel"
+                        style="text-decoration: none; padding: 8px 14px; font-size: 13px;">
+                        📄 Download PDF
+                    </a>
+                    <a href="{{ whatsapp_share_url }}" target="_blank" rel="noopener noreferrer" class="btn-form-cancel"
+                        style="text-decoration: none; padding: 8px 14px; font-size: 13px; background: #ecfdf5; color: #047857; border-color: #a7f3d0;">
+                        💬 WhatsApp
+                    </a>
+                    <button type="button" onclick="window.print()" class="btn-form-cancel"
+                        style="padding: 8px 14px; font-size: 13px; cursor: pointer;">
+                        🖨️ Print
+                    </button>
+                </div>
+            </div>
+
+            <div class="invoice-paper-card">
+                <div class="invoice-paper-top">
+                    <div>
+                        <div class="paper-brand-title">{{ seller_name }}</div>
+                        <div style="font-size: 12.5px; color: var(--text-muted); text-transform: uppercase;">
+                            {% if distributor_profile.gstin %}GSTIN: {{ distributor_profile.gstin }}{% else %}Sales
+                            Quotation / Proforma Estimate{% endif %}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="paper-invoice-title" style="color: #6d28d9;">QUOTATION</div>
+                        <div style="font-size: 13px; color: var(--text-muted); font-family: var(--font-mono);">
+                            <strong>Quote #:</strong>
+                            {{ quotation.quotation_number }}
+                        </div>
+                        <div style="font-size: 12.5px; color: var(--text-muted);">
+                            <strong>Date:</strong>
+                            {{ quotation.created_at|date:"d M Y" }}
+                        </div>
+                        {% if quotation.valid_until %}
+                        <div style="font-size: 12.5px; color: var(--text-muted);">
+                            <strong>Valid Until:</strong>
+                            {{ quotation.valid_until|date:"d M Y" }}
+                        </div>
+                        {% endif %}
+                        <div style="font-size: 12.5px; color: var(--text-muted);">
+                            <strong>Place of Supply:</strong>
+                            {{ place_of_supply }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="paper-parties-grid">
+                    <div class="party-info-box">
+                        <div class="party-box-title">Prepared By</div>
+                        <div class="party-name-bold">{{ seller_name }}</div>
+                        <div class="party-detail-line">✉️ {{ quotation.distributor.email }}</div>
+                        {% if distributor_profile.phone %}
+                        <div class="party-detail-line">
+                            📞 {{ distributor_profile.phone }}
+                        </div>
+                        {% endif %}
+                        {% if distributor_profile.gstin %}
+                        <div class="party-detail-line">
+                            🏛️ GSTIN: <strong>{{ distributor_profile.gstin }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="party-info-box">
+                        <div class="party-box-title">Quotation For</div>
+                        <div class="party-name-bold">{{ quotation.customer.name }}</div>
+                        <div class="party-detail-line">📞 {{ quotation.customer.phone }}</div>
+                        {% if quotation.customer.gstin %}
+                        <div class="party-detail-line">
+                            🏛️ GSTIN: <strong>{{ quotation.customer.gstin }}</strong>
+                        </div>
+                        {% endif %}
+                        <div class="party-detail-line">
+                            📍 {{ quotation.customer.city }}, {{ quotation.customer.state }} - {{ quotation.customer.pincode }}
+                        </div>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto; margin-bottom: 18px;">
+                    <table class="saas-data-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: center;">#</th>
+                                <th>Item</th>
+                                <th style="text-align: center;">HSN/SAC</th>
+                                <th style="text-align: right;">Rate (₹)</th>
+                                <th style="text-align: center;">Qty</th>
+                                <th style="text-align: center;">Disc %</th>
+                                <th style="text-align: right;">Taxable</th>
+                                <th style="text-align: center;">GST</th>
+                                <th style="text-align: right;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td style="text-align: center;">{{ forloop.counter }}</td>
+                                <td><strong>{{ item.product.name }}</strong></td>
+                                <td style="text-align: center; font-family: var(--font-mono);">
+                                    {{ item.product.hsn_code|default:"-" }}
+                                </td>
+                                <td style="text-align: right; font-family: var(--font-mono);">₹{{ item.unit_price }}
+                                </td>
+                                <td style="text-align: center;">{{ item.quantity }}</td>
+                                <td style="text-align: center;">{{ item.discount_percent|floatformat:1 }}%</td>
+                                <td style="text-align: right; font-family: var(--font-mono);">₹{{ item.subtotal }}</td>
+                                <td style="text-align: center;"><span class="gst-rate-tag">{{ item.gst_rate }}%</span>
+                                </td>
+                                <td style="text-align: right; font-family: var(--font-mono); font-weight: 700;">
+                                    ₹{{ item.total }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div
+                    style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 11px 16px; margin-bottom: 20px; font-size: 13px;">
+                    <strong style="color: #6d28d9;">Estimated Amount (in Words):</strong> {{ amount_in_words }}
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 320px; gap: 28px; align-items: start;">
+                    <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.55;">
+                        <strong style="color: var(--text-main);">Quotation Terms:</strong><br>
+                        1. This is an estimate/quotation and not a tax invoice.<br>
+                        2. Prices and stock availability are subject to confirmation prior to conversion.
+                        {% if quotation.notes %}
+                        <div
+                            style="margin-top: 8px; padding: 8px 10px; background: var(--slate-50); border-left: 3px solid #7c3aed; border-radius: 6px; color: var(--text-secondary);">
+                            <strong>Notes:</strong> {{ quotation.notes }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div
+                        style="background: var(--slate-50); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 18px; display: flex; flex-direction: column; gap: 9px;">
+                        {% if quotation.discount_total > 0 %}
+                        <div style="display: flex; justify-content: space-between; font-size: 13.5px;">
+                            <span>Total Discount:</span>
+                            <strong style="font-family: var(--font-mono); color: #059669;">
+                                - ₹{{ quotation.discount_total }}
+                            </strong>
+                        </div>
+                        {% endif %}
+                        <div style="display: flex; justify-content: space-between; font-size: 13.5px;">
+                            <span>Taxable Subtotal:</span>
+                            <strong style="font-family: var(--font-mono);">₹{{ quotation.subtotal }}</strong>
+                        </div>
+                        {% if quotation.is_interstate %}
+                        <div style="display: flex; justify-content: space-between; font-size: 13.5px;">
+                            <span>IGST:</span>
+                            <strong style="font-family: var(--font-mono); color: #7c3aed;">
+                                ₹{{ quotation.igst_amount }}
+                            </strong>
+                        </div>
+                        {% else %}
+                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                            <span>CGST:</span>
+                            <strong style="font-family: var(--font-mono); color: #7c3aed;">
+                                ₹{{ quotation.cgst_amount }}
+                            </strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                            <span>SGST:</span>
+                            <strong style="font-family: var(--font-mono); color: #7c3aed;">
+                                ₹{{ quotation.sgst_amount }}
+                            </strong>
+                        </div>
+                        {% endif %}
+                        <div style="height: 1px; background: var(--border-color);"></div>
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; color: #6d28d9;">
+                            <span>Estimated Total:</span>
+                            <span style="font-family: var(--font-mono);">₹{{ quotation.total_amount }}</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>

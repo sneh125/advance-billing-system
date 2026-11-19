@@ -1,0 +1,466 @@
+<!-- UNIFIED 3-ZONE APP HEADER (CACHE-PROOF SCOPED STYLES) -->
+<style>
+    .app-shell-header {
+        height: 64px !important;
+        min-height: 64px !important;
+        padding: 0 24px !important;
+        display: grid !important;
+        grid-template-columns: auto 1fr auto !important;
+        align-items: center !important;
+        gap: 20px !important;
+        background: rgba(15, 23, 42, 0.96) !important;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        color: #ffffff;
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        box-shadow: 0 4px 24px -2px rgba(15, 23, 42, 0.4);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .app-shell-header .app-brand-logo {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        text-decoration: none;
+        color: #ffffff;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+    .app-shell-header .brand-badge-icon {
+        width: 38px !important;
+        height: 38px !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        background: transparent !important;
+        border-radius: 10px !important;
+        flex-shrink: 0;
+        box-shadow: 0 4px 14px rgba(20, 184, 166, 0.35);
+    }
+    .app-shell-header .brand-badge-icon svg {
+        width: 38px;
+        height: 38px;
+        display: block;
+    }
+    .app-shell-header .brand-text-group h1 {
+        font-size: 15px;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.2;
+        margin: 0;
+        letter-spacing: -0.3px;
+    }
+    .app-shell-header .brand-tagline {
+        font-size: 10.5px;
+        color: #94a3b8;
+        font-weight: 500;
+        letter-spacing: 0.2px;
+    }
+    .app-shell-header .app-nav-pills {
+        justify-self: center;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 4px;
+        border-radius: 9999px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .app-shell-header .app-nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px !important;
+        border-radius: 9999px;
+        font-size: 12.5px !important;
+        font-weight: 600;
+        color: #cbd5e1;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all 0.15s ease;
+    }
+    .app-shell-header .app-nav-link:hover {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.09);
+    }
+    .app-shell-header .app-nav-link.active {
+        background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+        color: #ffffff;
+        font-weight: 700;
+        box-shadow: 0 2px 12px rgba(20, 184, 166, 0.4);
+    }
+    .nav-svg-icon {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        opacity: 0.85;
+    }
+    .app-nav-link:hover .nav-svg-icon,
+    .app-nav-link.active .nav-svg-icon {
+        opacity: 1;
+    }
+    .app-shell-header .app-header-right {
+        justify-self: end;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+    .app-shell-header .btn-quick-bill-header {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 13px !important;
+        background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+        color: #ffffff;
+        font-size: 12.5px !important;
+        font-weight: 700;
+        border-radius: 9999px;
+        text-decoration: none;
+        white-space: nowrap;
+        box-shadow: 0 4px 14px rgba(20, 184, 166, 0.35);
+    }
+    .app-shell-header .app-user-profile-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 11px 4px 5px !important;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 9999px;
+        text-decoration: none;
+        color: #ffffff;
+        white-space: nowrap;
+    }
+    .app-shell-header .app-user-profile-badge.active {
+        border-color: #14b8a6;
+        background: rgba(20, 184, 166, 0.16);
+        box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.25);
+    }
+    .app-shell-header .user-avatar-circle {
+        width: 30px;
+        height: 30px;
+        border-radius: 9999px;
+        background: linear-gradient(135deg, #0d9488, #14b8a6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12.5px;
+        font-weight: 800;
+        color: #ffffff;
+        position: relative;
+        flex-shrink: 0;
+    }
+    .app-shell-header .user-avatar-circle.is-admin {
+        background: linear-gradient(135deg, #f43f5e, #be123c);
+    }
+    .app-shell-header .user-name-label {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #f8fafc;
+        line-height: 1.2;
+        max-width: 115px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .app-shell-header .user-role-subtag {
+        font-size: 10px;
+        color: #5eead4;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .app-shell-header .btn-app-logout {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 12px !important;
+        border-radius: 9999px;
+        background: rgba(244, 63, 94, 0.12);
+        border: 1px solid rgba(244, 63, 94, 0.25);
+        color: #fda4af;
+        font-size: 12.5px !important;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .app-shell-header .btn-app-logout:hover {
+        background: #f43f5e;
+        color: #ffffff;
+        border-color: #f43f5e;
+    }
+    @media (max-width: 1080px) {
+        .app-shell-header {
+            grid-template-columns: 1fr auto !important;
+            padding: 0 18px !important;
+        }
+        .app-shell-header .app-nav-pills {
+            display: none !important;
+        }
+        .app-shell-header .mobile-menu-toggle {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+        .app-shell-header .brand-tagline {
+            display: none;
+        }
+    }
+    @media (max-width: 640px) {
+        .app-shell-header .btn-quick-bill-header,
+        .app-shell-header .user-info-text-col {
+            display: none !important;
+        }
+    }
+    @media print {
+        .app-shell-header,
+        .mobile-nav-drawer {
+            display: none !important;
+        }
+    }
+</style>
+
+<header class="app-shell-header">
+    <!-- ZONE 1: BRAND & LOGO -->
+    <a
+        href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
+        class="app-brand-logo"
+    >
+        <div class="brand-badge-icon">
+            {% include 'includes/logo_svg.html' with uid='hdr' %}
+        </div>
+        <div class="brand-text-group">
+            <h1>Advance Billing</h1>
+            <span class="brand-tagline">
+                {% if request.user.is_staff %}
+                Admin Portal
+                {% else %}
+                Cloud Billing ERP
+                {% endif %}
+            </span>
+        </div>
+    </a>
+
+    <!-- ZONE 2: STREAMLINED CENTER NAVIGATION DOCK -->
+    <nav class="app-nav-pills" aria-label="Main Navigation">
+        <a
+            href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
+            class="app-nav-link {% if active_page == 'dashboard' %}active{% endif %}"
+        >
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="9" rx="1"/>
+                <rect x="14" y="3" width="7" height="5" rx="1"/>
+                <rect x="14" y="12" width="7" height="9" rx="1"/>
+                <rect x="3" y="16" width="7" height="5" rx="1"/>
+            </svg>
+            Dashboard
+        </a>
+        <a
+            href="{% url 'customer_list' %}"
+            class="app-nav-link {% if active_page == 'customers' %}active{% endif %}"
+        >
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Customers
+        </a>
+        <a
+            href="{% url 'product_list' %}"
+            class="app-nav-link {% if active_page == 'products' %}active{% endif %}"
+        >
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                <path d="m3.3 7 8.7 5 8.7-5"/>
+                <path d="M12 22V12"/>
+            </svg>
+            Products
+        </a>
+        <a
+            href="{% url 'invoice_list' %}"
+            class="app-nav-link {% if active_page == 'invoices' %}active{% endif %}"
+        >
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/>
+                <path d="M8 7h8"/>
+                <path d="M8 11h8"/>
+                <path d="M8 15h5"/>
+            </svg>
+            Invoices
+        </a>
+        <a
+            href="{% url 'quotation_list' %}"
+            class="app-nav-link {% if active_page == 'quotations' %}active{% endif %}"
+        >
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            Quotes
+        </a>
+        <a
+            href="{% url 'invoice_report' %}"
+            class="app-nav-link {% if active_page == 'reports' %}active{% endif %}"
+        >
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 3v18h18"/>
+                <path d="M18 17V9"/>
+                <path d="M13 17V5"/>
+                <path d="M8 17v-3"/>
+            </svg>
+            Reports
+        </a>
+        <a
+            href="{% url 'qr_decoder' %}"
+            class="app-nav-link {% if active_page == 'qr' %}active{% endif %}"
+        >
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="5" height="5" x="3" y="3" rx="1"/>
+                <rect width="5" height="5" x="16" y="3" rx="1"/>
+                <rect width="5" height="5" x="3" y="16" rx="1"/>
+                <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
+                <path d="M21 21v.01"/>
+                <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
+                <path d="M3 12h.01"/>
+                <path d="M12 3h.01"/>
+                <path d="M12 16v.01"/>
+                <path d="M16 12h1"/>
+                <path d="M21 12v.01"/>
+                <path d="M12 21v-1"/>
+            </svg>
+            QR Scan
+        </a>
+    </nav>
+
+    <!-- ZONE 3: QUICK ACTION, PROFILE & LOGOUT -->
+    <div class="app-header-right">
+        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            Quick Bill
+        </a>
+        <a
+            href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_profile' %}{% endif %}"
+            class="app-user-profile-badge {% if active_page == 'profile' %}active{% endif %}"
+            title="{% if request.user.is_staff %}Admin Overview{% else %}My Profile{% endif %}"
+        >
+            <div class="user-avatar-circle {% if request.user.is_staff %}is-admin{% endif %}">
+                {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                <span class="avatar-online-dot"></span>
+            </div>
+            <div class="user-info-text-col">
+                <span class="user-name-label">
+                    {{ request.user.first_name|default:request.user.username }}
+                </span>
+                <span class="user-role-subtag">
+                    {% if request.user.is_staff %}
+                    Admin
+                    {% else %}
+                    Distributor
+                    {% endif %}
+                </span>
+            </div>
+        </a>
+        <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Logout
+        </a>
+        <button
+            type="button"
+            class="mobile-menu-toggle"
+            onclick="toggleMobileNav()"
+            title="Toggle Navigation"
+            aria-label="Toggle Navigation"
+        >
+            ☰
+        </button>
+    </div>
+</header>
+
+<!-- MOBILE NAV DRAWER -->
+<nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
+    <a
+        href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
+        class="app-nav-link {% if active_page == 'dashboard' %}active{% endif %}"
+    >
+        📊 Dashboard
+    </a>
+    <a
+        href="{% url 'customer_list' %}"
+        class="app-nav-link {% if active_page == 'customers' %}active{% endif %}"
+    >
+        👥 Customers
+    </a>
+    <a
+        href="{% url 'product_list' %}"
+        class="app-nav-link {% if active_page == 'products' %}active{% endif %}"
+    >
+        📦 Products
+    </a>
+    <a
+        href="{% url 'invoice_list' %}"
+        class="app-nav-link {% if active_page == 'invoices' %}active{% endif %}"
+    >
+        🧾 Invoices
+    </a>
+    <a
+        href="{% url 'quotation_list' %}"
+        class="app-nav-link {% if active_page == 'quotations' %}active{% endif %}"
+    >
+        📝 Quotes
+    </a>
+    <a
+        href="{% url 'stock_ledger' %}"
+        class="app-nav-link"
+    >
+        📋 Stock Ledger
+    </a>
+    <a
+        href="{% url 'invoice_report' %}"
+        class="app-nav-link {% if active_page == 'reports' %}active{% endif %}"
+    >
+        📅 Reports
+    </a>
+    <a
+        href="{% url 'qr_decoder' %}"
+        class="app-nav-link {% if active_page == 'qr' %}active{% endif %}"
+    >
+        📷 QR Scan
+    </a>
+    {% if not request.user.is_staff %}
+    <a
+        href="{% url 'distributor_profile' %}"
+        class="app-nav-link {% if active_page == 'profile' %}active{% endif %}"
+    >
+        👤 My Profile
+    </a>
+    {% else %}
+    <a href="/admin/" target="_blank" class="app-nav-link">
+        ⚙️ Django Admin ↗
+    </a>
+    {% endif %}
+    <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">
+        ⚡ + Quick Bill
+    </a>
+</nav>
+
+<script>
+    if (typeof window.toggleMobileNav !== 'function') {
+        window.toggleMobileNav = function () {
+            const drawer = document.getElementById('mobileNavDrawer');
+            if (drawer) {
+                drawer.classList.toggle('active');
+            }
+        };
+    }
+</script>

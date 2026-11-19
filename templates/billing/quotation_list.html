@@ -1,0 +1,181 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotations &amp; Estimates | Advance Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/customers.css' %}?v=3">
+</head>
+
+<body>
+
+    <div class="invoice-page-layout">
+
+        {% include 'includes/app_header.html' with active_page='quotations' %}
+
+        <div class="toast-container" id="toastContainer">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
+                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <main class="invoice-page-content">
+
+            <div class="page-header-row">
+                <div class="page-title-wrap">
+                    <h2>📝 Quotations &amp; Proforma Estimates</h2>
+                    <p>Send GST rate estimates without touching stock, then convert approved quotations into Tax
+                        Invoices in 1 click.</p>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <a href="{% url 'invoice_list' %}" class="btn-clear-filter"
+                        style="text-decoration: none; padding: 10px 16px;">
+                        🧾 View Invoices
+                    </a>
+                    <a href="{% url 'quotation_create' %}" class="btn-primary-add">
+                        + New Quotation
+                    </a>
+                </div>
+            </div>
+
+            <div class="search-filter-card">
+                <form method="GET" action="{% url 'quotation_list' %}" class="search-form-wrap">
+                    <input type="text" name="q" value="{{ search_query }}"
+                        placeholder="Search by quotation #, customer name, or phone..." class="search-input-box">
+                    <select name="status" id="quoteStatusFilter" class="search-input-box" style="max-width: 170px;">
+                        <option value="">All Statuses</option>
+                        <option value="Draft">Draft</option>
+                        <option value="Sent">Sent</option>
+                        <option value="Accepted">Accepted</option>
+                        <option value="Converted">Converted</option>
+                    </select>
+                    <script>
+                        document.getElementById('quoteStatusFilter').value = "{{ status_filter|escapejs }}";
+                    </script>
+                    <button type="submit" class="btn-search-submit">Search</button>
+                    {% if search_query or status_filter %}
+                    <a href="{% url 'quotation_list' %}" class="btn-clear-filter">Clear</a>
+                    {% endif %}
+                </form>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <span class="search-stats-badge">📝 {{ total_quotes }} Quotes ({{ converted_quotes }}
+                        Converted)</span>
+                    <span class="search-stats-badge"
+                        style="background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe;">
+                        Open Pipeline: ₹{{ open_value|floatformat:2 }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-card-container">
+                {% if quotations %}
+                <div class="table-responsive">
+                    <table class="saas-data-table">
+                        <thead>
+                            <tr>
+                                <th>Quotation #</th>
+                                <th>Customer</th>
+                                <th>Date / Valid Until</th>
+                                <th style="text-align: center;">Status</th>
+                                <th style="text-align: right;">Estimate Total</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for qtn in quotations %}
+                            <tr>
+                                <td>
+                                    <strong style="font-family: var(--font-mono); color: #6d28d9;">
+                                        {{ qtn.quotation_number }}
+                                    </strong>
+                                    {% if qtn.converted_invoice %}
+                                    <br>
+                                    <small style="color: #059669; font-family: var(--font-mono);">
+                                        → <a href="{% url 'invoice_detail' qtn.converted_invoice.pk %}" style="color: #059669;">
+                                            {{ qtn.converted_invoice.invoice_number }}
+                                        </a>
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ qtn.customer.name }}</strong>
+                                    <br><small style="color: var(--text-muted);">📞 {{ qtn.customer.phone }}</small>
+                                </td>
+                                <td style="font-size: 13px;">
+                                    {{ qtn.created_at|date:"d M Y" }}
+                                    {% if qtn.valid_until %}
+                                    <br><small
+                                        style="color: {% if qtn.is_expired %}#dc2626{% else %}var(--text-muted){% endif %};">Valid
+                                        till: {{ qtn.valid_until|date:"d M Y" }}</small>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if qtn.status == 'Converted' %}
+                                    <span
+                                        style="padding: 3px 10px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">✓
+                                        Converted</span>
+                                    {% elif qtn.is_expired %}
+                                    <span
+                                        style="padding: 3px 10px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">Expired</span>
+                                    {% else %}
+                                    <span style="padding: 3px 10px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe;">
+                                        {{ qtn.status }}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td
+                                    style="text-align: right; font-family: var(--font-mono); font-weight: 800; color: var(--primary-800);">
+                                    ₹{{ qtn.total_amount|floatformat:2 }}
+                                </td>
+                                <td style="text-align: right;">
+                                    <div class="action-buttons-wrap">
+                                        <a href="{% url 'quotation_detail' qtn.pk %}" class="btn-table-edit">👁️
+                                            View</a>
+                                        <a href="{% url 'quotation_pdf' qtn.pk %}" class="btn-table-edit"
+                                            style="background: var(--primary-50); color: var(--primary-700); border-color: var(--primary-200);">📄
+                                            PDF</a>
+                                        {% if qtn.status != 'Converted' %}
+                                        <form method="POST" action="{% url 'quotation_convert_to_invoice' qtn.pk %}"
+                                            style="display: inline;"
+                                            onsubmit="return confirm('Convert {{ qtn.quotation_number }} to Tax Invoice and deduct stock?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-table-edit"
+                                                style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0; font-weight: 700; cursor: pointer;">⚡
+                                                Convert</button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state-wrap">
+                    <div class="empty-icon-circle">📝</div>
+                    <h3>No Quotations Yet</h3>
+                    <p>Create a professional GST quotation/estimate and convert it into a Tax Invoice with one click.
+                    </p>
+                    <a href="{% url 'quotation_create' %}" class="btn-primary-add" style="margin-top: 8px;">+ Create
+                        First Quotation</a>
+                </div>
+                {% endif %}
+            </div>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>

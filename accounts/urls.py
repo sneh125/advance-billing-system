@@ -32,26 +32,25 @@ urlpatterns = [
         "logout/",
         views.logout_view,
         name="logout"
-        ),
+    ),
 
     path(
         "register/",
         views.register_view,
         name="register"
-        ),
-
+    ),
 
     path(
         "forgot-password/",
         views.forgot_password,
         name="forgot_password"
-        ), 
+    ),
 
     path(
         "verify-otp/",
         views.verify_otp,
         name="verify_otp"
-        ),
+    ),
 
     path(
         "resend-otp/",
@@ -63,13 +62,25 @@ urlpatterns = [
         "reset-password/",
         views.reset_password,
         name="reset_password"
-    ),    
+    ),
 
     path(
         "admin-dashboard/",
-        views.admin_dashboard, 
+        views.admin_dashboard,
         name="admin_dashboard"
-        ),
+    ),
+
+    path(
+        "admin-dashboard/distributors/<int:pk>/toggle-active/",
+        views.admin_toggle_distributor_active,
+        name="admin_toggle_distributor_active"
+    ),
+
+    path(
+        "admin-dashboard/backup-db/",
+        views.admin_backup_db,
+        name="admin_backup_db"
+    ),
 
     path(
         "distributor/dashboard/",

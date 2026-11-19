@@ -7,74 +7,25 @@
     <title>Distributor Dashboard | Advance Billing System</title>
     <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/admin_reports.css' %}">
 </head>
 <body>
 
 <div class="dashboard-container">
 
-    <!-- UNIFIED APP TOP HEADER -->
-    <header class="app-shell-header">
-        <div class="app-header-left">
-            <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
-                <div class="brand-badge-icon">AB</div>
-                <div class="brand-text-group">
-                    <h1>Advance Billing System</h1>
-                    <span class="brand-tagline">Distributor Cloud Workspace</span>
-                </div>
-            </a>
+    {% include 'includes/app_header.html' with active_page='dashboard' %}
 
-            <!-- NAVIGATION PILL TABS -->
-            <nav class="app-nav-pills" aria-label="Main Navigation">
-                <a href="{% url 'distributor_dashboard' %}" class="app-nav-link active">
-                    📊 Dashboard
-                </a>
-                <a href="{% url 'customer_list' %}" class="app-nav-link">
-                    👥 Customers
-                </a>
-                <a href="{% url 'product_list' %}" class="app-nav-link">
-                    📦 Products
-                </a>
-                <a href="{% url 'invoice_list' %}" class="app-nav-link">
-                    🧾 Invoices
-                </a>
-                <a href="{% url 'distributor_profile' %}" class="app-nav-link">
-                    👤 My Profile
-                </a>
-            </nav>
-        </div>
-
-        <div class="app-header-right">
-            <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header">
-                ⚡ + Quick Bill
-            </a>
-            <a href="{% url 'distributor_profile' %}" class="app-user-profile-badge" title="View Profile">
-                <div class="user-avatar-circle">
-                    {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
-                    <span class="avatar-online-dot"></span>
-                </div>
-                <div class="user-info-text-col">
-                    <span class="user-name-label">{{ request.user.first_name|default:request.user.username }}</span>
-                    <span class="user-role-subtag">Distributor</span>
-                </div>
-            </a>
-            <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
-                Logout
-            </a>
-            <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation">
-                ☰
-            </button>
-        </div>
-    </header>
-
-    <!-- MOBILE NAV DRAWER -->
-    <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
-        <a href="{% url 'distributor_dashboard' %}" class="app-nav-link active">📊 Dashboard</a>
-        <a href="{% url 'customer_list' %}" class="app-nav-link">👥 Customers</a>
-        <a href="{% url 'product_list' %}" class="app-nav-link">📦 Products</a>
-        <a href="{% url 'invoice_list' %}" class="app-nav-link">🧾 Invoices</a>
-        <a href="{% url 'distributor_profile' %}" class="app-nav-link">👤 My Profile</a>
-        <a href="{% url 'invoice_create' %}" class="btn-quick-bill-header" style="justify-content: center; width: 100%;">⚡ + Quick Bill</a>
-    </nav>
+    <!-- FLASH TOAST MESSAGES -->
+    <div class="toast-container" id="toastContainer">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
+                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
 
     <!-- MAIN DASHBOARD CONTENT -->
     <main class="dashboard-content">
@@ -86,7 +37,7 @@
                     ✨ Distributor Portal Active
                 </div>
                 <h2>Welcome Back, {{ request.user.first_name|default:request.user.username }} 👋</h2>
-                <p>Track your real-time billing performance, generate GST compliant invoices, and manage registered customer profiles effortlessly.</p>
+                <p>Track your real-time billing performance, generate GST compliant invoices, monitor stock alerts, and manage customer profiles effortlessly.</p>
             </div>
             <div class="welcome-action-wrap">
                 <a href="{% url 'invoice_create' %}" class="btn-welcome-cta">
@@ -144,10 +95,142 @@
                 </div>
                 <div class="stat-content">
                     <span class="stat-label">Total Revenue</span>
-                    <div class="stat-value" style="font-family: var(--font-mono); font-size: 24px;">₹{{ total_billed|floatformat:0|default:"0" }}</div>
+                    <div class="stat-value" style="font-family: var(--font-mono); font-size: 24px;">₹{{ total_billed|floatformat:2|default:"0.00" }}</div>
                 </div>
             </div>
 
+        </section>
+
+        <!-- BUSINESS INSIGHTS & INVENTORY HEALTH (2-COLUMN ANALYTICS) -->
+        <section class="reports-two-col" aria-label="Business Insights and Stock Alerts">
+
+            <!-- LEFT: SETTLEMENT & GST SUMMARY -->
+            <div class="report-card-panel">
+                <div class="report-panel-header">
+                    <h3>📊 Settlement & GST Summary</h3>
+                    <span class="report-panel-badge">Cash Flow</span>
+                </div>
+
+                <div class="ratio-bar-wrap">
+                    <div class="ratio-bar-labels">
+                        <span style="color: #059669;">✓ Paid: ₹{{ paid_revenue|default:"0"|floatformat:2 }} ({{ paid_percentage }}%)</span>
+                        <span style="color: #d97706;">⏳ Pending: ₹{{ pending_revenue|default:"0"|floatformat:2 }} ({{ pending_percentage }}%)</span>
+                    </div>
+                    <div class="ratio-progress-track">
+                        <div class="ratio-progress-fill-paid" style="width: {{ paid_percentage }}%;"></div>
+                        <div class="ratio-progress-fill-pending" style="width: {{ pending_percentage }}%;"></div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 4px;">
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-lg); padding: 11px;">
+                        <div style="font-size: 10.5px; font-weight: 700; color: #166534; text-transform: uppercase;">Paid Bills</div>
+                        <div style="font-size: 19px; font-weight: 800; color: #15803d; margin-top: 4px;">{{ paid_invoices_count|default:"0" }}</div>
+                    </div>
+                    <div style="background: #fffbeb; border: 1px solid #fef08a; border-radius: var(--radius-lg); padding: 11px;">
+                        <div style="font-size: 10.5px; font-weight: 700; color: #92400e; text-transform: uppercase;">Pending / Partial</div>
+                        <div style="font-size: 19px; font-weight: 800; color: #b45309; margin-top: 4px;">{{ pending_invoices_count|default:"0" }}{% if partial_invoices_count %} / {{ partial_invoices_count }}{% endif %}</div>
+                    </div>
+                    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-lg); padding: 11px;">
+                        <div style="font-size: 10.5px; font-weight: 700; color: #991b1b; text-transform: uppercase;">Overdue</div>
+                        <div style="font-size: 19px; font-weight: 800; color: #dc2626; margin-top: 4px;">{{ overdue_invoices_count|default:"0" }}</div>
+                    </div>
+                    <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-lg); padding: 11px;">
+                        <div style="font-size: 10.5px; font-weight: 700; color: #075985; text-transform: uppercase;">GST Collected</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #0284c7; margin-top: 4px; font-family: var(--font-mono);">₹{{ total_gst_collected|default:"0"|floatformat:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: LOW STOCK INVENTORY ALERTS -->
+            <div class="report-card-panel">
+                <div class="report-panel-header">
+                    <h3>⚠️ Low Stock Inventory Alerts</h3>
+                    <span class="report-panel-badge" style="{% if low_stock_count %}background: #fef2f2; color: #b91c1c;{% else %}background: #ecfdf5; color: #065f46;{% endif %}">
+                        {{ low_stock_count|default:"0" }} Item{{ low_stock_count|default:0|pluralize }}
+                    </span>
+                </div>
+
+                {% if low_stock_products %}
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    {% for prod in low_stock_products %}
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-lg);">
+                        <div>
+                            <strong style="font-size: 13.5px; color: var(--text-main);">{{ prod.name }}</strong>
+                            <div style="font-size: 11.5px; color: var(--text-muted);">{{ prod.category }} • ₹{{ prod.price }}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            {% if prod.stock == 0 %}
+                            <span class="status-pill danger">Out of Stock</span>
+                            {% else %}
+                            <span class="status-pill pending">{{ prod.stock }} left</span>
+                            {% endif %}
+                            <a href="{% url 'product_edit' prod.pk %}" style="font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none;">Restock →</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="display: flex; align-items: center; gap: 12px; padding: 18px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-lg); color: #166534;">
+                    <span style="font-size: 24px;">✅</span>
+                    <div>
+                        <strong style="font-size: 14px; display: block;">All Products Well-Stocked</strong>
+                        <span style="font-size: 12.5px;">No items are currently below the 10-unit reorder threshold.</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+        </section>
+
+        <!-- RECENT INVOICES TABLE -->
+        <section class="report-card-panel" aria-label="Recent Invoices">
+            <div class="report-panel-header">
+                <h3>🧾 Recent Invoices</h3>
+                <a href="{% url 'invoice_list' %}" style="font-size: 13px; font-weight: 700; color: var(--primary); text-decoration: none;">View All Invoices →</a>
+            </div>
+
+            <div class="report-table-responsive">
+                <table class="report-data-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th style="text-align: right;">Amount (₹)</th>
+                            <th style="text-align: center;">Status</th>
+                            <th style="text-align: right;">Quick Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in recent_invoices %}
+                        <tr>
+                            <td><strong style="font-family: var(--font-mono); color: var(--primary-700);">{{ inv.invoice_number }}</strong></td>
+                            <td>{{ inv.customer.name }}</td>
+                            <td>{{ inv.created_at|date:"d M Y, h:i A" }}</td>
+                            <td style="text-align: right; font-weight: 800; font-family: var(--font-mono);">₹{{ inv.total_amount|floatformat:2 }}</td>
+                            <td style="text-align: center;">
+                                {% if inv.status == 'Paid' %}
+                                <span class="status-pill paid">✓ Paid</span>
+                                {% else %}
+                                <span class="status-pill pending">⏳ {{ inv.status|default:"Pending" }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                <a href="{% url 'invoice_preview' inv.pk %}" style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-decoration: none; margin-right: 10px;">👁️ Preview</a>
+                                <a href="{% url 'invoice_pdf' inv.pk %}" style="font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none;">📄 PDF</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                                No invoices generated yet. <a href="{% url 'invoice_create' %}" style="color: var(--primary); font-weight: 700;">Create your first bill →</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <!-- QUICK ACTIONS GRID -->
@@ -166,7 +249,7 @@
             <a href="{% url 'invoice_list' %}" class="card">
                 <div class="card-icon">🧾</div>
                 <h3>Invoices & History</h3>
-                <p>View generated tax invoices, filter bills and download branded PDFs.</p>
+                <p>View generated tax invoices, toggle payment status, and download branded PDFs.</p>
                 <span class="card-arrow">View Invoices →</span>
             </a>
 
@@ -183,6 +266,20 @@
                 <p>Add dynamic multiple products with real-time tax and auto-discount engine.</p>
                 <span class="card-arrow" style="font-weight: 800;">Create Bill Now →</span>
             </a>
+
+            <a href="{% url 'quotation_list' %}" class="card">
+                <div class="card-icon">📝</div>
+                <h3>Quotations &amp; Estimates</h3>
+                <p>Send GST rate estimates and convert approved quotes into Tax Invoices in 1 click.</p>
+                <span class="card-arrow">Open Quotations ({{ quotations_count|default:"0" }}) →</span>
+            </a>
+
+            <a href="{% url 'stock_ledger' %}" class="card">
+                <div class="card-icon">📋</div>
+                <h3>Stock-In Audit Ledger</h3>
+                <p>Track every purchase restock, sale deduction, and cancellation stock restore.</p>
+                <span class="card-arrow">View Stock Ledger →</span>
+            </a>
         </section>
 
     </main>
@@ -196,6 +293,11 @@
             drawer.classList.toggle('active');
         }
     }
+
+    setTimeout(() => {
+        const toasts = document.querySelectorAll('.toast-card');
+        toasts.forEach(t => t.remove());
+    }, 5000);
 </script>
 
 </body>
