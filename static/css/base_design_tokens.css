@@ -254,10 +254,12 @@ body {
     transition: var(--transition-fast);
 }
 
-.brand-badge-icon svg {
+.brand-badge-icon svg,
+.brand-badge-icon img {
     width: 100%;
     height: 100%;
     display: block;
+    object-fit: contain;
 }
 
 .brand-text-group {

@@ -80,10 +80,13 @@
 
             <!-- PAPER HEADER -->
             <div class="invoice-paper-top">
-                <div>
-                    <div class="paper-brand-title">{{ seller_name }}</div>
-                    <div style="font-size: 12.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;">
-                        {% if distributor_profile.gstin %}GSTIN: {{ distributor_profile.gstin }}{% else %}Smart GST Billing Engine{% endif %}
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <img src="{% static 'images/brand_icon.png' %}?v=1" alt="Advance Billing System" style="width: 54px; height: 54px; object-fit: contain; border-radius: 12px; background: #ffffff; padding: 4px; border: 1px solid #e2e8f0; flex-shrink: 0;">
+                    <div>
+                        <div class="paper-brand-title">{{ seller_name }}</div>
+                        <div style="font-size: 12.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;">
+                            {% if distributor_profile.gstin %}GSTIN: {{ distributor_profile.gstin }}{% else %}Smart GST Billing Engine{% endif %}
+                        </div>
                     </div>
                 </div>
                 <div style="text-align: right;">
