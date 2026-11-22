@@ -1,12 +1,10 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ product.name }} | Product Details | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/product_list.css' %}">
+
+{% block title %}{{ product.name }} | Product Details | Advance Billing System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/product_list.css' %}">
     <style>
         .product-detail-card {
             background: #ffffff;
@@ -153,14 +151,10 @@
             color: #ffffff;
         }
     </style>
-</head>
-<body>
+{% endblock %}
 
-<div class="dashboard-container">
-
-    {% include 'includes/app_header.html' with active_page='products' %}
-
-    <!-- MAIN CONTENT -->
+{% block content %}
+<!-- MAIN CONTENT -->
     <main class="page-body-container" style="max-width: 960px; margin: 0 auto; padding: 32px 24px;">
 
         <div class="breadcrumbs-row" style="margin-bottom: 16px;">
@@ -317,8 +311,4 @@
         </div>
 
     </main>
-
-</div>
-
-</body>
-</html>
+{% endblock %}

@@ -10,11 +10,12 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse
@@ -24,8 +25,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 
 from .decorators import admin_required
-from .models import DistributorProfile, PasswordResetOTP
-from .utils import sanitize_csv_cell, send_otp_email
+from .models import Admin, DistributorProfile, PasswordResetOTP, RegistrationOTP
+from .utils import sanitize_csv_cell, send_otp_email, send_otp_email_with_status
 
 
 GSTIN_REGEX = re.compile(r"^[0-9A-Z]{15}$")
@@ -53,9 +54,25 @@ def _validate_profile_business_fields(gstin, upi_id):
     return None
 
 
-# DISTRIBUTOR REGISTRATION
+# DISTRIBUTOR REGISTRATION (WITH EMAIL OTP VERIFICATION)
 
 def register_view(request):
+    """
+    Step 1 of Distributor Registration:
+    Validates registration details, stores pending profile with pre-hashed password in session,
+    dispatches a 6-digit Email Verification OTP, and transitions to Step 2 (OTP entry).
+    """
+    if request.GET.get("reset") == "1":
+        pending = request.session.pop("pending_registration", None) or {}
+        return render(
+            request,
+            "accounts/register.html",
+            {
+                "name": pending.get("name", ""),
+                "email": pending.get("email", ""),
+                "phone": pending.get("phone", ""),
+            }
+        )
 
     if request.method == "POST":
 
@@ -65,182 +82,292 @@ def register_view(request):
         password = request.POST.get("password", "")
         confirm_password = request.POST.get("confirm_password", "")
 
+        form_ctx = {
+            "name": name,
+            "email": email,
+            "phone": phone,
+        }
+
         # Required fields
-        if not all([
-            name,
-            email,
-            phone,
-            password,
-            confirm_password
-        ]):
-            return render(
-                request,
-                "accounts/register.html",
-                {
-                    "error": "Please fill in all required fields.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+        if not all([name, email, phone, password, confirm_password]):
+            form_ctx["error"] = "Please fill in all required fields."
+            return render(request, "accounts/register.html", form_ctx)
 
         # Name validation
         if len(name) < 3:
-            return render(
-                request,
-                "accounts/register.html",
-                {
-                    "error": "Name must contain at least 3 characters.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+            form_ctx["error"] = "Name must contain at least 3 characters."
+            return render(request, "accounts/register.html", form_ctx)
 
         # Name character validation
         if not all(char.isalpha() or char.isspace() for char in name):
-            return render(
-                request,
-                "accounts/register.html",
-                {
-                    "error": "Name can contain only letters and spaces.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+            form_ctx["error"] = "Name can contain only letters and spaces."
+            return render(request, "accounts/register.html", form_ctx)
 
         # Phone validation
         if not phone.isdigit() or len(phone) != 10:
-            return render(
-                request,
-                "accounts/register.html",
-                {
-                    "error": "Please enter a valid 10-digit phone number.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+            form_ctx["error"] = "Please enter a valid 10-digit phone number."
+            return render(request, "accounts/register.html", form_ctx)
 
         # Password confirmation
         if password != confirm_password:
-            return render(
-                request,
-                "accounts/register.html",
-                {
-                    "error": "Passwords do not match.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+            form_ctx["error"] = "Passwords do not match."
+            return render(request, "accounts/register.html", form_ctx)
 
         # Password length & Django strength validation
         if len(password) < 8:
-            return render(
-                request,
-                "accounts/register.html",
-                {
-                    "error": "Password must contain at least 8 characters.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+            form_ctx["error"] = "Password must contain at least 8 characters."
+            return render(request, "accounts/register.html", form_ctx)
 
         try:
             validate_password(password)
         except ValidationError as exc:
-            return render(
-                request,
-                "accounts/register.html",
-                {
-                    "error": exc.messages[0],
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+            form_ctx["error"] = exc.messages[0]
+            return render(request, "accounts/register.html", form_ctx)
 
         # Email format validation
         try:
             validate_email(email)
         except ValidationError:
-            return render(
-                request,
-                "accounts/register.html",
-                {
-                    "error": "Please enter a valid email address.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+            form_ctx["error"] = "Please enter a valid email address."
+            return render(request, "accounts/register.html", form_ctx)
 
         # Duplicate email
         if User.objects.filter(email=email).exists():
-            return render(
-                request,
-                "accounts/register.html",
-                {
-                    "error": "An account with this email already exists.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
+            form_ctx["error"] = "An account with this email already exists."
+            return render(request, "accounts/register.html", form_ctx)
+
+        # Generate Registration OTP (expires in 5 minutes)
+        RegistrationOTP.objects.filter(email=email, is_verified=False).delete()
+        otp = generate_otp()
+        expires_at = timezone.now() + timedelta(minutes=5)
+        otp_obj = RegistrationOTP.objects.create(
+            email=email,
+            otp=otp,
+            expires_at=expires_at,
+        )
+
+        sent_ok, err_msg = send_otp_email_with_status(
+            email=email,
+            otp=otp,
+            user_name=name,
+            is_admin=False,
+            purpose="registration",
+        )
+        if not sent_ok:
+            otp_obj.delete()
+            form_ctx["error"] = (
+                f"Failed to send verification OTP email to {email}. "
+                f"Please check SMTP settings in .env ({err_msg})."
             )
+            return render(request, "accounts/register.html", form_ctx)
 
-        # Generate unique username
-        base_username = email.split("@")[0]
-        username = base_username
-        counter = 1
+        # Store pending registration securely in session (password pre-hashed, never plaintext)
+        request.session["pending_registration"] = {
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "password_hash": make_password(password),
+        }
 
-        while User.objects.filter(username=username).exists():
-            username = f"{base_username}{counter}"
-            counter += 1
+        return render(
+            request,
+            "accounts/register.html",
+            {
+                "otp_step": True,
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "message": f"A 6-digit verification OTP has been sent to {email}. Enter it below to complete registration.",
+            }
+        )
 
-        # Create user
-        try:
-            user = User.objects.create_user(
+    return render(request, "accounts/register.html")
+
+
+def register_verify_otp(request):
+    """
+    Step 2 of Distributor Registration:
+    Verifies the 6-digit RegistrationOTP and creates User + DistributorProfile atomically.
+    """
+    if request.method != "POST":
+        return redirect("register")
+
+    pending = request.session.get("pending_registration")
+    if not pending:
+        messages.error(request, "Registration session expired. Please fill in your details again.")
+        return redirect("register")
+
+    email = (pending.get("email") or "").strip().lower()
+    name = (pending.get("name") or "").strip()
+    phone = (pending.get("phone") or "").strip()
+    password_hash = pending.get("password_hash") or ""
+    otp = request.POST.get("otp", "").strip()
+
+    step2_ctx = {
+        "otp_step": True,
+        "name": name,
+        "email": email,
+        "phone": phone,
+    }
+
+    if not otp or len(otp) != 6 or not otp.isdigit():
+        step2_ctx["error"] = "Please enter the valid 6-digit verification OTP."
+        return render(request, "accounts/register.html", step2_ctx)
+
+    otp_record = RegistrationOTP.objects.filter(
+        email=email,
+        is_verified=False
+    ).order_by("-created_at").first()
+
+    if otp_record is None:
+        step2_ctx["error"] = "No active verification OTP found. Please resend OTP."
+        return render(request, "accounts/register.html", step2_ctx)
+
+    if otp_record.failed_attempts >= RegistrationOTP.MAX_ATTEMPTS:
+        otp_record.delete()
+        step2_ctx["error"] = "Too many failed OTP attempts. Please request a new OTP."
+        return render(request, "accounts/register.html", step2_ctx)
+
+    if not hmac.compare_digest(otp_record.otp, otp):
+        otp_record.failed_attempts += 1
+        otp_record.save(update_fields=["failed_attempts"])
+        remaining = RegistrationOTP.MAX_ATTEMPTS - otp_record.failed_attempts
+        if remaining <= 0:
+            otp_record.delete()
+            step2_ctx["error"] = "Too many failed OTP attempts. Please request a new OTP."
+        else:
+            step2_ctx["error"] = f"Invalid OTP code. Please try again ({remaining} attempts left)."
+        return render(request, "accounts/register.html", step2_ctx)
+
+    if timezone.now() > otp_record.expires_at:
+        step2_ctx["error"] = "Verification OTP has expired. Please click Resend OTP."
+        return render(request, "accounts/register.html", step2_ctx)
+
+    if User.objects.filter(email=email).exists():
+        request.session.pop("pending_registration", None)
+        RegistrationOTP.objects.filter(email=email).delete()
+        return render(
+            request,
+            "accounts/register.html",
+            {"error": "An account with this email already exists. Please sign in."}
+        )
+
+    try:
+        with transaction.atomic():
+            base_username = email.split("@")[0]
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+
+            user = User(
                 username=username,
                 email=email,
-                password=password,
-                first_name=name
+                first_name=name,
+                password=password_hash,
+                is_staff=False,
+                is_superuser=False,
+                is_active=True,
             )
-
-            # Distributor is not admin
-            user.is_staff = False
-            user.is_superuser = False
             user.save()
 
-            # Create distributor profile
             DistributorProfile.objects.create(
                 user=user,
-                phone=phone
+                phone=phone,
             )
 
-            messages.success(
-                request,
-                "Distributor account created successfully. Please login."
-            )
-            return redirect("login")
+            RegistrationOTP.objects.filter(email=email).delete()
 
-        except IntegrityError:
-            return render(
-                request,
-                "accounts/register.html",
-                {
-                    "error": "Unable to create account. Please try again.",
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                }
-            )
+        request.session.pop("pending_registration", None)
+        messages.success(
+            request,
+            "Email verified! Distributor account created successfully. Please login."
+        )
+        return redirect("login")
+
+    except IntegrityError:
+        step2_ctx["error"] = "Unable to create account. Please try again."
+        return render(request, "accounts/register.html", step2_ctx)
+
+
+def register_resend_otp(request):
+    """
+    Resends a fresh 6-digit Registration OTP for the pending email in session,
+    enforcing a 3-resend / 15-minute sliding window rate limit.
+    """
+    if request.method != "POST":
+        return redirect("register")
+
+    pending = request.session.get("pending_registration")
+    if not pending:
+        messages.error(request, "Registration session expired. Please fill in your details again.")
+        return redirect("register")
+
+    email = (pending.get("email") or "").strip().lower()
+    name = (pending.get("name") or "").strip()
+    phone = (pending.get("phone") or "").strip()
+
+    now_ts = int(timezone.now().timestamp())
+    window_secs = 15 * 60
+    max_resends = 3
+    resend_history = request.session.get("reg_otp_resend_history", {})
+    timestamps = [
+        ts for ts in resend_history.get(email, [])
+        if isinstance(ts, (int, float)) and (now_ts - ts) < window_secs
+    ]
+    if len(timestamps) >= max_resends:
+        return render(
+            request,
+            "accounts/register.html",
+            {
+                "otp_step": True,
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "error": "Too many OTP resend requests. Please wait 15 minutes before trying again.",
+            }
+        )
+    timestamps.append(now_ts)
+    resend_history[email] = timestamps
+    request.session["reg_otp_resend_history"] = resend_history
+
+    RegistrationOTP.objects.filter(email=email, is_verified=False).delete()
+    otp = generate_otp()
+    expires_at = timezone.now() + timedelta(minutes=5)
+    otp_obj = RegistrationOTP.objects.create(email=email, otp=otp, expires_at=expires_at)
+
+    sent_ok, err_msg = send_otp_email_with_status(
+        email=email,
+        otp=otp,
+        user_name=name,
+        is_admin=False,
+        purpose="registration",
+    )
+    if not sent_ok:
+        otp_obj.delete()
+        return render(
+            request,
+            "accounts/register.html",
+            {
+                "otp_step": True,
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "error": f"Could not send verification OTP email. Check SMTP settings in .env ({err_msg}).",
+            }
+        )
 
     return render(
         request,
-        "accounts/register.html"
+        "accounts/register.html",
+        {
+            "otp_step": True,
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "message": f"A new 6-digit verification OTP has been sent to {email}.",
+        }
     )
 
 
@@ -293,15 +420,20 @@ def _authenticate_admin_or_distributor(identifier, password, request=None):
     return user, None, role
 
 
-def login_view(request):
+def login_view(request, forced_role=None):
     """
     Task 52: Admin and Distributor Login Backend Controller.
     Handles session authentication, role differentiation, next redirects, and flash alerts.
+    Supports optional forced_role ('admin' or 'distributor') for dedicated role login routes.
     """
     # Allow explicit role switch via ?role=admin or ?role=distributor
-    requested_role_param = request.GET.get("role", "").strip().lower()
+    requested_role_param = (forced_role or request.GET.get("role", "")).strip().lower()
     if request.user.is_authenticated:
         if requested_role_param in ("admin", "distributor"):
+            if forced_role == "admin" and (request.user.is_staff or request.user.is_superuser):
+                return redirect("admin_dashboard")
+            if forced_role == "distributor" and not (request.user.is_staff or request.user.is_superuser):
+                return redirect("distributor_dashboard")
             logout(request)
         else:
             if request.user.is_staff or request.user.is_superuser:
@@ -314,7 +446,7 @@ def login_view(request):
         identifier = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
         remember_me = request.POST.get("remember_me")
-        selected_role = request.POST.get("selected_role", "").strip().lower()
+        selected_role = (forced_role or request.POST.get("selected_role", "")).strip().lower()
 
         user, error_msg, role = _authenticate_admin_or_distributor(identifier, password, request)
 
@@ -329,6 +461,21 @@ def login_view(request):
                     ),
                     "username": identifier,
                     "selected_role": "admin",
+                    "next": next_url,
+                }
+            )
+
+        if not error_msg and forced_role == "distributor" and role == "admin":
+            return render(
+                request,
+                "accounts/login.html",
+                {
+                    "error": (
+                        f"Account '{user.username}' is an Administrator account. "
+                        "Please sign in via the Administrator Login portal."
+                    ),
+                    "username": identifier,
+                    "selected_role": "distributor",
                     "next": next_url,
                 }
             )
@@ -386,6 +533,16 @@ def login_view(request):
             "selected_role": requested_role_param if requested_role_param in ("admin", "distributor") else "",
         }
     )
+
+
+def admin_login_view(request):
+    """Dedicated Administrator Login route (/admin-login/)."""
+    return login_view(request, forced_role="admin")
+
+
+def distributor_login_view(request):
+    """Dedicated Distributor Login route (/distributor-login/)."""
+    return login_view(request, forced_role="distributor")
 
 
 @csrf_exempt
@@ -543,7 +700,7 @@ def forgot_password(request):
         otp = generate_otp()
         expires_at = timezone.now() + timedelta(minutes=5)
 
-        PasswordResetOTP.objects.create(
+        otp_obj = PasswordResetOTP.objects.create(
             email=email,
             otp=otp,
             expires_at=expires_at
@@ -553,8 +710,24 @@ def forgot_password(request):
         request.session.pop("pwd_reset_email", None)
         request.session.pop("pwd_reset_otp_id", None)
 
-        # Send OTP email (never print plaintext OTP to console logs)
-        send_otp_email(email=email, otp=otp, user_name=user_obj.first_name or "User", is_admin=False)
+        # Send OTP email and verify dispatch succeeded
+        sent_ok, err_msg = send_otp_email_with_status(
+            email=email,
+            otp=otp,
+            user_name=user_obj.first_name or "User",
+            is_admin=False,
+            purpose="password_reset",
+        )
+        if not sent_ok:
+            otp_obj.delete()
+            return render(
+                request,
+                "accounts/forgot_password.html",
+                {
+                    "email": email,
+                    "error": f"Failed to send OTP email to {email}. Check SMTP settings in .env ({err_msg}).",
+                }
+            )
 
         return render(
             request,
@@ -562,7 +735,7 @@ def forgot_password(request):
             {
                 "email": email,
                 "otp_sent": True,
-                "message": f"A 6-digit verification code has been generated for {email}."
+                "message": f"A 6-digit verification code has been sent to {email}.",
             }
         )
 
@@ -709,6 +882,29 @@ def resend_otp(request):
             {"error": "Administrator accounts must use the Admin Password Recovery portal."}
         )
 
+    # Enforce OTP resend rate limit: max 3 resends per 15-minute window per email
+    now_ts = int(timezone.now().timestamp())
+    window_secs = 15 * 60
+    max_resends = 3
+    resend_history = request.session.get("otp_resend_history", {})
+    email_timestamps = [
+        ts for ts in resend_history.get(email, [])
+        if isinstance(ts, (int, float)) and (now_ts - ts) < window_secs
+    ]
+    if len(email_timestamps) >= max_resends:
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {
+                "email": email,
+                "otp_sent": True,
+                "error": "Too many OTP resend requests. Please wait 15 minutes before requesting another code.",
+            }
+        )
+    email_timestamps.append(now_ts)
+    resend_history[email] = email_timestamps
+    request.session["otp_resend_history"] = resend_history
+
     PasswordResetOTP.objects.filter(
         email=email,
         is_verified=False
@@ -717,7 +913,7 @@ def resend_otp(request):
     otp = generate_otp()
     expires_at = timezone.now() + timedelta(minutes=5)
 
-    PasswordResetOTP.objects.create(
+    otp_obj = PasswordResetOTP.objects.create(
         email=email,
         otp=otp,
         expires_at=expires_at
@@ -726,7 +922,24 @@ def resend_otp(request):
     request.session.pop("pwd_reset_email", None)
     request.session.pop("pwd_reset_otp_id", None)
 
-    send_otp_email(email=email, otp=otp, user_name=user_obj.first_name or "User", is_admin=False)
+    sent_ok, err_msg = send_otp_email_with_status(
+        email=email,
+        otp=otp,
+        user_name=user_obj.first_name or "User",
+        is_admin=False,
+        purpose="password_reset",
+    )
+    if not sent_ok:
+        otp_obj.delete()
+        return render(
+            request,
+            "accounts/forgot_password.html",
+            {
+                "email": email,
+                "otp_sent": True,
+                "error": f"Failed to resend OTP email. Check SMTP settings in .env ({err_msg}).",
+            }
+        )
 
     return render(
         request,
@@ -734,7 +947,7 @@ def resend_otp(request):
         {
             "email": email,
             "otp_sent": True,
-            "message": f"A new 6-digit verification code has been sent to {email}."
+            "message": f"A new 6-digit verification code has been sent to {email}.",
         }
     )
 
@@ -925,9 +1138,8 @@ def admin_dashboard(request):
         total_tax_collected=Coalesce(Sum("gst_amount"), zero_dec),
         net_taxable_subtotal=Coalesce(Sum("subtotal"), zero_dec),
         paid_invoices_count=Count("id", filter=Q(status__iexact="Paid")),
-        paid_revenue=Coalesce(Sum("total_amount", filter=Q(status__iexact="Paid")), zero_dec),
+        partial_invoices_count=Count("id", filter=Q(status__iexact="Partial")),
         pending_invoices_count=Count("id", filter=Q(status__iexact="Pending")),
-        pending_revenue=Coalesce(Sum("total_amount", filter=Q(status__iexact="Pending")), zero_dec),
     )
     cancelled_invoices_count = invoices_filtered.filter(status__iexact="Cancelled").count()
 
@@ -936,9 +1148,15 @@ def admin_dashboard(request):
     total_tax_collected = fin_agg["total_tax_collected"]
     net_taxable_subtotal = fin_agg["net_taxable_subtotal"]
     paid_invoices_count = fin_agg["paid_invoices_count"]
-    paid_revenue = fin_agg["paid_revenue"]
+    partial_invoices_count = fin_agg["partial_invoices_count"]
     pending_invoices_count = fin_agg["pending_invoices_count"]
-    pending_revenue = fin_agg["pending_revenue"]
+
+    # Separate true collected cash payments from billed revenue (never mix billed vs collected)
+    paid_revenue = Decimal("0.00")
+    pending_revenue = Decimal("0.00")
+    for inv in active_invoices.select_related(None).only("total_amount", "amount_paid", "status"):
+        paid_revenue += inv.effective_amount_paid
+        pending_revenue += inv.balance_due
 
     avg_invoice_value = (gross_revenue / total_invoices_count) if total_invoices_count > 0 else Decimal("0.00")
 
@@ -1105,8 +1323,9 @@ def admin_dashboard(request):
     total_customers_count = cust_agg["total_customers_count"]
     active_customers_count = cust_agg["active_customers_count"]
 
-    # 5. Recent Invoices Ledger (latest 10)
+    # 5. Recent Invoices Ledger (latest 10) & Low Stock Products Watchlist (top 8)
     recent_invoices = invoices_filtered.order_by("-created_at")[:10]
+    low_stock_products = products_qs.filter(stock__lte=10).select_related("distributor").order_by("stock", "name")[:8]
 
     total_distributors_count = len(distributor_reports)
     active_distributors_count = sum(1 for d in distributor_reports if d["is_active"])
@@ -1119,6 +1338,7 @@ def admin_dashboard(request):
         "net_taxable_subtotal": net_taxable_subtotal,
         "total_invoices_count": total_invoices_count,
         "paid_invoices_count": paid_invoices_count,
+        "partial_invoices_count": partial_invoices_count,
         "paid_revenue": paid_revenue,
         "pending_invoices_count": pending_invoices_count,
         "pending_revenue": pending_revenue,
@@ -1149,6 +1369,7 @@ def admin_dashboard(request):
         # Detailed Tables
         "distributor_reports": distributor_reports,
         "recent_invoices": recent_invoices,
+        "low_stock_products": low_stock_products,
     }
 
     return render(request, "admin/dashboard.html", context)
@@ -1270,6 +1491,32 @@ def distributor_dashboard(request):
     recent_invoices = invoices_qs.order_by("-created_at")[:5]
     quotations_count = Quotation.objects.filter(distributor=request.user).exclude(status__iexact="Converted").count()
 
+    # Monthly Sales Chart (last 6 months for logged-in distributor only)
+    now_dt = timezone.localtime(timezone.now())
+    active_list = list(active_invoices_qs.select_related(None).only("invoice_date", "total_amount", "gst_amount"))
+    monthly_sales_chart = []
+    for m_offset in range(5, -1, -1):
+        b_y, b_m = divmod(now_dt.year * 12 + (now_dt.month - 1) - m_offset, 12)
+        b_m += 1
+        b_date = now_dt.date().replace(year=b_y, month=b_m, day=1)
+        m_invs = [
+            inv for inv in active_list
+            if inv.invoice_date and timezone.localtime(inv.invoice_date).year == b_y
+            and timezone.localtime(inv.invoice_date).month == b_m
+        ]
+        m_rev = sum((inv.total_amount for inv in m_invs), Decimal("0.00"))
+        m_gst = sum((inv.gst_amount for inv in m_invs), Decimal("0.00"))
+        monthly_sales_chart.append({
+            "label": b_date.strftime("%b %Y"),
+            "revenue": float(m_rev),
+            "gst": float(m_gst),
+            "count": len(m_invs),
+        })
+    max_m_rev = max((pt["revenue"] for pt in monthly_sales_chart), default=0.0)
+    for pt in monthly_sales_chart:
+        pt["rev_pct"] = round((pt["revenue"] / max_m_rev) * 100, 1) if max_m_rev > 0 else 0
+        pt["gst_pct"] = round((pt["gst"] / max_m_rev) * 100, 1) if max_m_rev > 0 else 0
+
     return render(
         request,
         "distributor/dashboard.html",
@@ -1291,6 +1538,7 @@ def distributor_dashboard(request):
             "low_stock_count": low_stock_count,
             "low_stock_products": low_stock_products,
             "recent_invoices": recent_invoices,
+            "monthly_sales_chart": monthly_sales_chart,
         }
     )
 
@@ -1591,6 +1839,13 @@ def admin_register_api(request):
         user.is_staff = True
         user.is_superuser = True
         user.save()
+        Admin.objects.get_or_create(
+            user=user,
+            defaults={
+                "phone": str(data.get("phone", "")).strip()[:15],
+                "department": str(data.get("department", "Administration")).strip()[:100] or "Administration",
+            }
+        )
 
         return JsonResponse({
             "status": "success",
@@ -1697,6 +1952,13 @@ def admin_register_view(request):
             user.is_staff = True
             user.is_superuser = True
             user.save()
+            Admin.objects.get_or_create(
+                user=user,
+                defaults={
+                    "phone": request.POST.get("phone", "").strip()[:15],
+                    "department": request.POST.get("department", "Administration").strip()[:100] or "Administration",
+                }
+            )
 
             messages.success(
                 request,
@@ -1714,10 +1976,9 @@ def admin_register_view(request):
 
 
 # ==============================================================================
-# ADMIN PASSWORD RECOVERY BACKEND LOGIC
+# ADMIN PASSWORD RECOVERY BACKEND LOGIC (CSRF-PROTECTED WEB + JSON API WRAPPERS)
 # ==============================================================================
 
-@csrf_exempt
 def admin_forgot_password(request):
     """
     Backend logic for Admin password recovery - Step 1: Request OTP.
@@ -1760,14 +2021,30 @@ def admin_forgot_password(request):
         # Generate new 6-digit OTP (5-minute expiry)
         otp = generate_otp()
         expires_at = timezone.now() + timedelta(minutes=5)
-        PasswordResetOTP.objects.create(email=email, otp=otp, expires_at=expires_at)
+        otp_obj = PasswordResetOTP.objects.create(email=email, otp=otp, expires_at=expires_at)
 
         request.session.pop("admin_pwd_reset_email", None)
         request.session.pop("admin_pwd_reset_otp_id", None)
 
-        send_otp_email(email=email, otp=otp, user_name=user.first_name, is_admin=True)
+        sent_ok, err_msg = send_otp_email_with_status(
+            email=email,
+            otp=otp,
+            user_name=user.first_name,
+            is_admin=True,
+            purpose="password_reset",
+        )
+        if not sent_ok:
+            otp_obj.delete()
+            fail_msg = f"Failed to send admin OTP email to {email}. Check SMTP settings in .env ({err_msg})."
+            if request.content_type == "application/json":
+                return JsonResponse({"status": "error", "message": fail_msg}, status=502)
+            return render(request, "accounts/forgot_password.html", {
+                "email": email,
+                "is_admin": True,
+                "error": fail_msg,
+            })
 
-        success_msg = f"A 6-digit admin verification code has been generated for {email}."
+        success_msg = f"A 6-digit admin verification code has been sent to {email}."
         if request.content_type == "application/json":
             return JsonResponse({
                 "status": "success",
@@ -1780,13 +2057,12 @@ def admin_forgot_password(request):
             "email": email,
             "otp_sent": True,
             "is_admin": True,
-            "message": success_msg
+            "message": success_msg,
         })
 
     return render(request, "accounts/forgot_password.html", {"is_admin": True})
 
 
-@csrf_exempt
 def admin_verify_otp(request):
     """
     Backend logic for Admin password recovery - Step 2: Verify OTP.
@@ -1880,7 +2156,6 @@ def admin_verify_otp(request):
     })
 
 
-@csrf_exempt
 def admin_reset_password(request):
     """
     Backend logic for Admin password recovery - Step 3: Set New Password.
@@ -1972,3 +2247,21 @@ def admin_reset_password(request):
 
     messages.success(request, success_msg)
     return redirect("login")
+
+
+@csrf_exempt
+def api_admin_forgot_password(request):
+    """JSON API wrapper for Admin password recovery step 1."""
+    return admin_forgot_password(request)
+
+
+@csrf_exempt
+def api_admin_verify_otp(request):
+    """JSON API wrapper for Admin password recovery step 2."""
+    return admin_verify_otp(request)
+
+
+@csrf_exempt
+def api_admin_reset_password(request):
+    """JSON API wrapper for Admin password recovery step 3."""
+    return admin_reset_password(request)

@@ -100,19 +100,38 @@
             <div class="form-heading">
 
                 <span class="form-tag">
-                    NEW DISTRIBUTOR
+                    {% if otp_step %}
+                    STEP 2 OF 2 • EMAIL VERIFICATION
+                    {% else %}
+                    STEP 1 OF 2 • NEW DISTRIBUTOR
+                    {% endif %}
                 </span>
 
                 <h2>
+                    {% if otp_step %}
+                    Verify your email
+                    {% else %}
                     Create your account
+                    {% endif %}
                 </h2>
 
                 <p>
-                    Fill in your details to get started with
-                    the distributor portal.
+                    {% if otp_step %}
+                    Enter the 6-digit verification code sent to <strong>{{ email }}</strong> to activate your account.
+                    {% else %}
+                    Fill in your details and verify your email via OTP to get started.
+                    {% endif %}
                 </p>
 
             </div>
+
+            <!-- SUCCESS MESSAGE -->
+            {% if message %}
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 11px 14px; border: 1px solid #a7f3d0; border-radius: 9px; background: #ecfdf5; color: #065f46; font-size: 13px; font-weight: 600;">
+                    <span>✓</span>
+                    <span>{{ message }}</span>
+                </div>
+            {% endif %}
 
             <!-- ERROR MESSAGE -->
             {% if error %}
@@ -127,7 +146,49 @@
 
             {% endif %}
 
-            <!-- REGISTRATION FORM -->
+            {% if otp_step %}
+            <!-- STEP 2: EMAIL OTP VERIFICATION FORM -->
+            <form method="POST" action="{% url 'register_verify_otp' %}" class="registration-form" id="regOtpForm">
+                {% csrf_token %}
+
+                <div class="field">
+                    <label>Enter 6-Digit Verification OTP</label>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 10px 0 6px 0;">
+                        <input type="text" class="reg-otp-digit" maxlength="1" pattern="[0-9]" inputmode="numeric" autofocus required style="width: 44px; height: 50px; text-align: center; font-size: 20px; font-weight: 800; border: 1.5px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #0f172a;">
+                        <input type="text" class="reg-otp-digit" maxlength="1" pattern="[0-9]" inputmode="numeric" required style="width: 44px; height: 50px; text-align: center; font-size: 20px; font-weight: 800; border: 1.5px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #0f172a;">
+                        <input type="text" class="reg-otp-digit" maxlength="1" pattern="[0-9]" inputmode="numeric" required style="width: 44px; height: 50px; text-align: center; font-size: 20px; font-weight: 800; border: 1.5px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #0f172a;">
+                        <span style="color: #94a3b8; font-weight: 700;">—</span>
+                        <input type="text" class="reg-otp-digit" maxlength="1" pattern="[0-9]" inputmode="numeric" required style="width: 44px; height: 50px; text-align: center; font-size: 20px; font-weight: 800; border: 1.5px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #0f172a;">
+                        <input type="text" class="reg-otp-digit" maxlength="1" pattern="[0-9]" inputmode="numeric" required style="width: 44px; height: 50px; text-align: center; font-size: 20px; font-weight: 800; border: 1.5px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #0f172a;">
+                        <input type="text" class="reg-otp-digit" maxlength="1" pattern="[0-9]" inputmode="numeric" required style="width: 44px; height: 50px; text-align: center; font-size: 20px; font-weight: 800; border: 1.5px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #0f172a;">
+                    </div>
+                    <input type="hidden" name="otp" id="hiddenRegOtpInput">
+                    <small style="display: block; text-align: center; color: #64748b; font-size: 12px; margin-top: 6px;">
+                        Tip: You can paste all 6 digits directly. Code expires in 5 minutes.
+                    </small>
+                </div>
+
+                <button type="submit" class="create-btn" id="btnVerifyRegOtp">
+                    <span>Verify OTP &amp; Create Account</span>
+                    <span class="arrow">→</span>
+                </button>
+            </form>
+
+            <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; font-size: 13px; color: #64748b;">
+                <span>Didn't receive OTP?</span>
+                <form method="POST" action="{% url 'register_resend_otp' %}" style="display: inline; margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" id="btnRegResendOtp" style="background: none; border: none; color: #0f766e; font-weight: 700; cursor: pointer; text-decoration: underline; font-size: 13px;">
+                        Resend OTP
+                    </button>
+                </form>
+                <span>•</span>
+                <a href="{% url 'register' %}?reset=1" style="color: #475569; font-weight: 600; text-decoration: none;">
+                    ← Edit Details
+                </a>
+            </div>
+            {% else %}
+            <!-- STEP 1: REGISTRATION FORM -->
             <form
                 method="POST"
                 class="registration-form"
@@ -294,7 +355,7 @@
                     class="create-btn"
                 >
                     <span>
-                        Create Distributor Account
+                        Send Verification OTP
                     </span>
 
                     <span class="arrow">
@@ -304,6 +365,7 @@
                 </button>
 
             </form>
+            {% endif %}
 
             <!-- LOGIN LINK -->
 
@@ -321,6 +383,55 @@
 </main>
 
 <script>
+
+// Registration 6-Digit OTP Input Boxes Auto-Focus & Paste
+const regOtpDigits = document.querySelectorAll('.reg-otp-digit');
+const hiddenRegOtp = document.getElementById('hiddenRegOtpInput');
+const regOtpForm = document.getElementById('regOtpForm');
+
+if (regOtpDigits.length > 0) {
+    function syncRegOtp() {
+        let code = '';
+        regOtpDigits.forEach(d => { code += d.value; });
+        if (hiddenRegOtp) hiddenRegOtp.value = code;
+    }
+
+    regOtpDigits.forEach((digit, index) => {
+        digit.addEventListener('input', () => {
+            digit.value = digit.value.replace(/[^0-9]/g, '');
+            if (digit.value.length === 1 && index < regOtpDigits.length - 1) {
+                regOtpDigits[index + 1].focus();
+            }
+            syncRegOtp();
+        });
+        digit.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && digit.value === '' && index > 0) {
+                regOtpDigits[index - 1].focus();
+            }
+        });
+        digit.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pasted = (e.clipboardData || window.clipboardData).getData('text').trim();
+            if (/^\d{6}$/.test(pasted)) {
+                pasted.split('').forEach((ch, idx) => {
+                    if (regOtpDigits[idx]) regOtpDigits[idx].value = ch;
+                });
+                syncRegOtp();
+                regOtpDigits[5].focus();
+            }
+        });
+    });
+
+    if (regOtpForm) {
+        regOtpForm.addEventListener('submit', (e) => {
+            syncRegOtp();
+            if (!hiddenRegOtp || hiddenRegOtp.value.length !== 6) {
+                e.preventDefault();
+                alert('Please enter all 6 digits of the verification OTP.');
+            }
+        });
+    }
+}
 
 function togglePassword(id, button) {
 

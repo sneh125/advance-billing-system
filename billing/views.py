@@ -50,6 +50,21 @@ from .utils import (
 GSTIN_REGEX = re.compile(r"^[0-9A-Z]{15}$")
 VALID_PAYMENT_MODES = {"Unpaid", "Cash", "UPI", "Bank Transfer", "Card", "Cheque"}
 PAID_PAYMENT_MODES = {"Cash", "UPI", "Bank Transfer", "Card", "Cheque"}
+ALLOWED_QR_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"}
+
+
+def _validate_uploaded_qr_file(uploaded_file):
+    """Validate uploaded QR image extension and MIME type before decoding."""
+    import os
+    filename = (getattr(uploaded_file, "name", "") or "").strip()
+    if filename:
+        _, ext = os.path.splitext(filename.lower())
+        if ext and ext not in ALLOWED_QR_IMAGE_EXTENSIONS:
+            return "Unsupported file format. Please upload a PNG, JPG, JPEG, WEBP, BMP, or GIF image."
+    ctype = (getattr(uploaded_file, "content_type", "") or "").strip().lower()
+    if ctype and ctype != "application/octet-stream" and not ctype.startswith("image/"):
+        return "Unsupported file type. Only valid image files are accepted for QR decoding."
+    return None
 
 
 def _authenticate_api_user(request):
@@ -1047,24 +1062,32 @@ def invoice_create(request):
 @login_required
 def invoice_list(request):
     """
-    Invoice directory listing with SQL-aggregated KPI totals and page-level
-    item formatting (avoids generating QR codes for unpaginated records).
+    Invoice directory listing with search, customer filter, status filter,
+    date range filtering, SQL-aggregated KPI totals, and pagination.
     """
     search_query = request.GET.get("q", "").strip()
-    if request.user.is_staff or request.user.is_superuser:
+    selected_customer = request.GET.get("customer", "").strip()
+    selected_status = request.GET.get("status", "").strip()
+    start_date_str = request.GET.get("start_date", "").strip()
+    end_date_str = request.GET.get("end_date", "").strip()
+
+    is_admin = request.user.is_staff or request.user.is_superuser
+    if is_admin:
         invoices_qs = (
             Invoice.objects.all()
             .select_related("customer", "distributor")
             .prefetch_related("items__product")
-            .order_by("-created_at")
+            .order_by("-created_at", "-id")
         )
+        customers_filter_qs = Customer.objects.all().order_by("name")
     else:
         invoices_qs = (
             Invoice.objects.filter(distributor=request.user)
             .select_related("customer")
             .prefetch_related("items__product")
-            .order_by("-created_at")
+            .order_by("-created_at", "-id")
         )
+        customers_filter_qs = Customer.objects.filter(distributor=request.user).order_by("name")
 
     if search_query:
         invoices_qs = invoices_qs.filter(
@@ -1072,6 +1095,20 @@ def invoice_list(request):
             Q(customer__name__icontains=search_query) |
             Q(customer__phone__icontains=search_query)
         )
+    if selected_customer.isdigit():
+        invoices_qs = invoices_qs.filter(customer_id=int(selected_customer))
+    if selected_status:
+        invoices_qs = invoices_qs.filter(status__iexact=selected_status)
+    if start_date_str:
+        try:
+            invoices_qs = invoices_qs.filter(invoice_date__date__gte=date.fromisoformat(start_date_str))
+        except ValueError:
+            pass
+    if end_date_str:
+        try:
+            invoices_qs = invoices_qs.filter(invoice_date__date__lte=date.fromisoformat(end_date_str))
+        except ValueError:
+            pass
 
     zero_dec = Value(Decimal("0.00"), output_field=DecimalField(max_digits=14, decimal_places=2))
     totals = invoices_qs.aggregate(
@@ -1091,10 +1128,20 @@ def invoice_list(request):
         inv.product_names = [item.product.name for item in item_list]
         inv.qr_code_base64 = inv.qr_code_data or inv.generate_qr_code_base64()
 
+    filter_params = request.GET.copy()
+    filter_params.pop("page", None)
+    filter_querystring = filter_params.urlencode()
+
     return render(request, "billing/invoice_list.html", {
         "invoices": page_obj,
         "page_obj": page_obj,
         "search_query": search_query,
+        "customers_filter": customers_filter_qs,
+        "selected_customer": selected_customer,
+        "selected_status": selected_status,
+        "start_date": start_date_str,
+        "end_date": end_date_str,
+        "filter_querystring": filter_querystring,
         "total_invoices": totals["total_invoices"],
         "total_billed": totals["total_billed"],
     })
@@ -1153,11 +1200,74 @@ def invoice_report(request):
         total_tax_collected=Coalesce(Sum("gst_amount", filter=not_cancelled), zero_dec),
         total_subtotal_amount=Coalesce(Sum("subtotal", filter=not_cancelled), zero_dec),
         paid_count=Count("id", filter=Q(status__iexact="Paid")),
+        partial_count=Count("id", filter=Q(status__iexact="Partial")),
         pending_count=Count("id", filter=Q(status__iexact="Pending")),
         cancelled_count=Count("id", filter=Q(status__iexact="Cancelled")),
-        paid_amount=Coalesce(Sum("total_amount", filter=Q(status__iexact="Paid")), zero_dec),
-        pending_amount=Coalesce(Sum("total_amount", filter=Q(status__iexact="Pending")), zero_dec),
     )
+
+    # Compute true collected payments vs pending receivables & customer-wise + monthly analytics
+    active_filtered = list(
+        invoices_qs.exclude(status__iexact="Cancelled")
+        .select_related(None)
+        .select_related("customer")
+        .only("id", "invoice_date", "total_amount", "gst_amount", "amount_paid", "status", "customer_id", "customer__name", "customer__phone")
+    )
+    true_paid_amount = Decimal("0.00")
+    true_pending_amount = Decimal("0.00")
+    customer_buckets = {}
+    for inv in active_filtered:
+        inv_paid = inv.effective_amount_paid
+        inv_due = inv.balance_due
+        true_paid_amount += inv_paid
+        true_pending_amount += inv_due
+
+        cid = inv.customer_id
+        if cid not in customer_buckets:
+            customer_buckets[cid] = {
+                "customer_id": cid,
+                "customer_name": inv.customer.name,
+                "customer_phone": inv.customer.phone,
+                "invoice_count": 0,
+                "total_billed": Decimal("0.00"),
+                "total_paid": Decimal("0.00"),
+                "balance_due": Decimal("0.00"),
+            }
+        cb = customer_buckets[cid]
+        cb["invoice_count"] += 1
+        cb["total_billed"] += inv.total_amount or Decimal("0.00")
+        cb["total_paid"] += inv_paid
+        cb["balance_due"] += inv_due
+
+    customer_sales_report = sorted(
+        customer_buckets.values(),
+        key=lambda r: r["total_billed"],
+        reverse=True,
+    )[:15]
+
+    # Monthly Revenue Chart (last 6 months of filtered invoices)
+    now_local = timezone.localtime(timezone.now())
+    monthly_revenue_chart = []
+    for m_offset in range(5, -1, -1):
+        b_y, b_m = divmod(now_local.year * 12 + (now_local.month - 1) - m_offset, 12)
+        b_m += 1
+        b_date = now_local.date().replace(year=b_y, month=b_m, day=1)
+        m_invs = [
+            inv for inv in active_filtered
+            if inv.invoice_date and timezone.localtime(inv.invoice_date).year == b_y
+            and timezone.localtime(inv.invoice_date).month == b_m
+        ]
+        m_rev = sum((inv.total_amount for inv in m_invs), Decimal("0.00"))
+        m_paid = sum((inv.effective_amount_paid for inv in m_invs), Decimal("0.00"))
+        monthly_revenue_chart.append({
+            "label": b_date.strftime("%b %Y"),
+            "revenue": float(m_rev),
+            "collected": float(m_paid),
+            "count": len(m_invs),
+        })
+    max_month_rev = max((pt["revenue"] for pt in monthly_revenue_chart), default=0.0)
+    for pt in monthly_revenue_chart:
+        pt["rev_pct"] = round((pt["revenue"] / max_month_rev) * 100, 1) if max_month_rev > 0 else 0
+        pt["col_pct"] = round((pt["collected"] / max_month_rev) * 100, 1) if max_month_rev > 0 else 0
 
     paginator = Paginator(invoices_qs, 15)
     page_number = request.GET.get("page")
@@ -1181,10 +1291,13 @@ def invoice_report(request):
         "total_tax_collected": agg["total_tax_collected"],
         "total_subtotal_amount": agg["total_subtotal_amount"],
         "paid_count": agg["paid_count"],
+        "partial_count": agg["partial_count"],
         "pending_count": agg["pending_count"],
         "cancelled_count": agg["cancelled_count"],
-        "paid_amount": agg["paid_amount"],
-        "pending_amount": agg["pending_amount"],
+        "paid_amount": true_paid_amount,
+        "pending_amount": true_pending_amount,
+        "monthly_revenue_chart": monthly_revenue_chart,
+        "customer_sales_report": customer_sales_report,
     }
     return render(request, "billing/invoice_report.html", context)
 
@@ -1248,15 +1361,19 @@ def invoice_report_pdf(request):
         total_subtotal_amount=Coalesce(Sum("subtotal", filter=not_cancelled), zero_dec),
         paid_count=Count("id", filter=Q(status__iexact="Paid")),
         pending_count=Count("id", filter=Q(status__iexact="Pending")),
-        paid_amount=Coalesce(Sum("total_amount", filter=Q(status__iexact="Paid")), zero_dec),
-        pending_amount=Coalesce(Sum("total_amount", filter=Q(status__iexact="Pending")), zero_dec),
+        cancelled_count=Count("id", filter=Q(status__iexact="Cancelled")),
     )
 
     invoices_list = list(invoices_qs)
+    true_paid_pdf = Decimal("0.00")
+    true_pending_pdf = Decimal("0.00")
     for inv in invoices_list:
         item_list = list(inv.items.all())
         inv.product_count = len(item_list)
         inv.product_summary = ", ".join(f"{item.product.name} (x{item.quantity})" for item in item_list)
+        if (inv.status or "").lower() != "cancelled":
+            true_paid_pdf += inv.effective_amount_paid
+            true_pending_pdf += inv.balance_due
 
     context = {
         "distributor": distributor,
@@ -1271,8 +1388,9 @@ def invoice_report_pdf(request):
         "total_subtotal_amount": agg["total_subtotal_amount"],
         "paid_count": agg["paid_count"],
         "pending_count": agg["pending_count"],
-        "paid_amount": agg["paid_amount"],
-        "pending_amount": agg["pending_amount"],
+        "cancelled_count": agg["cancelled_count"],
+        "paid_amount": true_paid_pdf,
+        "pending_amount": true_pending_pdf,
         "generated_at": timezone.now(),
     }
 
@@ -2148,6 +2266,13 @@ def qr_decoder_view(request):
                         "result": {"success": False, "error": "Uploaded image file size must not exceed 10MB."},
                         "matched_invoice": None,
                     })
+                type_error = _validate_uploaded_qr_file(uploaded_image)
+                if type_error:
+                    messages.error(request, type_error)
+                    return render(request, "billing/qr_decoder.html", {
+                        "result": {"success": False, "error": type_error},
+                        "matched_invoice": None,
+                    })
                 decode_res = decode_qr_image(uploaded_image)
             else:
                 if "," in base64_data:
@@ -2212,6 +2337,13 @@ def qr_decoder_api(request):
                 "status": "error",
                 "message": "File size exceeds 10MB limit."
             }, status=400)
+        type_error = _validate_uploaded_qr_file(uploaded_file)
+        if type_error:
+            return JsonResponse({
+                "status": "error",
+                "message": type_error,
+                "error_code": "UNSUPPORTED_FILE_TYPE"
+            }, status=422)
         image_source = uploaded_file
     elif request.content_type == "application/json" and request.body:
         try:
@@ -3223,3 +3355,262 @@ def quotation_convert_to_invoice(request, pk):
     except ValueError as exc:
         messages.error(request, str(exc))
         return redirect("quotation_detail", pk=quotation.pk)
+
+
+# ==============================================================================
+# CUSTOMER DETAIL VIEW & TRANSACTION-SAFE INVOICE EDITING
+# ==============================================================================
+
+@login_required
+def customer_detail(request, pk):
+    """
+    Dedicated Customer Details page showing full customer profile, GSTIN, address,
+    financial billing summary (Khata KPIs), and recent invoices.
+    """
+    if request.user.is_staff or request.user.is_superuser:
+        customer = get_object_or_404(Customer.objects.select_related("distributor"), pk=pk)
+    else:
+        customer = get_object_or_404(Customer, pk=pk, distributor=request.user)
+
+    invoices_qs = Invoice.objects.filter(customer=customer).order_by("-created_at", "-id")
+    active_invs = list(invoices_qs.exclude(status__iexact="Cancelled"))
+    total_billed = sum((inv.total_amount for inv in active_invs), Decimal("0.00"))
+    total_paid = sum((inv.effective_amount_paid for inv in active_invs), Decimal("0.00"))
+    total_due = sum((inv.balance_due for inv in active_invs), Decimal("0.00"))
+    overdue_count = sum(1 for inv in active_invs if inv.is_overdue)
+
+    return render(request, "billing/customer_detail.html", {
+        "customer": customer,
+        "recent_invoices": invoices_qs[:10],
+        "total_invoices_count": invoices_qs.count(),
+        "total_billed": total_billed,
+        "total_paid": total_paid,
+        "total_due": total_due,
+        "overdue_count": overdue_count,
+    })
+
+
+@login_required
+def invoice_edit(request, pk):
+    """
+    Edit an existing Pending or Partial invoice safely inside a database transaction:
+    restores old item stock, validates & deducts new item stock with StockMovement audit,
+    recalculates server-side GST/discounts/totals, enforces amount_paid guard, and refreshes QR.
+    """
+    if request.user.is_staff or request.user.is_superuser:
+        invoice = get_object_or_404(
+            Invoice.objects.select_related("customer", "distributor", "distributor__distributor_profile").prefetch_related("items__product"),
+            pk=pk,
+        )
+    else:
+        invoice = get_object_or_404(
+            Invoice.objects.select_related("customer", "distributor", "distributor__distributor_profile").prefetch_related("items__product"),
+            pk=pk,
+            distributor=request.user,
+        )
+
+    if (invoice.status or "").lower() in ("paid", "cancelled"):
+        messages.error(
+            request,
+            f"Invoice {invoice.invoice_number} is {invoice.status} and cannot be edited."
+        )
+        return redirect("invoice_detail", pk=invoice.pk)
+
+    owner_dist = invoice.distributor
+    customers = Customer.objects.filter(distributor=owner_dist, is_active=True).order_by("name")
+    products = Product.objects.filter(distributor=owner_dist).order_by("name")
+    existing_items = list(invoice.items.all())
+
+    base_ctx = {
+        "invoice": invoice,
+        "customers": customers,
+        "products": products,
+        "existing_items": existing_items,
+    }
+
+    if request.method == "POST":
+        cust_id = (request.POST.get("customer") or "").strip()
+        customer = customers.filter(pk=cust_id).first() if cust_id.isdigit() else None
+        if not customer:
+            messages.error(request, "Please select a valid customer.")
+            return render(request, "billing/invoice_edit.html", base_ctx)
+
+        product_ids = request.POST.getlist("product[]")
+        quantities = request.POST.getlist("quantity[]")
+        unit_prices = request.POST.getlist("unit_price[]")
+        gst_rates = request.POST.getlist("gst_rate[]")
+        discounts = request.POST.getlist("discount[]")
+        valid_rows = [i for i in range(len(product_ids)) if product_ids[i].strip()]
+
+        if not valid_rows:
+            messages.error(request, "An invoice must contain at least one product.")
+            return render(request, "billing/invoice_edit.html", base_ctx)
+
+        raw_due_date = (request.POST.get("due_date") or "").strip()
+        due_date_val = None
+        if raw_due_date:
+            try:
+                due_date_val = date.fromisoformat(raw_due_date)
+            except ValueError:
+                messages.error(request, "Please enter a valid due date.")
+                return render(request, "billing/invoice_edit.html", base_ctx)
+
+        notes_val = (request.POST.get("notes") or "").strip()[:1000]
+        apply_round_off = request.POST.get("apply_round_off") in ("1", "on", "true")
+
+        try:
+            with transaction.atomic():
+                inv_locked = Invoice.objects.select_for_update().get(pk=invoice.pk)
+                if (inv_locked.status or "").lower() in ("paid", "cancelled"):
+                    raise ValueError(f"Invoice {inv_locked.invoice_number} can no longer be edited.")
+
+                old_items = list(inv_locked.items.select_related("product").all())
+                all_prod_ids = sorted(
+                    {it.product_id for it in old_items}
+                    | {int(product_ids[idx]) for idx in valid_rows}
+                )
+                locked_products = {
+                    p.id: p
+                    for p in Product.objects.select_for_update().filter(pk__in=all_prod_ids, distributor=owner_dist)
+                }
+
+                # 1. Restore previous item quantities
+                stock_logs = []
+                for old_item in old_items:
+                    prod = locked_products[old_item.product_id]
+                    before = prod.stock
+                    prod.stock += old_item.quantity
+                    stock_logs.append({
+                        "product": prod,
+                        "movement_type": "ADJUSTMENT",
+                        "qty_change": old_item.quantity,
+                        "stock_before": before,
+                        "stock_after": prod.stock,
+                        "reference": f"Edit {inv_locked.invoice_number}",
+                        "notes": "Restored prior to invoice edit",
+                    })
+
+                # 2. Validate & deduct new quantities
+                total_subtotal = Decimal("0.00")
+                total_discount = Decimal("0.00")
+                total_gst = Decimal("0.00")
+                items_to_create = []
+
+                for idx in valid_rows:
+                    p_id = int(product_ids[idx])
+                    prod = locked_products.get(p_id)
+                    if not prod:
+                        raise ValueError("Selected product does not exist for this distributor.")
+
+                    qty = int(quantities[idx]) if idx < len(quantities) and quantities[idx] else 1
+                    if qty <= 0:
+                        raise ValueError(f"Quantity for '{prod.name}' must be at least 1.")
+                    if prod.stock < qty:
+                        raise ValueError(
+                            f"Insufficient stock for '{prod.name}' (Available after restore: {prod.stock}, Requested: {qty})."
+                        )
+
+                    price = Decimal(str(unit_prices[idx])) if idx < len(unit_prices) and unit_prices[idx] else prod.price
+                    if price <= Decimal("0.00"):
+                        raise ValueError(f"Unit price for '{prod.name}' must be greater than 0.")
+
+                    gst_rate = Decimal(str(gst_rates[idx])) if idx < len(gst_rates) and gst_rates[idx] else prod.gst_rate
+                    if gst_rate < Decimal("0.00") or gst_rate > Decimal("100.00"):
+                        raise ValueError(f"GST rate for '{prod.name}' must be between 0 and 100.")
+
+                    disc_pct = Decimal(str(discounts[idx])) if idx < len(discounts) and discounts[idx] else Decimal("0.00")
+                    if disc_pct < Decimal("0.00") or disc_pct > Decimal("100.00"):
+                        raise ValueError(f"Discount for '{prod.name}' must be between 0% and 100%.")
+
+                    before = prod.stock
+                    prod.stock -= qty
+                    stock_logs.append({
+                        "product": prod,
+                        "movement_type": "SALE",
+                        "qty_change": -qty,
+                        "stock_before": before,
+                        "stock_after": prod.stock,
+                        "reference": f"Edit {inv_locked.invoice_number}",
+                        "notes": f"Updated invoice for {customer.name}",
+                    })
+
+                    line_base = (Decimal(qty) * price).quantize(Decimal("0.01"))
+                    disc_amount = (line_base * (disc_pct / Decimal("100"))).quantize(Decimal("0.01"))
+                    line_subtotal = (line_base - disc_amount).quantize(Decimal("0.01"))
+                    line_gst = (line_subtotal * (gst_rate / Decimal("100"))).quantize(Decimal("0.01"))
+                    line_total = (line_subtotal + line_gst).quantize(Decimal("0.01"))
+
+                    total_subtotal += line_subtotal
+                    total_discount += disc_amount
+                    total_gst += line_gst
+
+                    items_to_create.append({
+                        "product": prod,
+                        "quantity": qty,
+                        "unit_price": price,
+                        "discount_percent": disc_pct,
+                        "discount_amount": disc_amount,
+                        "gst_rate": gst_rate,
+                        "subtotal": line_subtotal,
+                        "total": line_total,
+                    })
+
+                raw_grand_total = (total_subtotal + total_gst).quantize(Decimal("0.01"))
+                round_off_val = Decimal("0.00")
+                grand_total = raw_grand_total
+                if apply_round_off:
+                    rounded = raw_grand_total.quantize(Decimal("1"), rounding=ROUND_HALF_UP).quantize(Decimal("0.01"))
+                    round_off_val = (rounded - raw_grand_total).quantize(Decimal("0.01"))
+                    grand_total = rounded
+
+                already_paid = inv_locked.effective_amount_paid
+                if grand_total < already_paid:
+                    raise ValueError(
+                        f"Updated invoice total (Rs. {grand_total:.2f}) cannot be less than already paid amount (Rs. {already_paid:.2f})."
+                    )
+
+                for prod in locked_products.values():
+                    prod.save(update_fields=["stock", "updated_at"])
+
+                is_interstate, cgst_amount, sgst_amount, igst_amount = _compute_tax_split(
+                    owner_dist, customer, total_gst
+                )
+
+                inv_locked.items.all().delete()
+                for item_data in items_to_create:
+                    InvoiceItem.objects.create(invoice=inv_locked, **item_data)
+
+                for sl in stock_logs:
+                    StockMovement.objects.create(
+                        product=sl["product"],
+                        distributor=owner_dist,
+                        movement_type=sl["movement_type"],
+                        quantity_change=sl["qty_change"],
+                        stock_before=sl["stock_before"],
+                        stock_after=sl["stock_after"],
+                        reference=sl["reference"],
+                        notes=sl["notes"],
+                    )
+
+                inv_locked.customer = customer
+                inv_locked.subtotal = total_subtotal
+                inv_locked.discount_total = total_discount
+                inv_locked.gst_amount = total_gst
+                inv_locked.cgst_amount = cgst_amount
+                inv_locked.sgst_amount = sgst_amount
+                inv_locked.igst_amount = igst_amount
+                inv_locked.is_interstate = is_interstate
+                inv_locked.round_off = round_off_val
+                inv_locked.total_amount = grand_total
+                inv_locked.due_date = due_date_val
+                inv_locked.notes = notes_val
+                inv_locked.save()
+                inv_locked.recalculate_payment_status()
+
+            messages.success(request, f"Invoice {invoice.invoice_number} updated successfully and inventory reconciled.")
+            return redirect("invoice_detail", pk=invoice.pk)
+        except (ValueError, InvalidOperation) as exc:
+            messages.error(request, str(exc))
+            return render(request, "billing/invoice_edit.html", base_ctx)
+
+    return render(request, "billing/invoice_edit.html", base_ctx)

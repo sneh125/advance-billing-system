@@ -1,33 +1,17 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoices Directory | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/invoices.css' %}">
+
+{% block title %}Invoices Directory | Advance Billing System{% endblock %}
+
+{% block shell_class %}invoice-page-layout{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/invoices.css' %}">
     <link rel="stylesheet" href="{% static 'css/customers.css' %}">
-</head>
-<body>
+{% endblock %}
 
-<div class="invoice-page-layout">
-
-    {% include 'includes/app_header.html' with active_page='invoices' %}
-
-    <!-- FLASH TOAST MESSAGES -->
-    <div class="toast-container" id="toastContainer">
-        {% if messages %}
-            {% for message in messages %}
-            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
-                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
-                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
-            </div>
-            {% endfor %}
-        {% endif %}
-    </div>
-
-    <!-- MAIN INVOICES WRAPPER -->
+{% block content %}
+<!-- MAIN INVOICES WRAPPER -->
     <main class="invoice-page-content">
 
         <!-- HEADER ROW -->
@@ -49,17 +33,38 @@
             </div>
         </div>
 
-        <!-- SEARCH & STATS BAR -->
-        <div class="search-filter-card">
-            <form method="GET" action="{% url 'invoice_list' %}" class="search-form-wrap">
-                <input type="text" name="q" value="{{ search_query }}" placeholder="Search invoices by invoice #, customer name, or phone..." class="search-input-box">
-                <button type="submit" class="btn-search-submit">Search</button>
-                {% if search_query %}
+        <!-- SEARCH & FILTER BAR -->
+        <div class="search-filter-card" style="flex-direction: column; align-items: stretch; gap: 12px;">
+            <form method="GET" action="{% url 'invoice_list' %}" class="search-form-wrap" style="flex-wrap: wrap; gap: 8px;">
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Search invoice #, customer, or phone..." class="search-input-box" style="min-width: 200px;">
+                <select name="customer" id="invListCustomerFilter" class="search-input-box" style="max-width: 200px;">
+                    <option value="">All Customers</option>
+                    {% for cust in customers_filter %}
+                    <option value="{{ cust.id }}">
+                        {{ cust.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <select name="status" id="invListStatusFilter" class="search-input-box" style="max-width: 150px;">
+                    <option value="">All Statuses</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Partial">Partial</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+                <input type="date" name="start_date" value="{{ start_date }}" title="From Date" class="search-input-box" style="max-width: 155px;">
+                <input type="date" name="end_date" value="{{ end_date }}" title="To Date" class="search-input-box" style="max-width: 155px;">
+                <button type="submit" class="btn-search-submit">Filter</button>
+                {% if search_query or selected_customer or selected_status or start_date or end_date %}
                 <a href="{% url 'invoice_list' %}" class="btn-clear-filter">Clear</a>
                 {% endif %}
             </form>
+            <script>
+                document.getElementById('invListCustomerFilter').value = "{{ selected_customer|escapejs }}";
+                document.getElementById('invListStatusFilter').value = "{{ selected_status|escapejs }}";
+            </script>
 
-            <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                 <span class="search-stats-badge">
                     🧾 {{ total_invoices }} Invoice{{ total_invoices|pluralize }}
                 </span>
@@ -184,7 +189,7 @@
                 </div>
                 <div style="display: flex; gap: 8px;">
                     {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn-page-nav">
+                    <a href="?page={{ page_obj.previous_page_number }}{% if filter_querystring %}&{{ filter_querystring }}{% endif %}" class="btn-page-nav">
                         ← Previous
                     </a>
                     {% endif %}
@@ -193,14 +198,14 @@
                     {% if num == page_obj.number %}
                     <span class="btn-page-nav active">{{ num }}</span>
                     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                    <a href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn-page-nav">
+                    <a href="?page={{ num }}{% if filter_querystring %}&{{ filter_querystring }}{% endif %}" class="btn-page-nav">
                         {{ num }}
                     </a>
                     {% endif %}
                     {% endfor %}
 
                     {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn-page-nav">
+                    <a href="?page={{ page_obj.next_page_number }}{% if filter_querystring %}&{{ filter_querystring }}{% endif %}" class="btn-page-nav">
                         Next →
                     </a>
                     {% endif %}
@@ -222,9 +227,9 @@
         </div>
 
     </main>
+{% endblock %}
 
-</div>
-
+{% block extra_body %}
 <!-- QR PREVIEW MODAL (TASK 71) -->
 <div id="qrPreviewModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
     <div style="background: #ffffff; border-radius: 16px; width: 90%; max-width: 440px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center; position: relative;">
@@ -247,14 +252,7 @@
 </div>
 
 <script>
-    function toggleMobileNav() {
-        const drawer = document.getElementById('mobileNavDrawer');
-        if (drawer) {
-            drawer.classList.toggle('active');
-        }
-    }
-
-    function openQrModal(invNumber, customerName, totalAmount, qrBase64, pdfUrl) {
+function openQrModal(invNumber, customerName, totalAmount, qrBase64, pdfUrl) {
         document.getElementById('modalInvoiceNumber').innerText = 'Invoice ' + invNumber;
         document.getElementById('modalCustomerInfo').innerText = 'Customer: ' + customerName + ' | Total: ₹' + totalAmount;
         document.getElementById('modalQrImage').src = 'data:image/png;base64,' + qrBase64;
@@ -274,11 +272,5 @@
         }
     });
 
-    setTimeout(() => {
-        const toasts = document.querySelectorAll('.toast-card');
-        toasts.forEach(t => t.remove());
-    }, 4000);
 </script>
-
-</body>
-</html>
+{% endblock %}

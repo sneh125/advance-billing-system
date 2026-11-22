@@ -1,0 +1,661 @@
+<!-- REUSABLE COMMON APPLICATION FOOTER (MULTI-COLUMN SAAS FOOTER) -->
+<style>
+    html,
+    body {
+        min-height: 100vh;
+        overscroll-behavior-y: none;
+    }
+    body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        padding-bottom: 0 !important;
+        overflow-x: clip !important;
+    }
+    body > .dashboard-container,
+    body > .invoice-page-layout {
+        flex: 1 0 auto;
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - var(--app-header-h, 96px)) !important;
+    }
+    body > main,
+    .dashboard-container > main,
+    .invoice-page-layout > main {
+        flex: 1 0 auto;
+        width: 100%;
+    }
+
+    .app-shell-footer {
+        box-sizing: border-box;
+        width: 100%;
+        margin-top: auto;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 10;
+        background: linear-gradient(180deg, #0f172a 0%, #0b1222 100%);
+        color: #cbd5e1;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+    }
+    .app-shell-footer::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent 0%, #0f766e 25%, #14b8a6 50%, #0ea5e9 75%, transparent 100%);
+        opacity: 0.75;
+        pointer-events: none;
+    }
+    .app-shell-footer * {
+        box-sizing: border-box;
+    }
+
+    /* UPPER MULTI-COLUMN GRID */
+    .app-footer-main {
+        max-width: 1360px;
+        margin: 0 auto;
+        padding: 44px 36px 34px 36px;
+        display: grid;
+        grid-template-columns: 1.55fr 1fr 1fr 1.15fr;
+        gap: 36px;
+    }
+
+    /* COLUMN 1: BRAND */
+    .app-footer-brand-head {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin-bottom: 14px;
+        text-decoration: none;
+    }
+    .app-footer-logo-mark {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        overflow: hidden;
+        flex-shrink: 0;
+        box-shadow: 0 6px 18px rgba(20, 184, 166, 0.35);
+    }
+    .app-footer-logo-mark svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+    .app-footer-brand-title {
+        display: block;
+        font-size: 18px;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.2;
+        letter-spacing: -0.3px;
+    }
+    .app-footer-brand-sub {
+        display: block;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #5eead4;
+        letter-spacing: 0.3px;
+        margin-top: 2px;
+    }
+    .app-footer-desc {
+        font-size: 13.5px;
+        line-height: 1.65;
+        color: #94a3b8;
+        margin: 0 0 18px 0;
+        max-width: 340px;
+    }
+    .app-footer-badges {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .app-footer-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #ccfbf1;
+        background: rgba(20, 184, 166, 0.12);
+        border: 1px solid rgba(20, 184, 166, 0.28);
+    }
+
+    /* LINK COLUMNS */
+    .app-footer-col-title {
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.85px;
+        color: #f8fafc;
+        margin: 0 0 16px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .app-footer-col-title::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 9999px;
+        background: #14b8a6;
+        flex-shrink: 0;
+    }
+    .app-footer-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .app-footer-nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 13.5px;
+        font-weight: 500;
+        color: #94a3b8;
+        text-decoration: none;
+        transition: color 0.16s ease, transform 0.16s ease;
+    }
+    .app-footer-nav-link:hover,
+    .app-footer-nav-link:focus-visible {
+        color: #5eead4;
+        transform: translateX(3px);
+        outline: none;
+    }
+
+    /* STATUS CARD IN COLUMN 4 */
+    .app-footer-status-box {
+        margin-top: 16px;
+        padding: 11px 14px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .app-footer-status-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 9999px;
+        background: #10b981;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.75);
+        flex-shrink: 0;
+    }
+    .app-footer-status-text {
+        font-size: 12px;
+        line-height: 1.35;
+        color: #94a3b8;
+    }
+    .app-footer-status-text strong {
+        display: block;
+        color: #f1f5f9;
+        font-size: 12.5px;
+        font-weight: 700;
+    }
+
+    /* BOTTOM BAR */
+    .app-footer-bottom-wrap {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(2, 6, 23, 0.45);
+    }
+    .app-footer-bottom {
+        max-width: 1360px;
+        margin: 0 auto;
+        padding: 16px 36px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .app-footer-copy {
+        font-size: 13px;
+        font-weight: 500;
+        color: #94a3b8;
+    }
+    .app-footer-copy strong {
+        color: #f8fafc;
+        font-weight: 700;
+    }
+    .app-footer-powered {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #94a3b8;
+        white-space: nowrap;
+    }
+    .app-footer-powered-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 9999px;
+        background: #14b8a6;
+        box-shadow: 0 0 8px rgba(20, 184, 166, 0.75);
+        flex-shrink: 0;
+    }
+    .app-footer-powered strong {
+        color: #5eead4;
+        font-weight: 700;
+    }
+
+    /* FOOTER INFO MODAL */
+    .app-footer-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 2000;
+    }
+    .app-footer-modal-overlay.open {
+        display: flex;
+    }
+    .app-footer-modal-card {
+        width: 100%;
+        max-width: 540px;
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.38);
+        overflow: hidden;
+        animation: appFooterModalIn 0.2s ease;
+    }
+    @keyframes appFooterModalIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    .app-footer-modal-head {
+        background: linear-gradient(135deg, #0f172a 0%, #134e4a 100%);
+        color: #ffffff;
+        padding: 18px 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .app-footer-modal-head h4 {
+        margin: 0;
+        font-size: 16.5px;
+        font-weight: 800;
+        letter-spacing: -0.2px;
+        color: #ffffff;
+    }
+    .app-footer-modal-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 9999px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s ease;
+    }
+    .app-footer-modal-close:hover {
+        background: rgba(255, 255, 255, 0.22);
+    }
+    .app-footer-modal-body {
+        padding: 22px 24px;
+        color: #334155;
+        font-size: 14px;
+        line-height: 1.65;
+    }
+    .app-footer-modal-body p {
+        margin: 0 0 12px 0;
+    }
+    .app-footer-modal-body p:last-child {
+        margin-bottom: 0;
+    }
+    .app-footer-modal-body ul {
+        margin: 8px 0 0 18px;
+        padding: 0;
+    }
+    .app-footer-modal-body li {
+        margin-bottom: 6px;
+    }
+    .app-footer-modal-foot {
+        padding: 14px 24px;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: flex-end;
+    }
+    .app-footer-modal-btn {
+        padding: 8px 18px;
+        border-radius: 10px;
+        border: none;
+        background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    /* TABLET */
+    @media (max-width: 1024px) {
+        .app-footer-main {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            padding: 36px 24px 28px 24px;
+            gap: 28px 32px;
+        }
+        .app-footer-bottom {
+            padding: 16px 24px;
+        }
+    }
+
+    /* MOBILE */
+    @media (max-width: 640px) {
+        .app-footer-main {
+            grid-template-columns: 1fr;
+            padding: 30px 18px 24px 18px;
+            gap: 24px;
+        }
+        .app-footer-bottom {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 16px 18px;
+            gap: 10px;
+        }
+    }
+
+    /* PRINT: Never render footer or modal on printed pages */
+    @media print {
+        body {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+        .app-shell-footer,
+        .app-footer-modal-overlay {
+            display: none !important;
+        }
+    }
+</style>
+
+<footer class="app-shell-footer" role="contentinfo" aria-label="Application Footer">
+    <div class="app-footer-main">
+        <!-- COL 1: BRAND & OVERVIEW -->
+        <div>
+            <a
+                href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
+                class="app-footer-brand-head"
+            >
+                <div class="app-footer-logo-mark" aria-hidden="true">
+                    {% include 'includes/logo_svg.html' with uid='ftr' %}
+                </div>
+                <div>
+                    <span class="app-footer-brand-title">Advance Billing</span>
+                    <span class="app-footer-brand-sub">
+                        {% if request.user.is_staff %}
+                        Admin Control Portal
+                        {% else %}
+                        Cloud GST Billing ERP
+                        {% endif %}
+                    </span>
+                </div>
+            </a>
+            <p class="app-footer-desc">
+                All-in-one GST invoicing, stock ledger, customer Khata management, and real-time billing analytics built for modern Indian distributors.
+            </p>
+            <div class="app-footer-badges">
+                <span class="app-footer-badge">✓ GST Compliant</span>
+                <span class="app-footer-badge">⚡ UPI &amp; QR</span>
+                <span class="app-footer-badge">🔒 Secure ERP</span>
+            </div>
+        </div>
+
+        <!-- COL 2: QUICK NAVIGATION -->
+        <div>
+            <h4 class="app-footer-col-title">Navigation</h4>
+            <ul class="app-footer-list">
+                <li>
+                    <a
+                        href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
+                        class="app-footer-nav-link"
+                    >
+                        Dashboard Overview
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'customer_list' %}" class="app-footer-nav-link">
+                        Customer Directory
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'product_list' %}" class="app-footer-nav-link">
+                        Product Inventory
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'invoice_list' %}" class="app-footer-nav-link">
+                        Tax Invoices
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'quotation_list' %}" class="app-footer-nav-link">
+                        Quotations &amp; Estimates
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- COL 3: BILLING TOOLS -->
+        <div>
+            <h4 class="app-footer-col-title">Billing Tools</h4>
+            <ul class="app-footer-list">
+                <li>
+                    <a href="{% url 'invoice_create' %}" class="app-footer-nav-link">
+                        Create New Invoice
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'invoice_report' %}" class="app-footer-nav-link">
+                        Sales &amp; GSTR-1 Reports
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'stock_ledger' %}" class="app-footer-nav-link">
+                        Stock-In Audit Ledger
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'qr_decoder' %}" class="app-footer-nav-link">
+                        QR Invoice Scanner
+                    </a>
+                </li>
+                {% if not request.user.is_staff %}
+                <li>
+                    <a href="{% url 'distributor_profile' %}" class="app-footer-nav-link">
+                        My Business Profile
+                    </a>
+                </li>
+                {% else %}
+                <li>
+                    <a href="/admin/" target="_blank" class="app-footer-nav-link">
+                        Django Admin Panel ↗
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- COL 4: SUPPORT & LEGAL -->
+        <div>
+            <h4 class="app-footer-col-title">Support &amp; Legal</h4>
+            <ul class="app-footer-list">
+                <li>
+                    <a href="#about" class="app-footer-nav-link" onclick="openAppFooterInfo(event, 'about')">
+                        About
+                    </a>
+                </li>
+                <li>
+                    <a href="#help-support" class="app-footer-nav-link" onclick="openAppFooterInfo(event, 'support')">
+                        Help &amp; Support
+                    </a>
+                </li>
+                <li>
+                    <a href="#privacy-policy" class="app-footer-nav-link" onclick="openAppFooterInfo(event, 'privacy')">
+                        Privacy Policy
+                    </a>
+                </li>
+                <li>
+                    <a href="#terms-conditions" class="app-footer-nav-link" onclick="openAppFooterInfo(event, 'terms')">
+                        Terms &amp; Conditions
+                    </a>
+                </li>
+            </ul>
+            <div class="app-footer-status-box">
+                <span class="app-footer-status-dot" aria-hidden="true"></span>
+                <div class="app-footer-status-text">
+                    <strong>GST Billing Engine Online</strong>
+                    Server-validated totals &amp; stock sync
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM COPYRIGHT BAR -->
+    <div class="app-footer-bottom-wrap">
+        <div class="app-footer-bottom">
+            <span class="app-footer-copy">
+                Copyright &copy; 2026 <strong>Advance Billing System</strong>. All rights reserved.
+            </span>
+            <div class="app-footer-powered">
+                <span class="app-footer-powered-dot" aria-hidden="true"></span>
+                <span>Powered by <strong>Advance Billing System</strong></span>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<div class="app-footer-modal-overlay" id="appFooterInfoModal" role="dialog" aria-modal="true" aria-labelledby="appFooterModalTitle" onclick="if (event.target === this) closeAppFooterInfo();">
+    <div class="app-footer-modal-card">
+        <div class="app-footer-modal-head">
+            <h4 id="appFooterModalTitle">Advance Billing System</h4>
+            <button type="button" class="app-footer-modal-close" onclick="closeAppFooterInfo()" aria-label="Close">&times;</button>
+        </div>
+        <div class="app-footer-modal-body" id="appFooterModalBody"></div>
+        <div class="app-footer-modal-foot">
+            <button type="button" class="app-footer-modal-btn" onclick="closeAppFooterInfo()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        if (typeof window.openAppFooterInfo === 'function') return;
+
+        const footerDocs = {
+            about: {
+                title: 'About Advance Billing System',
+                paragraphs: [
+                    'Advance Billing System is a multi-tenant GST Billing, Inventory, and Distributor ERP platform designed for Indian wholesale and retail businesses.',
+                    'Key capabilities include CGST/SGST & IGST tax invoicing, dynamic HSN summaries, UPI & invoice verification QR codes, partial payment Khata ledgers, quotations, stock-in audit logs, and CA-ready GSTR-1 exports.'
+                ]
+            },
+            support: {
+                title: 'Help & Support',
+                paragraphs: [
+                    'Need assistance with GST invoicing, stock adjustments, QR code verification, or OTP password recovery? Use the quick guidelines below:'
+                ],
+                bullets: [
+                    'Use Invoices -> Create New Bill to generate GST-compliant bills with instant PDF & QR.',
+                    'Use Reports to filter date-wise revenue, pending dues, and export CA-ready GSTR-1 CSV or PDF.',
+                    'For password reset or distributor onboarding issues, verify your registered email OTP or contact your system administrator.'
+                ]
+            },
+            privacy: {
+                title: 'Privacy Policy',
+                paragraphs: [
+                    'Advance Billing System enforces strict role-based multi-tenant isolation: every distributor can access only their own customers, products, quotations, invoices, and payment ledgers.',
+                    'Passwords are securely hashed using Django password hashers, authentication sessions use HttpOnly cookies with CSRF protection, and OTP verification codes automatically expire and are never shared with third parties.'
+                ]
+            },
+            terms: {
+                title: 'Terms & Conditions',
+                paragraphs: [
+                    'By using Advance Billing System, authorized administrators and distributors agree to maintain accurate GSTIN, HSN, pricing, and customer billing information in accordance with applicable tax regulations.',
+                    'All invoice totals, taxes, discounts, and stock movements are calculated and validated server-side for audit integrity. Cancelled invoices restore stock automatically and are retained for compliance records.'
+                ]
+            }
+        };
+
+        window.openAppFooterInfo = function (evt, key) {
+            if (evt) evt.preventDefault();
+            const doc = footerDocs[key] || footerDocs.about;
+            const modal = document.getElementById('appFooterInfoModal');
+            const titleEl = document.getElementById('appFooterModalTitle');
+            const bodyEl = document.getElementById('appFooterModalBody');
+            if (!modal || !titleEl || !bodyEl) return;
+
+            titleEl.textContent = doc.title;
+            bodyEl.textContent = '';
+
+            (doc.paragraphs || []).forEach(function (text) {
+                const p = document.createElement('p');
+                p.textContent = text;
+                bodyEl.appendChild(p);
+            });
+            if (doc.bullets && doc.bullets.length) {
+                const ul = document.createElement('ul');
+                doc.bullets.forEach(function (item) {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    ul.appendChild(li);
+                });
+                bodyEl.appendChild(ul);
+            }
+
+            modal.classList.add('open');
+        };
+
+        window.closeAppFooterInfo = function () {
+            const modal = document.getElementById('appFooterInfoModal');
+            if (modal) modal.classList.remove('open');
+        };
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                window.closeAppFooterInfo();
+            }
+        });
+
+        function syncHeaderOffset() {
+            const hdr = document.querySelector('.app-shell-header');
+            if (hdr && hdr.offsetHeight > 0) {
+                document.documentElement.style.setProperty('--app-header-h', hdr.offsetHeight + 'px');
+            }
+        }
+        syncHeaderOffset();
+        window.addEventListener('load', syncHeaderOffset);
+        window.addEventListener('resize', syncHeaderOffset);
+    })();
+</script>

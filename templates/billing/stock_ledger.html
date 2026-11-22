@@ -1,24 +1,16 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Movement &amp; Purchase Ledger | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=3">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3">
+{% block title %}Stock Movement &amp; Purchase Ledger | Advance Billing System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/product_list.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/customers.css' %}?v=3">
-</head>
+{% endblock %}
 
-<body>
-
-    <div class="dashboard-container">
-
-        {% include 'includes/app_header.html' with active_page='products' %}
-
-        <main class="products-page-wrapper">
+{% block content %}
+<main class="products-page-wrapper">
 
             <div class="page-header-row">
                 <div class="page-title-wrap">
@@ -181,9 +173,4 @@
             </div>
 
         </main>
-
-    </div>
-
-</body>
-
-</html>
+{% endblock %}

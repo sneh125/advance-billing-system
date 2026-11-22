@@ -1,20 +1,14 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Product | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/product_add.css' %}">
-</head>
-<body>
 
-<div class="dashboard-container">
+{% block title %}Add Product | Advance Billing System{% endblock %}
 
-    {% include 'includes/app_header.html' with active_page='products' %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/product_add.css' %}">
+{% endblock %}
 
-    <!-- FORM PAGE CONTENT -->
+{% block content %}
+<!-- FORM PAGE CONTENT -->
     <main class="product-form-page-container">
 
         <!-- BREADCRUMBS -->
@@ -142,17 +136,4 @@
         </div>
 
     </main>
-
-</div>
-
-<script>
-    function toggleMobileNav() {
-        const drawer = document.getElementById('mobileNavDrawer');
-        if (drawer) {
-            drawer.classList.toggle('active');
-        }
-    }
-</script>
-
-</body>
-</html>
+{% endblock %}

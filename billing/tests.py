@@ -3321,3 +3321,233 @@ class RealBusinessFivePhasesTests(TestCase):
         self.assertIn("application/json", res_adm["Content-Type"])
 
 
+class MasterPromptRemainingRequirementsTests(TestCase):
+    """Tests for all remaining 85-requirement master prompt items."""
+
+    def setUp(self):
+        from accounts.models import Admin, DistributorProfile
+        self.client = Client()
+        self.admin = User.objects.create_user(
+            username="mp_admin",
+            email="mp_admin@billing.local",
+            password="AdminPassword@2026",
+            is_staff=True,
+            is_superuser=True,
+        )
+        Admin.objects.get_or_create(user=self.admin, defaults={"phone": "9999900001"})
+        self.dist1 = User.objects.create_user(
+            username="mp_dist1",
+            email="mp_dist1@billing.local",
+            password="DistPassword@2026",
+        )
+        DistributorProfile.objects.create(
+            user=self.dist1,
+            phone="9876540001",
+            business_name="Master Prompt Traders",
+            state="Gujarat",
+        )
+        self.dist2 = User.objects.create_user(
+            username="mp_dist2",
+            email="mp_dist2@billing.local",
+            password="DistPassword@2026",
+        )
+        self.cust1 = Customer.objects.create(
+            distributor=self.dist1,
+            name="Rajkot Hardware",
+            phone="9825099991",
+            city="Rajkot",
+            state="Gujarat",
+            pincode="360001",
+        )
+        self.cust2 = Customer.objects.create(
+            distributor=self.dist1,
+            name="Baroda Electricals",
+            phone="9825099992",
+            city="Vadodara",
+            state="Gujarat",
+            pincode="390001",
+        )
+        self.prod = Product.objects.create(
+            distributor=self.dist1,
+            name="Industrial MCB 32A",
+            sku="MCB-32",
+            hsn_code="8536",
+            category="Switchgear",
+            price=Decimal("500.00"),
+            stock=10,
+            gst_rate=Decimal("18.00"),
+        )
+
+    def test_separate_admin_and_distributor_login_routes_and_admin_profile_table(self):
+        from accounts.models import Admin
+        # Dedicated routes render 200
+        self.assertEqual(self.client.get(reverse("admin_login")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("distributor_login")).status_code, 200)
+
+        # Distributor rejected at /admin-login/
+        res_bad_admin = self.client.post(reverse("admin_login"), {
+            "username": "mp_dist1",
+            "password": "DistPassword@2026",
+        })
+        self.assertEqual(res_bad_admin.status_code, 200)
+        self.assertContains(res_bad_admin, "without Administrator privileges")
+
+        # Admin rejected at /distributor-login/
+        res_bad_dist = self.client.post(reverse("distributor_login"), {
+            "username": "mp_admin",
+            "password": "AdminPassword@2026",
+        })
+        self.assertEqual(res_bad_dist.status_code, 200)
+        self.assertContains(res_bad_dist, "Administrator Login portal")
+
+        # Admin registration creates custom Admin table record
+        self.client.login(username="mp_admin", password="AdminPassword@2026")
+        res_reg = self.client.post(reverse("admin_register"), {
+            "name": "Second Admin",
+            "username": "mp_admin2",
+            "email": "mp_admin2@billing.local",
+            "password": "StrongAdmin@2026",
+            "confirm_password": "StrongAdmin@2026",
+        })
+        self.assertEqual(res_reg.status_code, 302)
+        self.assertTrue(Admin.objects.filter(user__username="mp_admin2").exists())
+
+    def test_otp_resend_rate_limit_and_browser_admin_csrf_protection(self):
+        # 3 resends allowed, 4th blocked
+        self.client.post(reverse("forgot_password"), {"email": "mp_dist1@billing.local"})
+        for _ in range(3):
+            r = self.client.post(reverse("resend_otp"), {"email": "mp_dist1@billing.local"})
+            self.assertEqual(r.status_code, 200)
+            self.assertNotContains(r, "Too many OTP resend requests")
+        r_limit = self.client.post(reverse("resend_otp"), {"email": "mp_dist1@billing.local"})
+        self.assertEqual(r_limit.status_code, 200)
+        self.assertContains(r_limit, "Too many OTP resend requests")
+
+        # Browser /admin/forgot-password/ enforces CSRF (csrf_exempt removed)
+        csrf_client = Client(enforce_csrf_checks=True)
+        res_no_csrf = csrf_client.post(reverse("admin_forgot_password"), {"email": "mp_admin@billing.local"})
+        self.assertEqual(res_no_csrf.status_code, 403)
+
+    def test_customer_detail_page_and_isolation(self):
+        self.client.login(username="mp_dist1", password="DistPassword@2026")
+        res = self.client.get(reverse("customer_detail", kwargs={"pk": self.cust1.pk}))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Rajkot Hardware")
+
+        self.client.logout()
+        self.client.login(username="mp_dist2", password="DistPassword@2026")
+        self.assertEqual(self.client.get(reverse("customer_detail", kwargs={"pk": self.cust1.pk})).status_code, 404)
+
+    def test_invoice_edit_reconciles_stock_and_blocks_paid_or_underpayment(self):
+        self.client.login(username="mp_dist1", password="DistPassword@2026")
+        # Create invoice with qty 3 -> stock drops 10 -> 7
+        self.client.post(reverse("invoice_create"), {
+            "customer": self.cust1.id,
+            "product[]": [str(self.prod.id)],
+            "quantity[]": ["3"],
+            "unit_price[]": ["500.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+            "status": "Partial",
+            "payment_mode": "UPI",
+            "initial_paid": "1000.00",
+        })
+        inv = Invoice.objects.filter(distributor=self.dist1).latest("id")
+        self.prod.refresh_from_db()
+        self.assertEqual(self.prod.stock, 7)
+
+        # Edit down below already paid amount (1 * 590 = 590 < 1000) -> rejected, stock unchanged
+        res_bad = self.client.post(reverse("invoice_edit", kwargs={"pk": inv.pk}), {
+            "customer": self.cust1.id,
+            "product[]": [str(self.prod.id)],
+            "quantity[]": ["1"],
+            "unit_price[]": ["500.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+        })
+        self.assertEqual(res_bad.status_code, 200)
+        self.assertContains(res_bad, "cannot be less than already paid amount")
+        self.prod.refresh_from_db()
+        self.assertEqual(self.prod.stock, 7)
+
+        # Edit qty 3 -> 5 -> stock reconciles 7 + 3 - 5 = 5, customer updated to cust2
+        res_ok = self.client.post(reverse("invoice_edit", kwargs={"pk": inv.pk}), {
+            "customer": self.cust2.id,
+            "product[]": [str(self.prod.id)],
+            "quantity[]": ["5"],
+            "unit_price[]": ["500.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+            "notes": "Edited Qty to 5",
+        })
+        self.assertEqual(res_ok.status_code, 302)
+        self.prod.refresh_from_db()
+        inv.refresh_from_db()
+        self.assertEqual(self.prod.stock, 5)
+        self.assertEqual(inv.customer_id, self.cust2.id)
+        self.assertEqual(inv.total_amount, Decimal("2950.00"))
+        self.assertEqual(inv.balance_due, Decimal("1950.00"))
+
+        # Mark Paid -> editing is blocked
+        self.client.post(reverse("invoice_toggle_status", kwargs={"pk": inv.pk}), {"status": "Paid"})
+        res_paid_edit = self.client.get(reverse("invoice_edit", kwargs={"pk": inv.pk}))
+        self.assertRedirects(res_paid_edit, reverse("invoice_detail", kwargs={"pk": inv.pk}))
+
+    def test_invoice_list_filters_reports_charts_dashboards_and_qr_file_validation(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        self.client.login(username="mp_dist1", password="DistPassword@2026")
+        self.client.post(reverse("invoice_create"), {
+            "customer": self.cust1.id,
+            "product[]": [str(self.prod.id)],
+            "quantity[]": ["2"],
+            "unit_price[]": ["500.00"],
+            "gst_rate[]": ["18.00"],
+            "discount[]": ["0"],
+            "status": "Partial",
+            "payment_mode": "UPI",
+            "initial_paid": "400.00",
+        })
+
+        # Invoice list customer & status filtering
+        res_list = self.client.get(reverse("invoice_list") + f"?customer={self.cust1.id}&status=Partial")
+        self.assertEqual(res_list.status_code, 200)
+        self.assertEqual(len(res_list.context["invoices"]), 1)
+        self.assertEqual(res_list.context["invoices"][0].customer_id, self.cust1.id)
+        res_list_empty = self.client.get(reverse("invoice_list") + f"?customer={self.cust2.id}")
+        self.assertEqual(len(res_list_empty.context["invoices"]), 0)
+
+        # Reports: true collected (400.00) != billed (1180.00), monthly chart & customer sales table
+        res_rep = self.client.get(reverse("invoice_report"))
+        self.assertEqual(res_rep.status_code, 200)
+        self.assertEqual(res_rep.context["paid_amount"], Decimal("400.00"))
+        self.assertEqual(res_rep.context["pending_amount"], Decimal("780.00"))
+        self.assertContains(res_rep, "reportMonthlyChart")
+        self.assertContains(res_rep, "customerWiseSalesPanel")
+
+        # Distributor dashboard has monthly sales chart
+        res_dd = self.client.get(reverse("distributor_dashboard"))
+        self.assertEqual(res_dd.status_code, 200)
+        self.assertContains(res_dd, "distributorMonthlySalesChart")
+
+        # QR decoder rejects unsupported file types (.exe / .txt)
+        bad_exe = SimpleUploadedFile("malware.exe", b"MZ-fake-binary", content_type="application/x-msdownload")
+        res_qr_web = self.client.post(reverse("qr_decoder"), {"qr_image": bad_exe})
+        self.assertEqual(res_qr_web.status_code, 200)
+        self.assertContains(res_qr_web, "Unsupported file format")
+
+        bad_txt = SimpleUploadedFile("notes.txt", b"hello", content_type="text/plain")
+        res_qr_api = self.client.post(reverse("qr_decoder_api"), {"file": bad_txt})
+        self.assertEqual(res_qr_api.status_code, 422)
+        self.assertEqual(res_qr_api.json()["error_code"], "UNSUPPORTED_FILE_TYPE")
+
+        # Admin dashboard renders Low-Stock Watchlist
+        self.client.logout()
+        self.client.login(username="mp_admin", password="AdminPassword@2026")
+        res_ad = self.client.get(reverse("admin_dashboard"))
+        self.assertEqual(res_ad.status_code, 200)
+        self.assertContains(res_ad, "adminLowStockPanel")
+        self.assertContains(res_ad, "Industrial MCB 32A")
+
+
+

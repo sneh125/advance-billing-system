@@ -1,32 +1,16 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice {{ invoice.invoice_number }} | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=3">
-    <link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=3">
-</head>
-<body>
 
-<div class="invoice-page-layout">
+{% block title %}Invoice {{ invoice.invoice_number }} | Advance Billing System{% endblock %}
 
-    {% include 'includes/app_header.html' with active_page='invoices' %}
+{% block shell_class %}invoice-page-layout{% endblock %}
 
-    <!-- FLASH TOAST MESSAGES -->
-    <div class="toast-container" id="toastContainer">
-        {% if messages %}
-            {% for message in messages %}
-            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
-                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
-                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
-            </div>
-            {% endfor %}
-        {% endif %}
-    </div>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=3">
+{% endblock %}
 
-    <main class="invoice-page-content" style="max-width: 1020px;">
+{% block content %}
+<main class="invoice-page-content" style="max-width: 1020px;">
 
         <!-- ACTION & BREADCRUMB BAR -->
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
@@ -40,6 +24,11 @@
 
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;" class="action-buttons-group">
                 {% if invoice.status != 'Cancelled' %}
+                {% if invoice.status != 'Paid' %}
+                <a href="{% url 'invoice_edit' invoice.pk %}" id="btnEditInvoice" class="btn-form-cancel" style="padding: 8px 13px; font-size: 13px; text-decoration: none; background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; font-weight: 700;">
+                    ✏️ Edit
+                </a>
+                {% endif %}
                 <form method="POST" action="{% url 'invoice_toggle_status' invoice.pk %}" style="display: inline; margin: 0;">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% url 'invoice_detail' invoice.pk %}">
@@ -469,9 +458,9 @@
         </div>
 
     </main>
+{% endblock %}
 
-</div>
-
+{% block extra_body %}
 <style>
     @media print {
         .no-print-section,
@@ -482,19 +471,5 @@
     }
 </style>
 
-<script>
-    function toggleMobileNav() {
-        const drawer = document.getElementById('mobileNavDrawer');
-        if (drawer) {
-            drawer.classList.toggle('active');
-        }
-    }
 
-    setTimeout(() => {
-        const toasts = document.querySelectorAll('.toast-card');
-        toasts.forEach(t => t.remove());
-    }, 4000);
-</script>
-
-</body>
-</html>
+{% endblock %}

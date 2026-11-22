@@ -1,20 +1,14 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Registration | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/customer_register.css' %}">
-</head>
-<body>
 
-<div class="dashboard-container">
+{% block title %}Customer Registration | Advance Billing System{% endblock %}
 
-    {% include 'includes/app_header.html' with active_page='customers' %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/customer_register.css' %}">
+{% endblock %}
 
-    <!-- MAIN SHELL WRAPPER -->
+{% block content %}
+<!-- MAIN SHELL WRAPPER -->
     <main class="customer-reg-shell">
 
         <!-- BREADCRUMB BAR -->
@@ -335,9 +329,9 @@
         </div>
 
     </main>
+{% endblock %}
 
-</div>
-
+{% block extra_body %}
 <script>
     // Real-time client-side formatting and validation
     const phoneInput = document.getElementById('id_phone');
@@ -380,14 +374,5 @@
         document.querySelectorAll('.field-error-text').forEach(el => el.textContent = '');
         document.querySelectorAll('.has-error').forEach(el => el.classList.remove('has-error'));
     }
-
-    function toggleMobileNav() {
-        const drawer = document.getElementById('mobileNavDrawer');
-        if (drawer) {
-            drawer.classList.toggle('active');
-        }
-    }
 </script>
-
-</body>
-</html>
+{% endblock %}

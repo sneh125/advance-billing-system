@@ -1,21 +1,15 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard & Reports | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=2">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2">
+
+{% block title %}Admin Dashboard & Reports | Advance Billing System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/admin_reports.css' %}?v=2">
-</head>
-<body>
+{% endblock %}
 
-<div class="dashboard-container">
-
-    {% include 'includes/app_header.html' with active_page='dashboard' %}
-
-    <!-- ADMIN CONTENT -->
+{% block content %}
+<!-- ADMIN CONTENT -->
     <main class="dashboard-content">
 
         <!-- WELCOME BANNER -->
@@ -471,6 +465,63 @@
                 </div>
             </div>
 
+            <!-- LOW STOCK PRODUCTS WATCHLIST -->
+            <div class="report-card-panel" id="adminLowStockPanel" style="padding: 24px;">
+                <div class="report-panel-header">
+                    <h3>⚠️ System-Wide Low Stock Products</h3>
+                    <span class="report-panel-badge" style="background: #fef2f2; color: #b91c1c;">
+                        {{ low_stock_products|length }} Alert{{ low_stock_products|length|pluralize }}
+                    </span>
+                </div>
+
+                {% if low_stock_products %}
+                <div class="report-table-responsive">
+                    <table class="report-data-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Distributor</th>
+                                <th>Category</th>
+                                <th style="text-align: right;">Price (₹)</th>
+                                <th style="text-align: center;">Stock</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prod in low_stock_products %}
+                            <tr>
+                                <td>
+                                    <strong>{{ prod.name }}</strong>
+                                </td>
+                                <td>{{ prod.distributor.username }}</td>
+                                <td>{{ prod.category|default:"General" }}</td>
+                                <td style="text-align: right; font-family: var(--font-mono);">
+                                    ₹{{ prod.price|floatformat:2 }}
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if prod.stock == 0 %}
+                                    <span class="status-pill danger">Out of Stock</span>
+                                    {% else %}
+                                    <span class="status-pill pending">{{ prod.stock }} left</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    <a href="{% url 'product_detail' prod.pk %}" style="font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none;">
+                                        Restock →
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div style="padding: 16px; border-radius: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: 13.5px; font-weight: 600;">
+                    ✅ All platform products are currently well-stocked above the 10-unit threshold.
+                </div>
+                {% endif %}
+            </div>
+
             <!-- RECENT AUDIT INVOICES LEDGER TABLE -->
             <div class="report-card-panel" style="padding: 24px;">
                 <div class="report-panel-header">
@@ -564,9 +615,9 @@
         </section>
 
     </main>
+{% endblock %}
 
-</div>
-
+{% block extra_body %}
 {{ chart_payload|json_script:"adminChartData" }}
 
 <script>
@@ -662,6 +713,4 @@
         svg.dataset.rendered = '1';
     }
 </script>
-
-</body>
-</html>
+{% endblock %}

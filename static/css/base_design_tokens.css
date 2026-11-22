@@ -145,6 +145,7 @@ html {
     font-size: 16px;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
 }
 
 body {
@@ -155,7 +156,8 @@ body {
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
+    overflow-x: clip;
+    overscroll-behavior-y: none;
 }
 
 /* Accessible focus rings */
@@ -188,19 +190,23 @@ body {
    ========================================================================== */
 
 .app-shell-header {
-    height: 64px;
-    min-height: 64px;
-    padding: 0 24px;
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+    box-sizing: border-box;
+    width: 100%;
+    height: 96px;
+    min-height: 96px;
+    padding: 0 36px;
+    display: flex;
     align-items: center;
-    gap: 20px;
-    background: rgba(15, 23, 42, 0.96);
+    justify-content: space-between;
+    gap: 24px;
+    background: rgba(15, 23, 42, 0.98);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     color: #ffffff;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 999;
     box-shadow: 0 4px 24px -2px rgba(15, 23, 42, 0.4);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -216,7 +222,7 @@ body {
 .app-brand-logo {
     display: flex;
     align-items: center;
-    gap: 11px;
+    gap: 14px;
     text-decoration: none;
     color: #ffffff;
     transition: var(--transition-fast);
@@ -225,24 +231,24 @@ body {
 }
 
 .app-brand-logo:hover .brand-badge-icon {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(20, 184, 166, 0.6);
+    transform: scale(1.04);
+    box-shadow: 0 0 22px rgba(20, 184, 166, 0.6);
 }
 
 .brand-badge-icon {
-    width: 38px;
-    height: 38px;
+    width: 52px;
+    height: 52px;
     padding: 0;
     overflow: hidden;
     background: transparent;
-    border-radius: var(--radius-md);
+    border-radius: 13px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 800;
     color: #ffffff;
-    box-shadow: 0 4px 14px rgba(20, 184, 166, 0.35);
+    box-shadow: 0 6px 18px rgba(20, 184, 166, 0.38);
     letter-spacing: -0.5px;
     flex-shrink: 0;
     transition: var(--transition-fast);
@@ -257,52 +263,58 @@ body {
 .brand-text-group {
     display: flex;
     flex-direction: column;
+    justify-content: center;
 }
 
 .brand-text-group h1 {
-    font-size: 15px;
+    font-size: 20px;
     font-weight: 800;
     color: #ffffff;
-    line-height: 1.2;
-    letter-spacing: -0.3px;
+    line-height: 1.15;
+    letter-spacing: -0.4px;
 }
 
 .brand-text-group .brand-tagline {
-    font-size: 10.5px;
+    font-size: 11.5px;
     color: var(--slate-400);
     font-weight: 500;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.25px;
+    margin-top: 2px;
 }
 
 /* NAVIGATION PILL TABS */
 .app-nav-pills {
-    justify-self: center;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    gap: 6px;
     background: rgba(255, 255, 255, 0.05);
-    padding: 4px;
+    padding: 6px;
     border-radius: var(--radius-full);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    flex-shrink: 0;
+    width: max-content;
 }
 
 .app-nav-link {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
+    gap: 7px;
+    padding: 10px 15px;
     border-radius: var(--radius-full);
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 600;
     color: var(--slate-300);
     text-decoration: none;
     transition: var(--transition-fast);
     white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1.2;
 }
 
 .nav-svg-icon {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
     opacity: 0.85;
 }
@@ -321,43 +333,47 @@ body {
     background: var(--primary-gradient);
     color: #ffffff;
     font-weight: 700;
-    box-shadow: 0 2px 12px rgba(20, 184, 166, 0.4);
+    box-shadow: 0 4px 14px rgba(20, 184, 166, 0.42);
 }
 
 .app-header-right {
     justify-self: end;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     flex-shrink: 0;
 }
 
 .btn-quick-bill-header {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 13px;
+    justify-content: center;
+    gap: 7px;
+    height: 44px;
+    padding: 0 20px;
     background: var(--primary-gradient);
     color: #ffffff;
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 700;
     border-radius: var(--radius-full);
     text-decoration: none;
-    box-shadow: 0 4px 14px rgba(20, 184, 166, 0.35);
+    box-shadow: 0 4px 16px rgba(20, 184, 166, 0.38);
     transition: var(--transition-fast);
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .btn-quick-bill-header:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(20, 184, 166, 0.5);
+    box-shadow: 0 6px 20px rgba(20, 184, 166, 0.52);
 }
 
 .app-user-profile-badge {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 12px 4px 5px;
+    gap: 10px;
+    height: 46px;
+    padding: 4px 14px 4px 5px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-full);
@@ -366,6 +382,7 @@ body {
     transition: var(--transition-fast);
     position: relative;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .app-user-profile-badge:hover {
@@ -380,32 +397,32 @@ body {
 }
 
 .user-avatar-circle {
-    width: 30px;
-    height: 30px;
+    width: 38px;
+    height: 38px;
     border-radius: var(--radius-full);
     background: linear-gradient(135deg, #0d9488, #14b8a6);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12.5px;
+    font-size: 14.5px;
     font-weight: 800;
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(20, 184, 166, 0.4);
+    box-shadow: 0 2px 10px rgba(20, 184, 166, 0.42);
     position: relative;
     flex-shrink: 0;
 }
 
 .user-avatar-circle.is-admin {
     background: linear-gradient(135deg, #f43f5e, #be123c);
-    box-shadow: 0 2px 8px rgba(244, 63, 94, 0.4);
+    box-shadow: 0 2px 10px rgba(244, 63, 94, 0.42);
 }
 
 .avatar-online-dot {
     position: absolute;
-    bottom: -1px;
-    right: -1px;
-    width: 8px;
-    height: 8px;
+    bottom: 0;
+    right: 0;
+    width: 9px;
+    height: 9px;
     background: #10b981;
     border: 2px solid var(--slate-900);
     border-radius: var(--radius-full);
@@ -414,41 +431,45 @@ body {
 .user-info-text-col {
     display: flex;
     flex-direction: column;
+    justify-content: center;
 }
 
 .user-name-label {
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 700;
     color: #f8fafc;
     line-height: 1.2;
-    max-width: 115px;
+    max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .user-role-subtag {
-    font-size: 10px;
+    font-size: 10.5px;
     color: var(--primary-300);
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.35px;
 }
 
 .btn-app-logout {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
+    justify-content: center;
+    gap: 6px;
+    height: 44px;
+    padding: 0 16px;
     border-radius: var(--radius-full);
     background: rgba(244, 63, 94, 0.12);
     border: 1px solid rgba(244, 63, 94, 0.25);
     color: #fda4af;
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 600;
     text-decoration: none;
     transition: var(--transition-fast);
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .btn-app-logout:hover {
@@ -465,7 +486,8 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: #ffffff;
     font-size: 20px;
-    padding: 8px 12px;
+    height: 44px;
+    width: 44px;
     border-radius: var(--radius-md);
     cursor: pointer;
 }
@@ -490,10 +512,128 @@ body {
     border-radius: var(--radius-lg);
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1560px) {
     .app-shell-header {
-        grid-template-columns: 1fr auto;
-        padding: 0 18px;
+        padding: 0 28px;
+        gap: 16px;
+    }
+    .brand-badge-icon {
+        width: 52px;
+        height: 52px;
+    }
+    .brand-text-group h1 {
+        font-size: 20px;
+    }
+    .app-nav-pills {
+        gap: 4px;
+        padding: 5px;
+    }
+    .app-nav-link {
+        padding: 9px 12px;
+        font-size: 13px;
+        gap: 6px;
+    }
+    .nav-svg-icon {
+        width: 14px;
+        height: 14px;
+    }
+    .app-header-right {
+        gap: 12px;
+    }
+    .app-user-profile-badge {
+        height: 46px;
+        padding: 4px 14px 4px 5px;
+        gap: 9px;
+    }
+    .user-avatar-circle {
+        width: 38px;
+        height: 38px;
+    }
+    .user-name-label {
+        font-size: 13px;
+        max-width: 125px;
+    }
+    .btn-app-logout {
+        height: 44px;
+        padding: 0 16px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 1360px) {
+    .app-shell-header {
+        height: 90px;
+        min-height: 90px;
+        padding: 0 20px;
+        gap: 12px;
+    }
+    .app-brand-logo {
+        gap: 10px;
+    }
+    .brand-badge-icon {
+        width: 46px;
+        height: 46px;
+    }
+    .brand-text-group h1 {
+        font-size: 18px;
+    }
+    .brand-text-group .brand-tagline {
+        font-size: 10.5px;
+    }
+    .app-nav-pills {
+        gap: 3px;
+        padding: 4px;
+    }
+    .app-nav-link {
+        padding: 8px 10px;
+        font-size: 12.5px;
+        gap: 5px;
+    }
+    .nav-svg-icon {
+        width: 14px;
+        height: 14px;
+    }
+    .app-header-right {
+        gap: 10px;
+    }
+    .app-user-profile-badge {
+        height: 42px;
+        padding: 3px 11px 3px 4px;
+        gap: 7px;
+    }
+    .user-avatar-circle {
+        width: 34px;
+        height: 34px;
+        font-size: 13.5px;
+    }
+    .user-name-label {
+        font-size: 12.5px;
+        max-width: 105px;
+    }
+    .user-role-subtag {
+        font-size: 10px;
+    }
+    .btn-app-logout {
+        height: 42px;
+        padding: 0 14px;
+        font-size: 12.5px;
+        gap: 5px;
+    }
+}
+
+@media (max-width: 1180px) {
+    .app-shell-header {
+        height: 80px;
+        min-height: 80px;
+        padding: 0 20px;
+        gap: 12px;
+    }
+    .brand-badge-icon {
+        width: 46px;
+        height: 46px;
+    }
+    .brand-text-group h1 {
+        font-size: 18px;
     }
     .app-nav-pills {
         display: none;
@@ -506,12 +646,56 @@ body {
     .brand-text-group .brand-tagline {
         display: none;
     }
+    .app-header-right {
+        gap: 10px;
+    }
+    .app-user-profile-badge {
+        height: 44px;
+        padding: 4px 12px 4px 4px;
+    }
+    .user-avatar-circle {
+        width: 36px;
+        height: 36px;
+    }
+    .btn-app-logout {
+        height: 42px;
+        padding: 0 14px;
+        font-size: 13px;
+    }
 }
 
 @media (max-width: 640px) {
-    .app-header-right .btn-quick-bill-header,
+    .app-shell-header {
+        height: 70px;
+        min-height: 70px;
+        padding: 0 14px;
+    }
+    .brand-badge-icon {
+        width: 40px;
+        height: 40px;
+    }
+    .brand-text-group h1 {
+        font-size: 16px;
+    }
     .app-user-profile-badge .user-info-text-col {
         display: none;
+    }
+    .app-user-profile-badge {
+        height: 40px;
+        padding: 3px;
+    }
+    .user-avatar-circle {
+        width: 32px;
+        height: 32px;
+    }
+    .btn-app-logout {
+        height: 40px;
+        padding: 0 10px;
+        font-size: 12px;
+    }
+    .mobile-menu-toggle {
+        height: 40px;
+        width: 40px;
     }
 }
 
@@ -521,7 +705,7 @@ body {
 
 .toast-container {
     position: fixed;
-    top: 84px;
+    top: 108px;
     right: 24px;
     z-index: 1050;
     display: flex;

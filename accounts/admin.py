@@ -1,5 +1,20 @@
 from django.contrib import admin
-from .models import DistributorProfile, PasswordResetOTP
+from .models import Admin, DistributorProfile, PasswordResetOTP, RegistrationOTP
+
+
+@admin.register(RegistrationOTP)
+class RegistrationOTPAdmin(admin.ModelAdmin):
+    list_display = ("email", "failed_attempts", "expires_at", "is_verified", "created_at")
+    list_filter = ("is_verified",)
+    search_fields = ("email",)
+    readonly_fields = ("otp",)
+
+
+@admin.register(Admin)
+class AdminProfileAdmin(admin.ModelAdmin):
+    list_display = ("user", "phone", "department", "designation", "is_active", "created_at")
+    list_filter = ("is_active", "department")
+    search_fields = ("user__username", "user__email", "phone", "department")
 
 
 @admin.register(DistributorProfile)

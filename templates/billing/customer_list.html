@@ -1,33 +1,15 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Directory | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+{% block title %}Customer Directory | Advance Billing System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     <link rel="stylesheet" href="{% static 'css/customers.css' %}">
-</head>
-<body>
+{% endblock %}
 
-<div class="dashboard-container">
-
-    {% include 'includes/app_header.html' with active_page='customers' %}
-
-    <!-- FLASH TOAST MESSAGES -->
-    <div class="toast-container" id="toastContainer">
-        {% if messages %}
-            {% for message in messages %}
-            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
-                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
-                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
-            </div>
-            {% endfor %}
-        {% endif %}
-    </div>
-
-    <!-- MAIN CUSTOMER DIRECTORY -->
+{% block content %}
+<!-- MAIN CUSTOMER DIRECTORY -->
     <main class="customers-page-wrapper">
 
         <!-- HEADER ROW -->
@@ -129,7 +111,11 @@
                                         {{ customer.name|first|upper }}
                                     </div>
                                     <div>
-                                        <div class="customer-name-text">{{ customer.name }}</div>
+                                        <div class="customer-name-text">
+                                            <a href="{% url 'customer_detail' customer.pk %}" style="color: inherit; text-decoration: none;">
+                                                {{ customer.name }}
+                                            </a>
+                                        </div>
                                         <div class="customer-id-text">
                                             CUST-{{ customer.id|stringformat:"04d" }}{% if request.user.is_staff %} • {{ customer.distributor.username }}{% endif %}
                                         </div>
@@ -231,9 +217,9 @@
         </div>
 
     </main>
+{% endblock %}
 
-</div>
-
+{% block extra_body %}
 <!-- DELETE CONFIRMATION MODAL -->
 <div class="modal-backdrop" id="deleteModal">
     <div class="modal-card">
@@ -269,20 +255,5 @@
     function closeDeleteModal() {
         document.getElementById('deleteModal').classList.remove('active');
     }
-
-    function toggleMobileNav() {
-        const drawer = document.getElementById('mobileNavDrawer');
-        if (drawer) {
-            drawer.classList.toggle('active');
-        }
-    }
-
-    // Auto dismiss toasts
-    setTimeout(() => {
-        const toasts = document.querySelectorAll('.toast-card');
-        toasts.forEach(t => t.remove());
-    }, 4000);
 </script>
-
-</body>
-</html>
+{% endblock %}

@@ -1,21 +1,17 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Decoder & Scanner | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/invoices.css' %}">
+
+{% block title %}QR Code Decoder & Scanner | Advance Billing System{% endblock %}
+
+{% block shell_class %}invoice-page-layout{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/invoices.css' %}">
     <link rel="stylesheet" href="{% static 'css/qr_decoder.css' %}">
-</head>
-<body>
+{% endblock %}
 
-<div class="invoice-page-layout">
-
-    {% include 'includes/app_header.html' with active_page='qr' %}
-
-    <!-- MAIN QR DECODER CONTENT -->
+{% block content %}
+<!-- MAIN QR DECODER CONTENT -->
     <main class="qr-decoder-content">
 
         <!-- HEADER ROW -->
@@ -31,10 +27,7 @@
             </div>
         </div>
 
-        <!-- FLOATING TOAST NOTIFICATION CONTAINER (TASK 51) -->
-        <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
-
-        <!-- NOTIFICATION MESSAGES & ALERT BANNERS (TASK 51) -->
+<!-- NOTIFICATION MESSAGES & ALERT BANNERS (TASK 51) -->
         {% if messages %}
         <div style="margin-bottom: 24px;" id="pageAlertBannerContainer">
             {% for message in messages %}
@@ -346,9 +339,9 @@
 
         </div>
     </main>
+{% endblock %}
 
-</div>
-
+{% block extra_body %}
 <!-- INTERACTIVE SCRIPTS & TOAST NOTIFICATION CONTROLLER (TASK 51) -->
 <script>
 /**
@@ -531,6 +524,4 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 });
 </script>
-
-</body>
-</html>
+{% endblock %}

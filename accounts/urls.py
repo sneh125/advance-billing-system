@@ -17,6 +17,18 @@ urlpatterns = [
     ),
 
     path(
+        "admin-login/",
+        views.admin_login_view,
+        name="admin_login"
+    ),
+
+    path(
+        "distributor-login/",
+        views.distributor_login_view,
+        name="distributor_login"
+    ),
+
+    path(
         "api/login/",
         views.login_api_view,
         name="login_api"
@@ -38,6 +50,18 @@ urlpatterns = [
         "register/",
         views.register_view,
         name="register"
+    ),
+
+    path(
+        "register/verify-otp/",
+        views.register_verify_otp,
+        name="register_verify_otp"
+    ),
+
+    path(
+        "register/resend-otp/",
+        views.register_resend_otp,
+        name="register_resend_otp"
     ),
 
     path(
@@ -135,20 +159,20 @@ urlpatterns = [
         name="admin_reset_password"
     ),
 
-    # API endpoints for Admin Password Recovery
+    # API endpoints for Admin Password Recovery (JSON API)
     path(
         "api/admin/forgot-password/",
-        views.admin_forgot_password,
+        views.api_admin_forgot_password,
         name="api_admin_forgot_password"
     ),
     path(
         "api/admin/verify-otp/",
-        views.admin_verify_otp,
+        views.api_admin_verify_otp,
         name="api_admin_verify_otp"
     ),
     path(
         "api/admin/reset-password/",
-        views.admin_reset_password,
+        views.api_admin_reset_password,
         name="api_admin_reset_password"
     ),
 

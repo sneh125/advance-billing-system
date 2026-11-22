@@ -1,12 +1,12 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create New Invoice | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=3">
-    <link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=3">
+
+{% block title %}Create New Invoice | Advance Billing System{% endblock %}
+
+{% block shell_class %}invoice-page-layout{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=3">
     <style>
         .quick-pos-bar {
             display: flex;
@@ -88,26 +88,10 @@
             color: var(--text-main);
         }
     </style>
-</head>
-<body>
+{% endblock %}
 
-<div class="invoice-page-layout">
-
-    {% include 'includes/app_header.html' with active_page='invoices' %}
-
-    <!-- FLASH TOAST MESSAGES -->
-    <div class="toast-container" id="toastContainer">
-        {% if messages %}
-            {% for message in messages %}
-            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
-                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
-                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
-            </div>
-            {% endfor %}
-        {% endif %}
-    </div>
-
-    <!-- MAIN BILLING FORM CONTAINER -->
+{% block content %}
+<!-- MAIN BILLING FORM CONTAINER -->
     <main class="invoice-page-content">
 
         <!-- BREADCRUMBS -->
@@ -345,9 +329,9 @@
         </form>
 
     </main>
+{% endblock %}
 
-</div>
-
+{% block extra_body %}
 <!-- HIDDEN ROW TEMPLATE FOR CLONING -->
 <template id="itemRowTemplate">
     <tr class="item-row">
@@ -677,14 +661,5 @@
             }
         });
     });
-
-    function toggleMobileNav() {
-        const drawer = document.getElementById('mobileNavDrawer');
-        if (drawer) {
-            drawer.classList.toggle('active');
-        }
-    }
 </script>
-
-</body>
-</html>
+{% endblock %}

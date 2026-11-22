@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Invoice {{ invoice.invoice_number }} | Advance Billing System{% endblock %}
+
+{% block shell_class %}invoice-page-layout{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=3">
+{% endblock %}
+
+{% block content %}
+<main class="invoice-page-content">
+
+        <nav class="breadcrumbs-nav" aria-label="Breadcrumb">
+            <a href="{% url 'distributor_dashboard' %}">Dashboard</a>
+            <span>/</span>
+            <a href="{% url 'invoice_list' %}">Invoices</a>
+            <span>/</span>
+            <a href="{% url 'invoice_detail' invoice.pk %}">{{ invoice.invoice_number }}</a>
+            <span>/</span>
+            <span class="current-crumb">Edit Invoice</span>
+        </nav>
+
+        <form method="POST" id="invoiceEditForm" class="invoice-create-form">
+            {% csrf_token %}
+
+            <div class="invoice-grid-layout">
+
+                <div class="invoice-main-card">
+                    <div class="card-header-bar">
+                        <h2>✏️ Edit Invoice {{ invoice.invoice_number }}</h2>
+                        <p>Inventory stock is reconciled atomically when changes are saved.</p>
+                    </div>
+
+                    <div class="invoice-form-body">
+
+                        <div class="billing-section-box">
+                            <div style="display: grid; grid-template-columns: 1fr 190px; gap: 12px; align-items: end;">
+                                <div>
+                                    <label for="editCustomerSelect" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px;">Customer *</label>
+                                    <select name="customer" id="editCustomerSelect" class="item-select-product" required style="width: 100%;">
+                                        {% for cust in customers %}
+                                        <option value="{{ cust.id }}">
+                                            {{ cust.name }} ({{ cust.phone }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <script>
+                                        document.getElementById('editCustomerSelect').value = "{{ invoice.customer_id }}";
+                                    </script>
+                                </div>
+                                <div>
+                                    <label for="editDueDate" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px;">Due Date</label>
+                                    <input type="date" name="due_date" id="editDueDate" value="{% if invoice.due_date %}{{ invoice.due_date|date:'Y-m-d' }}{% endif %}" class="item-select-product" style="width: 100%;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="items-header-bar">
+                                <h3>📦 Line Items</h3>
+                                <button type="button" class="btn-add-product-row" id="btnAddRow">+ Add Product Row</button>
+                            </div>
+
+                            <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: var(--radius-xl);">
+                                <table class="invoice-items-table" id="itemsTable">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 32%;">Product</th>
+                                            <th style="width: 14%; text-align: right;">Price (₹)</th>
+                                            <th style="width: 10%; text-align: center;">Qty</th>
+                                            <th style="width: 11%; text-align: center;">Disc %</th>
+                                            <th style="width: 11%; text-align: center;">GST %</th>
+                                            <th style="width: 16%; text-align: right;">Total</th>
+                                            <th style="width: 6%; text-align: center;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="itemsTableBody">
+                                        {% for it in existing_items %}
+                                        <tr class="item-row" data-selected-product="{{ it.product_id }}">
+                                            <td>
+                                                <select name="product[]" class="item-select-product product-select" required>
+                                                    <option value="" disabled>-- Select Product --</option>
+                                                    {% for prod in products %}
+                                                    <option value="{{ prod.id }}" data-price="{{ prod.price }}" data-gst="{{ prod.gst_rate }}">
+                                                        {{ prod.name }} (₹{{ prod.price }} | Stock: {{ prod.stock }})
+                                                    </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="number" name="unit_price[]" class="item-input-num price-input" step="0.01" min="0" value="{{ it.unit_price }}" required>
+                                            </td>
+                                            <td>
+                                                <input type="number" name="quantity[]" class="item-input-num qty-input" min="1" value="{{ it.quantity }}" required style="text-align: center;">
+                                            </td>
+                                            <td>
+                                                <input type="number" name="discount[]" class="item-input-num discount-input" step="0.01" min="0" max="100" value="{{ it.discount_percent }}" style="text-align: center;">
+                                            </td>
+                                            <td>
+                                                <input type="number" name="gst_rate[]" class="item-input-num gst-input" step="0.01" min="0" value="{{ it.gst_rate }}" style="text-align: center;">
+                                            </td>
+                                            <td style="text-align: right;">
+                                                <span class="cell-subtotal-text row-total">₹{{ it.total }}</span>
+                                            </td>
+                                            <td style="text-align: center;">
+                                                <button type="button" class="btn-remove-row btn-delete-row">×</button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div style="margin-top: 14px;">
+                                <label for="editNotes" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px;">Notes / PO #</label>
+                                <input type="text" name="notes" id="editNotes" value="{{ invoice.notes }}" style="width: 100%; padding: 9px 11px; border: 1px solid var(--slate-300); border-radius: 9px; font-size: 13px;">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <aside class="invoice-sidebar-sticky">
+                    <div class="summary-card">
+                        <div class="summary-card-header">
+                            <h3>📊 Updated Summary</h3>
+                        </div>
+                        <div class="summary-card-body">
+                            <div class="summary-calc-row">
+                                <span>Base Amount:</span>
+                                <span class="summary-calc-val" id="summaryBaseAmount">₹0.00</span>
+                            </div>
+                            <div class="summary-calc-row">
+                                <span>Total Discount:</span>
+                                <span class="summary-calc-val" id="summaryDiscount" style="color: var(--danger);">-₹0.00</span>
+                            </div>
+                            <div class="summary-calc-row">
+                                <span>Taxable Subtotal:</span>
+                                <span class="summary-calc-val" id="summaryTaxableSubtotal">₹0.00</span>
+                            </div>
+                            <div class="summary-calc-row">
+                                <span>GST Tax Total:</span>
+                                <span class="summary-calc-val" id="summaryGstAmount" style="color: #7c3aed;">+₹0.00</span>
+                            </div>
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                                <input type="checkbox" name="apply_round_off" id="chkRoundOff" value="1">
+                                <span>Auto Round-Off to ₹1</span>
+                            </label>
+                            <div class="summary-divider"></div>
+                            <div class="grand-total-box">
+                                <span class="grand-total-label">New Total:</span>
+                                <span class="grand-total-amount" id="summaryGrandTotal">₹0.00</span>
+                            </div>
+                            <button type="submit" class="btn-generate-invoice-main" id="btnSaveInvoiceEdit">
+                                💾 Save Invoice Changes
+                            </button>
+                            <a href="{% url 'invoice_detail' invoice.pk %}" style="display: block; text-align: center; margin-top: 8px; font-size: 13px; color: var(--text-muted); text-decoration: none; font-weight: 600;">
+                                Cancel &amp; Return
+                            </a>
+                        </div>
+                    </div>
+                </aside>
+
+            </div>
+        </form>
+
+    </main>
+{% endblock %}
+
+{% block extra_body %}
+<template id="itemRowTemplate">
+    <tr class="item-row">
+        <td>
+            <select name="product[]" class="item-select-product product-select" required>
+                <option value="" disabled selected>-- Select Product --</option>
+                {% for prod in products %}
+                <option value="{{ prod.id }}" data-price="{{ prod.price }}" data-gst="{{ prod.gst_rate }}">
+                    {{ prod.name }} (₹{{ prod.price }} | Stock: {{ prod.stock }})
+                </option>
+                {% endfor %}
+            </select>
+        </td>
+        <td><input type="number" name="unit_price[]" class="item-input-num price-input" step="0.01" min="0" placeholder="0.00" required></td>
+        <td><input type="number" name="quantity[]" class="item-input-num qty-input" value="1" min="1" required style="text-align: center;"></td>
+        <td><input type="number" name="discount[]" class="item-input-num discount-input" value="0.00" step="0.01" min="0" max="100" style="text-align: center;"></td>
+        <td><input type="number" name="gst_rate[]" class="item-input-num gst-input" value="18.00" step="0.01" min="0" style="text-align: center;"></td>
+        <td style="text-align: right;"><span class="cell-subtotal-text row-total">₹0.00</span></td>
+        <td style="text-align: center;"><button type="button" class="btn-remove-row btn-delete-row">×</button></td>
+    </tr>
+</template>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableBody = document.getElementById('itemsTableBody');
+        const btnAddRow = document.getElementById('btnAddRow');
+        const rowTemplate = document.getElementById('itemRowTemplate');
+        const chkRoundOff = document.getElementById('chkRoundOff');
+
+        function recalcAll() {
+            let tb = 0, td = 0, tt = 0, tg = 0, grand = 0;
+            tableBody.querySelectorAll('.item-row').forEach(r => {
+                const qty = parseFloat(r.querySelector('.qty-input').value) || 0;
+                const price = parseFloat(r.querySelector('.price-input').value) || 0;
+                const disc = parseFloat(r.querySelector('.discount-input').value) || 0;
+                const gst = parseFloat(r.querySelector('.gst-input').value) || 0;
+                const base = qty * price;
+                const discAmt = base * (disc / 100);
+                const taxable = Math.max(0, base - discAmt);
+                const gstAmt = taxable * (gst / 100);
+                const total = taxable + gstAmt;
+                r.querySelector('.row-total').textContent = '₹' + total.toFixed(2);
+                tb += base;
+                td += discAmt;
+                tt += taxable;
+                tg += gstAmt;
+                grand += total;
+            });
+            if (chkRoundOff && chkRoundOff.checked) grand = Math.round(grand);
+            document.getElementById('summaryBaseAmount').textContent = '₹' + tb.toFixed(2);
+            document.getElementById('summaryDiscount').textContent = '-₹' + td.toFixed(2);
+            document.getElementById('summaryTaxableSubtotal').textContent = '₹' + tt.toFixed(2);
+            document.getElementById('summaryGstAmount').textContent = '+₹' + tg.toFixed(2);
+            document.getElementById('summaryGrandTotal').textContent = '₹' + grand.toFixed(2);
+        }
+
+        function bindRow(row) {
+            const sel = row.querySelector('.product-select');
+            const preset = row.dataset.selectedProduct;
+            if (preset) sel.value = preset;
+
+            sel.addEventListener('change', function() {
+                const opt = this.options[this.selectedIndex];
+                if (opt) {
+                    row.querySelector('.price-input').value = parseFloat(opt.dataset.price || 0).toFixed(2);
+                    row.querySelector('.gst-input').value = parseFloat(opt.dataset.gst || 18).toFixed(2);
+                    recalcAll();
+                }
+            });
+            row.querySelectorAll('input').forEach(el => el.addEventListener('input', recalcAll));
+            row.querySelector('.btn-delete-row').addEventListener('click', function() {
+                if (tableBody.querySelectorAll('.item-row').length > 1) {
+                    row.remove();
+                    recalcAll();
+                }
+            });
+        }
+
+        tableBody.querySelectorAll('.item-row').forEach(bindRow);
+        recalcAll();
+        if (chkRoundOff) chkRoundOff.addEventListener('change', recalcAll);
+        btnAddRow.addEventListener('click', function() {
+            const r = rowTemplate.content.cloneNode(true).querySelector('tr');
+            tableBody.appendChild(r);
+            bindRow(r);
+            recalcAll();
+        });
+    });
+</script>
+{% endblock %}

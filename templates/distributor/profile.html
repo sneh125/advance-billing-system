@@ -1,12 +1,10 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+{% block title %}My Profile | Advance Billing System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     <style>
         /* ==========================================
            DRIBBLE-INSPIRED PROFILE PAGE STYLING
@@ -30,7 +28,7 @@
         }
 
         .profile-cover-banner {
-            height: 180px;
+            height: 148px;
             background: linear-gradient(135deg, #042f2e 0%, #0f766e 45%, #14b8a6 100%);
             position: relative;
             overflow: hidden;
@@ -55,29 +53,30 @@
         }
 
         .profile-hero-body {
-            padding: 0 36px 28px 36px;
+            padding: 20px 36px 28px 36px;
             position: relative;
+            background: #ffffff;
         }
 
         .profile-hero-main-row {
             display: flex;
-            align-items: flex-end;
+            align-items: center;
             justify-content: space-between;
-            margin-top: -64px;
-            margin-bottom: 20px;
             gap: 24px;
             flex-wrap: wrap;
         }
 
         .profile-avatar-wrap {
             display: flex;
-            align-items: flex-end;
+            align-items: flex-start;
             gap: 24px;
+            min-width: 0;
         }
 
         .profile-avatar-large {
-            width: 120px;
-            height: 120px;
+            width: 116px;
+            height: 116px;
+            margin-top: -68px;
             border-radius: var(--radius-2xl);
             background: linear-gradient(135deg, #0f766e, #14b8a6);
             border: 4px solid #ffffff;
@@ -89,6 +88,7 @@
             font-weight: 800;
             color: #ffffff;
             position: relative;
+            z-index: 2;
             flex-shrink: 0;
         }
 
@@ -111,7 +111,7 @@
         }
 
         .profile-identity-info {
-            padding-bottom: 6px;
+            padding-top: 2px;
         }
 
         .profile-identity-info h2 {
@@ -119,6 +119,7 @@
             font-weight: 800;
             color: var(--text-main);
             line-height: 1.2;
+            margin: 0;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -135,7 +136,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-top: 8px;
+            margin-top: 10px;
             flex-wrap: wrap;
         }
 
@@ -169,7 +170,8 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding-bottom: 6px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
         }
 
         .btn-edit-toggle {
@@ -579,15 +581,30 @@
         }
 
         @media (max-width: 640px) {
+            .profile-cover-banner {
+                height: 112px;
+            }
+            .profile-hero-body {
+                padding: 16px 20px 24px 20px;
+            }
             .profile-hero-main-row {
                 flex-direction: column;
                 align-items: flex-start;
-                margin-top: -48px;
+                gap: 18px;
+            }
+            .profile-avatar-wrap {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 14px;
             }
             .profile-avatar-large {
-                width: 96px;
-                height: 96px;
-                font-size: 34px;
+                width: 88px;
+                height: 88px;
+                margin-top: -54px;
+                font-size: 32px;
+            }
+            .profile-hero-actions {
+                width: 100%;
             }
             .profile-tab-header {
                 overflow-x: auto;
@@ -598,27 +615,24 @@
             }
         }
     </style>
-</head>
-<body>
+{% endblock %}
 
-    {% include 'includes/app_header.html' with active_page='profile' %}
-
-    <!-- TOAST MESSAGES -->
-    <div class="toast-container" id="toastContainer">
-        {% if success %}
-        <div class="toast-card success">
-            <span>✓ {{ success }}</span>
-            <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
-        </div>
-        {% endif %}
-        {% if error %}
-        <div class="toast-card error">
-            <span>⚠️ {{ error }}</span>
-            <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
-        </div>
-        {% endif %}
+{% block extra_toasts %}
+    {% if success %}
+    <div class="toast-card success">
+        <span>✓ {{ success }}</span>
+        <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
     </div>
+    {% endif %}
+    {% if error %}
+    <div class="toast-card error">
+        <span>⚠️ {{ error }}</span>
+        <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
+    </div>
+    {% endif %}
+{% endblock %}
 
+{% block content %}
     <!-- MAIN PROFILE WRAPPER -->
     <main class="profile-page-wrapper">
 
@@ -643,7 +657,7 @@
                             <div class="profile-badges-row">
                                 <span class="badge-pill-role">💼 Verified Distributor</span>
                                 <span class="badge-pill-status">● Active Account</span>
-                                <span class="badge-pill-role" style="background: var(--purple-bg); color: var(--purple-text); border-color: var(--purple-border);">📅 Member since Aug 2026</span>
+                                <span class="badge-pill-role" style="background: var(--purple-bg); color: var(--purple-text); border-color: var(--purple-border);">📅 Member since {{ request.user.date_joined|date:"M Y" }}</span>
                             </div>
                         </div>
                     </div>
@@ -921,8 +935,10 @@
         </div>
 
     </main>
+{% endblock %}
 
-    <!-- JAVASCRIPT FOR TABS & COPY ACTIONS -->
+{% block extra_body %}
+<!-- JAVASCRIPT FOR TABS & COPY ACTIONS -->
     <script>
         function switchTab(tabId) {
             // Remove active classes
@@ -968,19 +984,9 @@
                 card.remove();
             }, 3500);
         }
-
-        function toggleMobileNav() {
-            const drawer = document.getElementById('mobileNavDrawer');
-            if (drawer) {
-                drawer.classList.toggle('active');
-            }
-        }
-
-        {% if error %}
+{% if error %}
         // If server returned a form error, automatically switch to the edit tab
         switchTab('editTab');
         {% endif %}
     </script>
-
-</body>
-</html>
+{% endblock %}

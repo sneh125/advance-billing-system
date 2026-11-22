@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.core import mail
 
 from decimal import Decimal
-from .models import DistributorProfile, PasswordResetOTP
+from .models import DistributorProfile, PasswordResetOTP, RegistrationOTP
 from .utils import send_otp_email
 from billing.models import Customer, Product, Invoice
 
@@ -45,7 +45,9 @@ class AccountAuthenticationTests(TestCase):
         self.assertContains(response, "Invalid username/email or password")
 
     def test_registration_flow(self):
-        """Test new distributor registration creates user & profile"""
+        """Test new distributor 2-step registration with Email OTP verification"""
+        mail.outbox.clear()
+        # Step 1: Submit registration details -> sends OTP email, does NOT create user yet
         response = self.client.post(reverse('register'), {
             'name': 'New Distributor',
             'email': 'new_dist@example.com',
@@ -53,12 +55,111 @@ class AccountAuthenticationTests(TestCase):
             'password': 'StrongPassword@123',
             'confirm_password': 'StrongPassword@123',
         })
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('login'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['otp_step'])
+        self.assertFalse(User.objects.filter(email='new_dist@example.com').exists())
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Registration', mail.outbox[0].subject)
+
+        otp_record = RegistrationOTP.objects.filter(email='new_dist@example.com').first()
+        self.assertIsNotNone(otp_record)
+
+        # Step 2: Verify OTP -> creates user & distributor profile and redirects to login
+        verify_res = self.client.post(reverse('register_verify_otp'), {
+            'otp': otp_record.otp,
+        })
+        self.assertEqual(verify_res.status_code, 302)
+        self.assertRedirects(verify_res, reverse('login'))
 
         new_user = User.objects.filter(email='new_dist@example.com').first()
         self.assertIsNotNone(new_user)
+        self.assertTrue(new_user.check_password('StrongPassword@123'))
         self.assertEqual(new_user.distributor_profile.phone, '9123456789')
+        self.assertFalse(RegistrationOTP.objects.filter(email='new_dist@example.com').exists())
+
+    def test_registration_otp_wrong_expired_and_resend_flow(self):
+        """Test Registration OTP handles wrong code, resend invalidation, and expiry cleanly"""
+        self.client.post(reverse('register'), {
+            'name': 'Otp Edge Tester',
+            'email': 'otp_reg@example.com',
+            'phone': '9898989898',
+            'password': 'StrongPassword@2026',
+            'confirm_password': 'StrongPassword@2026',
+        })
+        first_otp = RegistrationOTP.objects.filter(email='otp_reg@example.com').first().otp
+
+        # Wrong OTP rejected, user still not created
+        res_wrong = self.client.post(reverse('register_verify_otp'), {'otp': '000000'})
+        self.assertEqual(res_wrong.status_code, 200)
+        self.assertContains(res_wrong, "Invalid OTP")
+        self.assertFalse(User.objects.filter(email='otp_reg@example.com').exists())
+
+        # Resend OTP invalidates old code and dispatches fresh email
+        mail.outbox.clear()
+        res_resend = self.client.post(reverse('register_resend_otp'))
+        self.assertEqual(res_resend.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        second_otp = RegistrationOTP.objects.filter(email='otp_reg@example.com').first().otp
+        self.assertNotEqual(first_otp, second_otp)
+
+        # Expire OTP -> rejected
+        RegistrationOTP.objects.filter(email='otp_reg@example.com').update(
+            expires_at=timezone.now() - timedelta(minutes=10)
+        )
+        res_exp = self.client.post(reverse('register_verify_otp'), {'otp': second_otp})
+        self.assertEqual(res_exp.status_code, 200)
+        self.assertContains(res_exp, "expired")
+        self.assertFalse(User.objects.filter(email='otp_reg@example.com').exists())
+
+    def test_admin_forgot_password_browser_form_uses_admin_actions(self):
+        """Test Admin forgot password HTML page posts to admin recovery endpoints end-to-end"""
+        admin = User.objects.create_user(
+            username='browser_otp_admin',
+            email='browser_admin@billing.local',
+            password='OldAdminPassword@2026',
+            first_name='Browser Admin',
+            is_staff=True,
+            is_superuser=True,
+        )
+        # Step 1 GET shows admin_forgot_password action
+        res_get = self.client.get(reverse('admin_forgot_password'))
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, f'action="{reverse("admin_forgot_password")}"')
+
+        # Step 1 POST dispatches email & shows admin_verify_otp action
+        mail.outbox.clear()
+        res_step1 = self.client.post(reverse('admin_forgot_password'), {'email': 'browser_admin@billing.local'})
+        self.assertEqual(res_step1.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertContains(res_step1, f'action="{reverse("admin_verify_otp")}"')
+
+        otp_code = PasswordResetOTP.objects.filter(email='browser_admin@billing.local').first().otp
+        # Step 2 POST verifies & shows admin_reset_password action
+        res_step2 = self.client.post(reverse('admin_verify_otp'), {
+            'email': 'browser_admin@billing.local',
+            'otp': otp_code,
+        })
+        self.assertEqual(res_step2.status_code, 200)
+        self.assertContains(res_step2, f'action="{reverse("admin_reset_password")}"')
+
+        # Step 3 POST resets admin password
+        res_step3 = self.client.post(reverse('admin_reset_password'), {
+            'email': 'browser_admin@billing.local',
+            'password': 'NewAdminPassword@2026',
+            'confirm_password': 'NewAdminPassword@2026',
+        })
+        self.assertRedirects(res_step3, reverse('login'))
+        admin.refresh_from_db()
+        self.assertTrue(admin.check_password('NewAdminPassword@2026'))
+
+    def test_otp_email_failure_surfaces_error_instead_of_fake_success(self):
+        """If SMTP dispatch fails, view deletes unverified OTP and surfaces error message"""
+        from unittest.mock import patch
+        with patch('accounts.views.send_otp_email_with_status', return_value=(False, 'SMTP Auth Failed')):
+            res = self.client.post(reverse('forgot_password'), {'email': 'test_dist@example.com'})
+            self.assertEqual(res.status_code, 200)
+            self.assertContains(res, 'SMTP Auth Failed')
+            self.assertFalse(PasswordResetOTP.objects.filter(email='test_dist@example.com').exists())
 
     def test_forgot_password_full_3_step_recovery_flow(self):
         """

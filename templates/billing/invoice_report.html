@@ -1,22 +1,18 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Date Range Reports | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/invoices.css' %}">
+
+{% block title %}Invoice Date Range Reports | Advance Billing System{% endblock %}
+
+{% block shell_class %}invoice-page-layout{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/invoices.css' %}">
     <link rel="stylesheet" href="{% static 'css/customers.css' %}">
     <link rel="stylesheet" href="{% static 'css/invoice_report.css' %}">
-</head>
-<body>
+{% endblock %}
 
-<div class="invoice-page-layout">
-
-    {% include 'includes/app_header.html' with active_page='reports' %}
-
-    <!-- MAIN REPORT PAGE CONTENT -->
+{% block content %}
+<!-- MAIN REPORT PAGE CONTENT -->
     <main class="invoice-page-content">
 
         <!-- HEADER ROW -->
@@ -172,6 +168,87 @@
                     <span class="metric-subtext">Net Taxable: ₹{{ total_subtotal_amount|floatformat:2 }}</span>
                 </div>
             </div>
+
+            <div class="report-metric-card" style="border-left: 4px solid #dc2626;">
+                <div class="metric-icon-bubble" style="background: #fef2f2; color: #dc2626;">✖</div>
+                <div class="metric-info-col">
+                    <span class="metric-label">Cancelled Invoices</span>
+                    <span class="metric-value" style="color: #dc2626;" id="summaryCancelledCount">{{ cancelled_count|default:"0" }}</span>
+                    <span class="metric-subtext">Excluded from revenue</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MONTHLY REVENUE CHART & CUSTOMER-WISE SALES REPORT -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-bottom: 24px;">
+            <div class="report-filter-card" id="reportMonthlyChart" style="margin-bottom: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <h3 style="margin: 0; font-size: 15px; font-weight: 800;">📈 Monthly Revenue vs Collected (6 Months)</h3>
+                    <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 700;">Billed vs Paid</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; align-items: end; height: 170px; padding-top: 12px; border-bottom: 1px solid var(--slate-200);">
+                    {% for pt in monthly_revenue_chart %}
+                    <div style="display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; gap: 5px;" title="{{ pt.label }}: Billed ₹{{ pt.revenue|floatformat:0 }} | Collected ₹{{ pt.collected|floatformat:0 }}">
+                        <div style="display: flex; align-items: flex-end; gap: 3px; height: 130px;">
+                            <div style="width: 14px; border-radius: 4px 4px 0 0; background: #0f766e; height: {{ pt.rev_pct }}%; min-height: 3px;"></div>
+                            <div style="width: 14px; border-radius: 4px 4px 0 0; background: #10b981; height: {{ pt.col_pct }}%; min-height: 3px;"></div>
+                        </div>
+                        <span style="font-size: 10.5px; font-weight: 700; color: var(--text-muted);">
+                            {{ pt.label }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div style="display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--text-secondary);">
+                    <span><strong style="color: #0f766e;">■</strong> Total Billed</span>
+                    <span><strong style="color: #10b981;">■</strong> Actual Collected</span>
+                </div>
+            </div>
+
+            <div class="report-filter-card" id="customerWiseSalesPanel" style="margin-bottom: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 style="margin: 0; font-size: 15px; font-weight: 800;">👥 Customer-Wise Sales Summary</h3>
+                    <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 700;">Top Accounts</span>
+                </div>
+                {% if customer_sales_report %}
+                <div style="overflow-x: auto; max-height: 210px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--slate-200); color: var(--text-muted); text-align: left;">
+                                <th style="padding: 6px 4px;">Customer</th>
+                                <th style="padding: 6px 4px; text-align: center;">Bills</th>
+                                <th style="padding: 6px 4px; text-align: right;">Billed</th>
+                                <th style="padding: 6px 4px; text-align: right;">Due</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cs in customer_sales_report %}
+                            <tr style="border-bottom: 1px solid var(--slate-100);">
+                                <td style="padding: 6px 4px;">
+                                    <a href="{% url 'customer_ledger' cs.customer_id %}" style="font-weight: 700; color: var(--text-main); text-decoration: none;">
+                                        {{ cs.customer_name }}
+                                    </a>
+                                </td>
+                                <td style="padding: 6px 4px; text-align: center;">
+                                    {{ cs.invoice_count }}
+                                </td>
+                                <td style="padding: 6px 4px; text-align: right; font-family: var(--font-mono); font-weight: 700;">
+                                    ₹{{ cs.total_billed|floatformat:2 }}
+                                </td>
+                                <td style="padding: 6px 4px; text-align: right; font-family: var(--font-mono); color: #b45309; font-weight: 700;">
+                                    ₹{{ cs.balance_due|floatformat:2 }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                    No customer sales recorded for this filter.
+                </div>
+                {% endif %}
+            </div>
         </div>
 
         <!-- REPORT RESULTS LEDGER TABLE -->
@@ -301,9 +378,9 @@
         </div>
 
     </main>
+{% endblock %}
 
-</div>
-
+{% block extra_body %}
 <script>
 function formatDate(d) {
     let month = '' + (d.getMonth() + 1);
@@ -386,6 +463,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
-</body>
-</html>
+{% endblock %}

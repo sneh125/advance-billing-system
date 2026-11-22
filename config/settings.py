@@ -32,7 +32,10 @@ if _env_path.is_file():
         if not _line or _line.startswith("#") or "=" not in _line:
             continue
         _key, _val = _line.split("=", 1)
-        os.environ.setdefault(_key.strip(), _val.strip().strip('"').strip("'"))
+        _k = _key.strip()
+        _v = _val.strip().strip('"').strip("'")
+        if _v and not os.environ.get(_k):
+            os.environ[_k] = _v
 
 
 # Security & environment settings
@@ -85,6 +88,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'accounts.context_processors.active_nav_context',
             ],
         },
     },
@@ -186,6 +190,7 @@ LOGIN_REDIRECT_URL = "/login/"
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = _env_bool('EMAIL_USE_TLS', default=True)
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '15'))
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '').strip()
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').strip()
 _default_email_backend = (

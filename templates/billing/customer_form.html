@@ -1,20 +1,14 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_edit and customer %}Edit Customer | {{ customer.name }}{% else %}Add New Customer{% endif %} | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/customer_form.css' %}">
-</head>
-<body>
 
-<div class="dashboard-container">
+{% block title %}{% if is_edit and customer %}Edit Customer | {{ customer.name }}{% else %}Add New Customer{% endif %} | Advance Billing System{% endblock %}
 
-    {% include 'includes/app_header.html' with active_page='customers' %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/customer_form.css' %}">
+{% endblock %}
 
-    <!-- FORM PAGE WRAPPER -->
+{% block content %}
+<!-- FORM PAGE WRAPPER -->
     <main class="form-page-container">
 
         <!-- BREADCRUMBS -->
@@ -138,9 +132,9 @@
         </div>
 
     </main>
+{% endblock %}
 
-</div>
-
+{% block extra_body %}
 <script>
     // Real-time client side validation
     const nameInput = document.getElementById('id_name');
@@ -158,14 +152,5 @@
             this.value = this.value.replace(/[^0-9]/g, '');
         });
     }
-
-    function toggleMobileNav() {
-        const drawer = document.getElementById('mobileNavDrawer');
-        if (drawer) {
-            drawer.classList.toggle('active');
-        }
-    }
 </script>
-
-</body>
-</html>
+{% endblock %}

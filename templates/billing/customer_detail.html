@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ customer.name }} | Customer Details | Advance Billing System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/customers.css' %}?v=3">
+{% endblock %}
+
+{% block content %}
+<main class="customers-page-wrapper">
+
+        <div class="page-header-row">
+            <div class="page-title-wrap">
+                <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px;">
+                    <a href="{% url 'customer_list' %}" style="color: var(--primary); text-decoration: none; font-weight: 600;">← Customers</a>
+                    / Customer Profile
+                </div>
+                <h2>{{ customer.name }}</h2>
+                <p>
+                    CUST-{{ customer.id|stringformat:"04d" }}
+                    {% if customer.is_active %}
+                    • Active Account
+                    {% else %}
+                    • Inactive Account
+                    {% endif %}
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="{% url 'customer_ledger' customer.pk %}" class="btn-clear-filter" style="text-decoration: none; padding: 10px 16px;">
+                    📒 View Khata Ledger
+                </a>
+                <a href="{% url 'customer_edit' customer.pk %}" class="btn-clear-filter" style="text-decoration: none; padding: 10px 16px;">
+                    ✏️ Edit Customer
+                </a>
+                <a href="{% url 'invoice_create' %}" class="btn-primary-add">
+                    + New Invoice
+                </a>
+            </div>
+        </div>
+
+        <!-- PROFILE INFO CARD -->
+        <div class="table-card-container" style="padding: 24px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                <div>
+                    <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Phone Number</div>
+                    <div style="font-size: 15px; font-weight: 700; margin-top: 4px;">
+                        📞 {{ customer.phone }}
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Email Address</div>
+                    <div style="font-size: 15px; font-weight: 600; margin-top: 4px;">
+                        {{ customer.email|default:"Not provided" }}
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">GSTIN</div>
+                    <div style="font-size: 15px; font-weight: 700; font-family: var(--font-mono); margin-top: 4px;">
+                        {{ customer.gstin|default:"Unregistered (B2C)" }}
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Billing Address</div>
+                    <div style="font-size: 14px; margin-top: 4px; color: var(--text-secondary);">
+                        {{ customer.address|default:"N/A" }},
+                        {{ customer.city }},
+                        {{ customer.state }} - {{ customer.pincode }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BILLING KPI STATS -->
+        <section class="stats-row" aria-label="Customer Financial Summary">
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon blue">🧾</div>
+                    <span class="stat-trend-tag">All Bills</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Total Invoices</span>
+                    <div class="stat-value">
+                        {{ total_invoices_count }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon purple">💵</div>
+                    <span class="stat-trend-tag">Gross</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Total Billed</span>
+                    <div class="stat-value" style="font-family: var(--font-mono);">
+                        ₹{{ total_billed|floatformat:2 }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon teal">✓</div>
+                    <span class="stat-trend-tag">Collected</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Total Paid</span>
+                    <div class="stat-value" style="font-family: var(--font-mono); color: #059669;">
+                        ₹{{ total_paid|floatformat:2 }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon orange">💰</div>
+                    <span class="stat-trend-tag">Receivable</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Balance Due</span>
+                    <div class="stat-value" style="font-family: var(--font-mono); color: #b45309;">
+                        ₹{{ total_due|floatformat:2 }}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RECENT INVOICES FOR THIS CUSTOMER -->
+        <div class="table-card-container">
+            <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 15px; font-weight: 800;">Recent Invoices</h3>
+                <a href="{% url 'customer_ledger' customer.pk %}" style="font-size: 13px; font-weight: 700; color: var(--primary); text-decoration: none;">
+                    Open Full Khata Statement →
+                </a>
+            </div>
+            {% if recent_invoices %}
+            <div class="table-responsive">
+                <table class="saas-data-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Date</th>
+                            <th style="text-align: center;">Status</th>
+                            <th style="text-align: right;">Total (₹)</th>
+                            <th style="text-align: right;">Due (₹)</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in recent_invoices %}
+                        <tr>
+                            <td style="font-family: var(--font-mono); font-weight: 700; color: var(--primary-700);">
+                                {{ inv.invoice_number }}
+                            </td>
+                            <td>
+                                {{ inv.created_at|date:"d M Y" }}
+                            </td>
+                            <td style="text-align: center;">
+                                {{ inv.status }}
+                            </td>
+                            <td style="text-align: right; font-family: var(--font-mono); font-weight: 700;">
+                                ₹{{ inv.total_amount|floatformat:2 }}
+                            </td>
+                            <td style="text-align: right; font-family: var(--font-mono);">
+                                ₹{{ inv.balance_due|floatformat:2 }}
+                            </td>
+                            <td style="text-align: right;">
+                                <a href="{% url 'invoice_detail' inv.pk %}" class="btn-table-edit">👁️ View</a>
+                                <a href="{% url 'invoice_pdf' inv.pk %}" class="btn-table-edit">📄 PDF</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state-wrap">
+                <div class="empty-icon-circle">🧾</div>
+                <h3>No Invoices Yet</h3>
+                <p>Generate the first invoice for {{ customer.name }}.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </main>
+{% endblock %}

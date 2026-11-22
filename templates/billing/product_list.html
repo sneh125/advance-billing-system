@@ -1,34 +1,16 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Inventory | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+{% block title %}Product Inventory | Advance Billing System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     <link rel="stylesheet" href="{% static 'css/product_list.css' %}">
     <link rel="stylesheet" href="{% static 'css/customers.css' %}">
-</head>
-<body>
+{% endblock %}
 
-<div class="dashboard-container">
-
-    {% include 'includes/app_header.html' with active_page='products' %}
-
-    <!-- FLASH TOAST MESSAGES -->
-    <div class="toast-container" id="toastContainer">
-        {% if messages %}
-            {% for message in messages %}
-            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
-                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
-                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
-            </div>
-            {% endfor %}
-        {% endif %}
-    </div>
-
-    <!-- MAIN PRODUCT INVENTORY -->
+{% block content %}
+<!-- MAIN PRODUCT INVENTORY -->
     <main class="products-page-wrapper">
 
         <!-- HEADER ROW -->
@@ -218,9 +200,9 @@
         </div>
 
     </main>
+{% endblock %}
 
-</div>
-
+{% block extra_body %}
 <!-- RESTOCK / STOCK-IN MODAL -->
 <div class="modal-backdrop" id="restockModal">
     <div class="modal-card" style="text-align: left; max-width: 440px;">
@@ -298,19 +280,5 @@
     function closeDeleteModal() {
         document.getElementById('deleteModal').classList.remove('active');
     }
-
-    function toggleMobileNav() {
-        const drawer = document.getElementById('mobileNavDrawer');
-        if (drawer) {
-            drawer.classList.toggle('active');
-        }
-    }
-
-    setTimeout(() => {
-        const toasts = document.querySelectorAll('.toast-card');
-        toasts.forEach(t => t.remove());
-    }, 4000);
 </script>
-
-</body>
-</html>
+{% endblock %}

@@ -1,33 +1,416 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distributor Dashboard | Advance Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-    <link rel="stylesheet" href="{% static 'css/admin_reports.css' %}">
-</head>
-<body>
 
-<div class="dashboard-container">
+{% block title %}Distributor Dashboard | Advance Billing System{% endblock %}
 
-    {% include 'includes/app_header.html' with active_page='dashboard' %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'css/admin_reports.css' %}?v=4">
+    <style>
+        /* PREMIUM MONTHLY SALES & GST ANALYTICS WIDGET */
+        .dist-analytics-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 26px 28px 24px 28px;
+            margin-bottom: 28px;
+            box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.06);
+        }
+        .dist-analytics-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .dist-analytics-title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .dist-analytics-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 16px rgba(15, 118, 110, 0.28);
+            flex-shrink: 0;
+        }
+        .dist-analytics-title-group h3 {
+            font-size: 17px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+            letter-spacing: -0.2px;
+        }
+        .dist-analytics-subtitle {
+            font-size: 12.5px;
+            color: #64748b;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+        .dist-analytics-controls {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .dist-legend-pills {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .dist-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 5px 11px;
+            border-radius: 9999px;
+        }
+        .dist-legend-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        .dist-view-switch {
+            display: inline-flex;
+            background: #f1f5f9;
+            padding: 3px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            gap: 2px;
+        }
+        .dist-switch-btn {
+            border: none;
+            background: transparent;
+            padding: 6px 13px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.16s ease;
+        }
+        .dist-switch-btn.active {
+            background: #ffffff;
+            color: #0f766e;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+        }
+        .dist-kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .dist-kpi-chip {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .dist-kpi-chip.highlight {
+            background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+            border-color: #99f6e4;
+        }
+        .dist-kpi-chip-lbl {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.45px;
+            color: #64748b;
+        }
+        .dist-kpi-chip-val {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            font-family: var(--font-mono, ui-monospace, monospace);
+        }
+        .dist-kpi-chip.highlight .dist-kpi-chip-val {
+            color: #0f766e;
+        }
+        .dist-chart-frame {
+            display: grid;
+            grid-template-columns: 62px 1fr;
+            gap: 10px;
+            align-items: stretch;
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px 20px 16px 14px;
+            position: relative;
+        }
+        .dist-y-axis {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 256px;
+            box-sizing: border-box;
+            padding-top: 36px;
+            padding-bottom: 40px;
+            text-align: right;
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            font-family: var(--font-mono, ui-monospace, monospace);
+            user-select: none;
+        }
+        .dist-plot-area {
+            position: relative;
+            height: 256px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: stretch;
+            justify-content: space-between;
+            gap: 10px;
+            padding-top: 18px;
+        }
+        .dist-gridlines {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 42px;
+            bottom: 46px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .dist-gridline {
+            border-top: 1px dashed #e2e8f0;
+            width: 100%;
+        }
+        .dist-gridline:last-child {
+            border-top: 1.5px solid #cbd5e1;
+        }
+        .dist-bar-col {
+            flex: 1;
+            height: 238px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            position: relative;
+            z-index: 2;
+            border-radius: 12px;
+            padding: 0 4px;
+            transition: background 0.16s ease;
+            cursor: default;
+        }
+        .dist-bar-col:hover {
+            background: rgba(20, 184, 166, 0.06);
+        }
+        .dist-bar-bars-zone {
+            width: 100%;
+            height: 192px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            position: relative;
+        }
+        .dist-bar-top-val {
+            height: 24px;
+            line-height: 24px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #0f766e;
+            font-family: var(--font-mono, ui-monospace, monospace);
+            white-space: nowrap;
+        }
+        .dist-bar-top-val.is-zero {
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .dist-bars-pair {
+            width: 100%;
+            height: 168px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 6px;
+        }
+        .dist-bar-rev {
+            width: 30px;
+            min-height: 5px;
+            background: linear-gradient(180deg, #2dd4bf 0%, #0d9488 55%, #0f766e 100%);
+            border-radius: 8px 8px 3px 3px;
+            box-shadow: 0 6px 14px rgba(15, 118, 110, 0.24);
+            transition: transform 0.2s ease, filter 0.2s ease;
+        }
+        .dist-bar-rev.is-zero {
+            background: #cbd5e1;
+            box-shadow: none;
+            min-height: 4px;
+        }
+        .dist-bar-gst {
+            width: 18px;
+            min-height: 5px;
+            background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+            border-radius: 6px 6px 3px 3px;
+            box-shadow: 0 4px 10px rgba(2, 132, 199, 0.2);
+            transition: transform 0.2s ease, filter 0.2s ease;
+        }
+        .dist-bar-gst.is-zero {
+            background: #e2e8f0;
+            box-shadow: none;
+            min-height: 4px;
+        }
+        .dist-bar-col:hover .dist-bar-rev:not(.is-zero),
+        .dist-bar-col:hover .dist-bar-gst:not(.is-zero) {
+            transform: translateY(-3px);
+            filter: brightness(1.06);
+        }
+        .dist-bar-footer {
+            height: 46px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding-top: 6px;
+        }
+        .dist-bar-month {
+            font-size: 12px;
+            font-weight: 700;
+            color: #334155;
+            white-space: nowrap;
+        }
+        .dist-bar-inv-chip {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #0f766e;
+            background: #f0fdfa;
+            border: 1px solid #ccfbf1;
+            padding: 1px 7px;
+            border-radius: 9999px;
+            white-space: nowrap;
+        }
+        .dist-bar-inv-chip.is-zero {
+            color: #94a3b8;
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+        }
+        .dist-bar-popover {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%) translateY(4px);
+            background: #0f172a;
+            color: #ffffff;
+            padding: 10px 13px;
+            border-radius: 12px;
+            min-width: 175px;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 30;
+            transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+        }
+        .dist-bar-popover::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #0f172a;
+        }
+        .dist-bar-col:hover .dist-bar-popover {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+        .dist-pop-month {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 6px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .dist-pop-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+        .dist-pop-key {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #cbd5e1;
+        }
+        .dist-pop-val {
+            font-weight: 800;
+            color: #ffffff;
+            font-family: var(--font-mono, ui-monospace, monospace);
+        }
+        .dist-area-stage {
+            display: none;
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 18px 20px 12px 16px;
+            position: relative;
+        }
+        .dist-area-stage svg {
+            width: 100%;
+            height: 262px;
+            display: block;
+            overflow: visible;
+        }
+        @media (max-width: 768px) {
+            .dist-analytics-card {
+                padding: 20px 16px;
+            }
+            .dist-kpi-strip {
+                grid-template-columns: 1fr;
+            }
+            .dist-chart-frame {
+                grid-template-columns: 48px 1fr;
+                padding: 18px 10px 12px 8px;
+            }
+            .dist-bar-rev {
+                width: 18px;
+            }
+            .dist-bar-gst {
+                width: 11px;
+            }
+            .dist-bar-month {
+                font-size: 10.5px;
+            }
+            .dist-bar-top-val {
+                font-size: 9.5px;
+            }
+        }
+    </style>
+{% endblock %}
 
-    <!-- FLASH TOAST MESSAGES -->
-    <div class="toast-container" id="toastContainer">
-        {% if messages %}
-            {% for message in messages %}
-            <div class="toast-card {% if message.tags == 'error' %}error{% else %}success{% endif %}">
-                <span>{% if message.tags == 'error' %}⚠️{% else %}✓{% endif %} {{ message }}</span>
-                <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
-            </div>
-            {% endfor %}
-        {% endif %}
-    </div>
-
-    <!-- MAIN DASHBOARD CONTENT -->
+{% block content %}
+<!-- MAIN DASHBOARD CONTENT -->
     <main class="dashboard-content">
 
         <!-- WELCOME BANNER -->
@@ -183,6 +566,132 @@
 
         </section>
 
+        <!-- MONTHLY SALES & GST CHART -->
+        <section class="dist-analytics-card" id="distributorMonthlySalesChart" aria-label="Monthly Sales Chart">
+            <div class="dist-analytics-top">
+                <div class="dist-analytics-title-group">
+                    <div class="dist-analytics-icon" aria-hidden="true">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 3v18h18"/>
+                            <path d="m19 9-5 5-4-4-3 3"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3>Monthly Sales &amp; GST Trend (Last 6 Months)</h3>
+                        <div class="dist-analytics-subtitle">Gross billed revenue vs GST tax collected across recent billing cycles</div>
+                    </div>
+                </div>
+                <div class="dist-analytics-controls">
+                    <div class="dist-legend-pills">
+                        <span class="dist-legend-item">
+                            <span class="dist-legend-swatch" style="background: linear-gradient(180deg, #2dd4bf, #0f766e);"></span>
+                            Monthly Sales (₹)
+                        </span>
+                        <span class="dist-legend-item">
+                            <span class="dist-legend-swatch" style="background: linear-gradient(180deg, #38bdf8, #0284c7);"></span>
+                            GST Tax (₹)
+                        </span>
+                    </div>
+                    <div class="dist-view-switch" role="tablist" aria-label="Chart View Mode">
+                        <button type="button" class="dist-switch-btn active" id="btnDistBar" onclick="switchDistChartView('bar')">Bar</button>
+                        <button type="button" class="dist-switch-btn" id="btnDistArea" onclick="switchDistChartView('area')">Area</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dist-kpi-strip">
+                <div class="dist-kpi-chip">
+                    <span class="dist-kpi-chip-lbl">6-Month Total Sales</span>
+                    <span class="dist-kpi-chip-val" id="distKpi6mSales">₹0</span>
+                </div>
+                <div class="dist-kpi-chip">
+                    <span class="dist-kpi-chip-lbl">6-Month GST Collected</span>
+                    <span class="dist-kpi-chip-val" id="distKpi6mGst" style="color: #0284c7;">₹0</span>
+                </div>
+                <div class="dist-kpi-chip highlight">
+                    <span class="dist-kpi-chip-lbl">Best Performing Month</span>
+                    <span class="dist-kpi-chip-val" id="distKpiPeakMonth">—</span>
+                </div>
+            </div>
+
+            <!-- BAR CHART VIEW -->
+            <div id="distBarChartView" class="dist-chart-frame">
+                <div class="dist-y-axis" id="distYAxisTicks">
+                    <span>—</span>
+                    <span>—</span>
+                    <span>—</span>
+                    <span>—</span>
+                    <span>₹0</span>
+                </div>
+                <div class="dist-plot-area" id="distBarPlot">
+                    <div class="dist-gridlines" aria-hidden="true">
+                        <div class="dist-gridline"></div>
+                        <div class="dist-gridline"></div>
+                        <div class="dist-gridline"></div>
+                        <div class="dist-gridline"></div>
+                        <div class="dist-gridline"></div>
+                    </div>
+                    {% for pt in monthly_sales_chart %}
+                    <div
+                        class="dist-bar-col"
+                        data-label="{{ pt.label }}"
+                        data-revenue="{{ pt.revenue }}"
+                        data-gst="{{ pt.gst }}"
+                        data-count="{{ pt.count }}"
+                        data-rev-pct="{{ pt.rev_pct }}"
+                        data-gst-pct="{{ pt.gst_pct }}"
+                    >
+                        <div class="dist-bar-popover">
+                            <div class="dist-pop-month">{{ pt.label }}</div>
+                            <div class="dist-pop-row">
+                                <span class="dist-pop-key">
+                                    <span class="dist-legend-swatch" style="background: #14b8a6;"></span>
+                                    Sales
+                                </span>
+                                <span class="dist-pop-val">₹{{ pt.revenue|floatformat:0 }}</span>
+                            </div>
+                            <div class="dist-pop-row">
+                                <span class="dist-pop-key">
+                                    <span class="dist-legend-swatch" style="background: #38bdf8;"></span>
+                                    GST
+                                </span>
+                                <span class="dist-pop-val">₹{{ pt.gst|floatformat:0 }}</span>
+                            </div>
+                            <div class="dist-pop-row">
+                                <span class="dist-pop-key">Invoices</span>
+                                <span class="dist-pop-val">{{ pt.count }}</span>
+                            </div>
+                        </div>
+                        <div class="dist-bar-bars-zone">
+                            <span class="dist-bar-top-val {% if not pt.revenue %}is-zero{% endif %}" data-compact-amt="{{ pt.revenue }}">
+                                ₹{{ pt.revenue|floatformat:0 }}
+                            </span>
+                            <div class="dist-bars-pair">
+                                <div
+                                    class="dist-bar-rev {% if not pt.revenue %}is-zero{% endif %}"
+                                    style="height: {{ pt.rev_pct }}%;"
+                                ></div>
+                                <div
+                                    class="dist-bar-gst {% if not pt.gst %}is-zero{% endif %}"
+                                    style="height: {{ pt.gst_pct }}%;"
+                                ></div>
+                            </div>
+                        </div>
+                        <div class="dist-bar-footer">
+                            <span class="dist-bar-month">{{ pt.label }}</span>
+                            <span class="dist-bar-inv-chip {% if not pt.count %}is-zero{% endif %}">{{ pt.count }} inv</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- SVG AREA / LINE CHART VIEW -->
+            <div id="distAreaChartView" class="dist-area-stage">
+                <svg id="distTrendAreaSvg" viewBox="0 0 760 262" aria-label="Monthly Sales Area Chart"></svg>
+            </div>
+        </section>
+
         <!-- RECENT INVOICES TABLE -->
         <section class="report-card-panel" aria-label="Recent Invoices">
             <div class="report-panel-header">
@@ -283,22 +792,159 @@
         </section>
 
     </main>
+{% endblock %}
 
-</div>
-
+{% block extra_body %}
 <script>
-    function toggleMobileNav() {
-        const drawer = document.getElementById('mobileNavDrawer');
-        if (drawer) {
-            drawer.classList.toggle('active');
-        }
+// Format compact Indian currency (₹1.27L, ₹35.1k, ₹850)
+    function formatCompactINR(val) {
+        const n = Number(val) || 0;
+        if (n <= 0) return '₹0';
+        if (n >= 10000000) return '₹' + (n / 10000000).toFixed(2).replace(/\.00$/, '') + 'Cr';
+        if (n >= 100000) return '₹' + (n / 100000).toFixed(2).replace(/\.00$/, '') + 'L';
+        if (n >= 1000) return '₹' + (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+        return '₹' + Math.round(n).toLocaleString('en-IN');
     }
 
-    setTimeout(() => {
-        const toasts = document.querySelectorAll('.toast-card');
-        toasts.forEach(t => t.remove());
-    }, 5000);
-</script>
+    function formatFullINR(val) {
+        const n = Math.round(Number(val) || 0);
+        return '₹' + n.toLocaleString('en-IN');
+    }
 
-</body>
-</html>
+    const distChartData = Array.from(document.querySelectorAll('#distBarPlot .dist-bar-col')).map(el => ({
+        label: el.dataset.label || '',
+        revenue: parseFloat(el.dataset.revenue || '0') || 0,
+        gst: parseFloat(el.dataset.gst || '0') || 0,
+        count: parseInt(el.dataset.count || '0', 10) || 0,
+    }));
+
+    (function initDistAnalyticsChart() {
+        if (!distChartData.length) return;
+
+        // Compact value badges above each bar
+        document.querySelectorAll('#distBarPlot [data-compact-amt]').forEach(span => {
+            span.textContent = formatCompactINR(span.getAttribute('data-compact-amt'));
+        });
+
+        // Summary KPI strip
+        const sumSales = distChartData.reduce((a, b) => a + b.revenue, 0);
+        const sumGst = distChartData.reduce((a, b) => a + b.gst, 0);
+        const peak = distChartData.reduce((best, cur) => (cur.revenue > best.revenue ? cur : best), distChartData[0]);
+
+        const elSales = document.getElementById('distKpi6mSales');
+        const elGst = document.getElementById('distKpi6mGst');
+        const elPeak = document.getElementById('distKpiPeakMonth');
+        if (elSales) elSales.textContent = formatFullINR(sumSales);
+        if (elGst) elGst.textContent = formatFullINR(sumGst);
+        if (elPeak) {
+            elPeak.textContent = peak.revenue > 0
+                ? `${peak.label} (${formatCompactINR(peak.revenue)})`
+                : 'No sales yet';
+        }
+
+        // Y-Axis ticks
+        const maxRev = Math.max(...distChartData.map(d => d.revenue), 0);
+        const yTicksEl = document.getElementById('distYAxisTicks');
+        if (yTicksEl) {
+            const ticks = maxRev > 0
+                ? [maxRev, maxRev * 0.75, maxRev * 0.5, maxRev * 0.25, 0]
+                : [10000, 7500, 5000, 2500, 0];
+            yTicksEl.innerHTML = ticks.map(v => `<span>${formatCompactINR(v)}</span>`).join('');
+        }
+    })();
+
+    function renderDistAreaSvg() {
+        const svg = document.getElementById('distTrendAreaSvg');
+        if (!svg || !distChartData.length) return;
+
+        const W = 760, H = 262;
+        const padL = 62, padR = 26, padT = 26, padB = 46;
+        const plotW = W - padL - padR;
+        const plotH = H - padT - padB;
+        const maxVal = Math.max(...distChartData.map(d => d.revenue), 1);
+
+        const xAt = i => padL + (distChartData.length === 1 ? plotW / 2 : (i / (distChartData.length - 1)) * plotW);
+        const yAt = v => padT + plotH - (v / maxVal) * plotH;
+
+        function smoothPath(pts) {
+            if (pts.length < 2) return '';
+            let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+            for (let i = 0; i < pts.length - 1; i++) {
+                const p0 = pts[i];
+                const p1 = pts[i + 1];
+                const cx = ((p0.x + p1.x) / 2).toFixed(1);
+                d += ` C ${cx} ${p0.y.toFixed(1)}, ${cx} ${p1.y.toFixed(1)}, ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+            }
+            return d;
+        }
+
+        const revPts = distChartData.map((d, i) => ({ x: xAt(i), y: yAt(d.revenue), ...d }));
+        const gstPts = distChartData.map((d, i) => ({ x: xAt(i), y: yAt(d.gst), ...d }));
+        const revLine = smoothPath(revPts);
+        const gstLine = smoothPath(gstPts);
+        const baseY = (padT + plotH).toFixed(1);
+        const areaPath = `${revLine} L ${revPts[revPts.length - 1].x.toFixed(1)} ${baseY} L ${revPts[0].x.toFixed(1)} ${baseY} Z`;
+
+        let gridMarkup = '';
+        for (let step = 0; step <= 4; step++) {
+            const val = maxVal * (1 - step / 4);
+            const y = (padT + (plotH * step) / 4).toFixed(1);
+            const stroke = step === 4 ? '#cbd5e1' : '#e2e8f0';
+            const dash = step === 4 ? '' : 'stroke-dasharray="4 4"';
+            gridMarkup += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="${stroke}" ${dash} />`;
+            gridMarkup += `<text x="${padL - 10}" y="${Number(y) + 4}" text-anchor="end" fill="#94a3b8" font-size="11" font-weight="700" font-family="ui-monospace, monospace">${formatCompactINR(val)}</text>`;
+        }
+
+        let dotsMarkup = '';
+        revPts.forEach((p, idx) => {
+            const gp = gstPts[idx];
+            dotsMarkup += `
+                <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5.5" fill="#0f766e" stroke="#ffffff" stroke-width="2.5">
+                    <title>${p.label}: Sales ${formatFullINR(p.revenue)} | GST ${formatFullINR(p.gst)} (${p.count} inv)</title>
+                </circle>
+                <text x="${p.x.toFixed(1)}" y="${Math.max(14, p.y - 11).toFixed(1)}" text-anchor="middle" fill="${p.revenue > 0 ? '#0f766e' : '#94a3b8'}" font-size="11" font-weight="800" font-family="ui-monospace, monospace">${formatCompactINR(p.revenue)}</text>
+                <circle cx="${gp.x.toFixed(1)}" cy="${gp.y.toFixed(1)}" r="4" fill="#0284c7" stroke="#ffffff" stroke-width="2">
+                    <title>${p.label} GST: ${formatFullINR(p.gst)}</title>
+                </circle>
+                <text x="${p.x.toFixed(1)}" y="${H - 22}" text-anchor="middle" fill="#334155" font-size="11.5" font-weight="700">${p.label}</text>
+                <text x="${p.x.toFixed(1)}" y="${H - 7}" text-anchor="middle" fill="#64748b" font-size="10" font-weight="600">${p.count} inv</text>
+            `;
+        });
+
+        svg.innerHTML = `
+            <defs>
+                <linearGradient id="distRevAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.32" />
+                    <stop offset="100%" stop-color="#14b8a6" stop-opacity="0.02" />
+                </linearGradient>
+            </defs>
+            ${gridMarkup}
+            <path d="${areaPath}" fill="url(#distRevAreaGrad)" />
+            <path d="${revLine}" fill="none" stroke="#0f766e" stroke-width="3" stroke-linecap="round" />
+            <path d="${gstLine}" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-dasharray="5 4" stroke-linecap="round" />
+            ${dotsMarkup}
+        `;
+    }
+
+    function switchDistChartView(mode) {
+        const barView = document.getElementById('distBarChartView');
+        const areaView = document.getElementById('distAreaChartView');
+        const btnBar = document.getElementById('btnDistBar');
+        const btnArea = document.getElementById('btnDistArea');
+        if (!barView || !areaView) return;
+
+        if (mode === 'area') {
+            barView.style.display = 'none';
+            areaView.style.display = 'block';
+            btnBar.classList.remove('active');
+            btnArea.classList.add('active');
+            renderDistAreaSvg();
+        } else {
+            barView.style.display = 'grid';
+            areaView.style.display = 'none';
+            btnBar.classList.add('active');
+            btnArea.classList.remove('active');
+        }
+    }
+</script>
+{% endblock %}

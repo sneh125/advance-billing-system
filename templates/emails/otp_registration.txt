@@ -1,0 +1,16 @@
+ADVANCE BILLING SYSTEM - EMAIL VERIFICATION
+==================================================
+
+Welcome {{ user_name|default:"User" }},
+
+Thank you for registering a new Distributor account with Advance Billing System ({{ email }}).
+
+YOUR REGISTRATION VERIFICATION OTP: {{ otp }}
+
+This code is valid for 5 minutes only. Do not share this code with anyone.
+
+If you did not initiate this registration, please ignore this email.
+
+---
+(c) 2026 Advance Billing System. Automated Security Verification.
+
