@@ -1,6 +1,3 @@
-<p align="center">
-  <img src="static/images/brand_logo_full.png" alt="Advance Billing System" width="360">
-</p>
 
 # 🧾 Advance Billing System
 
