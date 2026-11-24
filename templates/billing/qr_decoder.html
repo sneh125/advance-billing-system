@@ -6,9 +6,11 @@
 {% block shell_class %}invoice-page-layout{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/invoices.css' %}">
-    <link rel="stylesheet" href="{% static 'css/qr_decoder.css' %}">
+<link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=10">
+    <link rel="stylesheet" href="{% static 'css/qr_decoder.css' %}?v=10">
 {% endblock %}
+
+{% block flash_toasts %}{% endblock %}
 
 {% block content %}
 <!-- MAIN QR DECODER CONTENT -->
@@ -52,7 +54,7 @@
             <div class="qr-card">
                 <div class="qr-card-header">
                     <h3>📤 Upload QR Code Image</h3>
-                    <span class="badge-pill-cyan">pyzbar Decoder</span>
+                    <span class="badge-pill-cyan">Instant QR Scanner</span>
                 </div>
 
                 <form method="POST" action="{% url 'qr_decoder' %}" enctype="multipart/form-data" id="qrUploadForm">
@@ -61,8 +63,8 @@
                     <!-- DROPZONE CONTAINER -->
                     <div class="qr-dropzone" id="qrDropzone" onclick="document.getElementById('qrFileInput').click()">
                         <div class="dropzone-icon">📷</div>
-                        <h4>Drop your QR code image here</h4>
-                        <p>or click to browse from device (PNG, JPG, JPEG, WEBP, BMP)</p>
+                        <h4>Drop or paste (Ctrl + V) QR image here</h4>
+                        <p>Click to browse or paste a screenshot (PNG, JPG, JPEG, WEBP, BMP • Max 10MB)</p>
                         <input type="file" name="qr_image" id="qrFileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
                     </div>
 
@@ -82,15 +84,25 @@
                     </div>
                 </form>
 
-                <!-- REST API DEVELOPER INFO -->
-                <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--slate-100);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">REST API Endpoint</span>
-                        <code style="font-size: 12px; background: var(--slate-100); padding: 3px 8px; border-radius: 4px; color: var(--primary);">POST /api/qr/decode/</code>
+                <!-- SUPPORTED QR TYPES GUIDE -->
+                <div style="margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--slate-100);">
+                    <div style="font-size: 11.5px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+                        Supported QR Formats
                     </div>
-                    <p style="font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.5;">
-                        Accepts standard <code>multipart/form-data</code> with field <code>file</code> or <code>image</code>, or raw JSON with <code>image_base64</code> payload.
-                    </p>
+                    <div style="display: grid; gap: 8px; font-size: 12.5px; color: var(--text-secondary);">
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 10px;">
+                            <span>🧾</span>
+                            <span><strong>Invoice Verification QR</strong> — Instantly matches &amp; verifies ledger bill</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 10px;">
+                            <span>💳</span>
+                            <span><strong>UPI Payment QR</strong> — Extracts Payee VPA, Name &amp; payable amount</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 10px;">
+                            <span>📋</span>
+                            <span><strong>Direct Screenshot Paste</strong> — Press <code>Ctrl + V</code> anywhere on this page</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -204,10 +216,24 @@
                             <div class="parsed-grid-item">
                                 <div class="parsed-item-label">Payment Status</div>
                                 <div class="parsed-item-val">
-                                    {% if matched_invoice and matched_invoice.status == 'Paid' or result.parsed.invoice_data.status == 'Paid' %}
-                                        <span class="invoice-status-pill status-paid">Paid</span>
+                                    {% if matched_invoice %}
+                                        {% if matched_invoice.status == 'Paid' %}
+                                            <span class="invoice-status-pill status-paid">✓ Paid</span>
+                                        {% elif matched_invoice.status == 'Partial' %}
+                                            <span class="invoice-status-pill" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">◑ Partial</span>
+                                        {% elif matched_invoice.status == 'Cancelled' %}
+                                            <span class="invoice-status-pill" style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">✖ Cancelled</span>
+                                        {% else %}
+                                            <span class="invoice-status-pill status-pending">⏳ {{ matched_invoice.status|default:"Pending" }}</span>
+                                        {% endif %}
+                                    {% elif result.parsed.invoice_data.status == 'Paid' %}
+                                        <span class="invoice-status-pill status-paid">✓ Paid</span>
+                                    {% elif result.parsed.invoice_data.status == 'Partial' %}
+                                        <span class="invoice-status-pill" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">◑ Partial</span>
+                                    {% elif result.parsed.invoice_data.status == 'Cancelled' %}
+                                        <span class="invoice-status-pill" style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">✖ Cancelled</span>
                                     {% else %}
-                                        <span class="invoice-status-pill status-pending">{{ result.parsed.invoice_data.status|default:"Pending" }}</span>
+                                        <span class="invoice-status-pill status-pending">⏳ {{ result.parsed.invoice_data.status|default:"Pending" }}</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -227,7 +253,7 @@
                                 <a href="{% url 'invoice_detail' matched_invoice.pk %}" class="btn-view-invoice">
                                     👁️ View Full Invoice
                                 </a>
-                                <a href="{% url 'invoice_pdf' matched_invoice.pk %}" class="btn-view-invoice" style="background: #dc2626;" target="_blank">
+                                <a href="{% url 'invoice_pdf' matched_invoice.pk %}" class="btn-view-invoice" style="background: var(--slate-900);" target="_blank">
                                     📄 PDF
                                 </a>
                             </div>
@@ -348,7 +374,7 @@
  * Toast Notification Controller (Task 51)
  * Displays rich animated toast cards for both success and error outcomes.
  */
-function showToast(type, title, message, duration = 4500) {
+function showToast(type, title, message, duration = 3000) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
@@ -498,19 +524,47 @@ if (dropzone) {
     }, false);
 }
 
-// Client-side form submission validation
+// Direct Ctrl + V clipboard screenshot paste support
+document.addEventListener('paste', function(e) {
+    const items = (e.clipboardData || window.clipboardData)?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type && items[i].type.indexOf('image') !== -1) {
+            const pastedFile = items[i].getAsFile();
+            if (pastedFile) {
+                const dt = new DataTransfer();
+                dt.items.add(pastedFile);
+                const fileInput = document.getElementById('qrFileInput');
+                if (fileInput) {
+                    fileInput.files = dt.files;
+                    handleFileSelect({ target: { files: dt.files } });
+                }
+            }
+            break;
+        }
+    }
+});
+
+// Client-side form submission validation & loading state
 const qrForm = document.getElementById('qrUploadForm');
 if (qrForm) {
     qrForm.addEventListener('submit', function(e) {
         const fileInput = document.getElementById('qrFileInput');
         if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
             e.preventDefault();
-            showToast('error', 'Missing QR Image', 'Please select or drag a QR code image before submitting.');
+            showToast('error', 'Missing QR Image', 'Please select, drag, or paste a QR code image before submitting.');
+            return;
+        }
+        const btn = document.getElementById('btnSubmitDecode');
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.8';
+            btn.textContent = '⏳ Decoding QR Code...';
         }
     });
 }
 
-// Auto-display server-side messages as toast notifications on page load
+// Auto-display server-side messages as 3-second toast and auto-dismiss inline alert banner
 document.addEventListener('DOMContentLoaded', function() {
     {% if messages %}
     {% for message in messages %}
@@ -518,10 +572,22 @@ document.addEventListener('DOMContentLoaded', function() {
         "{% if message.tags == 'success' %}success{% else %}error{% endif %}",
         "{% if message.tags == 'success' %}Success Outcome{% else %}Notice / Error{% endif %}",
         "{{ message|escapejs }}",
-        5000
+        3000
     );
     {% endfor %}
     {% endif %}
+
+    const bannerWrap = document.getElementById('pageAlertBannerContainer');
+    if (bannerWrap) {
+        setTimeout(function() {
+            bannerWrap.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+            bannerWrap.style.opacity = '0';
+            bannerWrap.style.transform = 'translateY(-6px)';
+            setTimeout(function() {
+                if (bannerWrap && bannerWrap.parentNode) bannerWrap.remove();
+            }, 360);
+        }, 3000);
+    }
 });
 </script>
 {% endblock %}

@@ -21,7 +21,7 @@
         .brand-name {
             font-size: 17pt;
             font-weight: bold;
-            color: #0f766e;
+            color: #1e3a8a;
         }
         .brand-subtitle {
             font-size: 8pt;
@@ -41,7 +41,7 @@
             text-align: right;
         }
         .divider {
-            border-bottom: 1.5pt solid #0f766e;
+            border-bottom: 1.5pt solid #1e3a8a;
             margin: 8px 0 12px 0;
         }
         .address-table {
@@ -79,7 +79,7 @@
             margin-bottom: 12px;
         }
         .items-table th {
-            background-color: #0f766e;
+            background-color: #1e3a8a;
             color: #ffffff;
             font-size: 8pt;
             font-weight: bold;
@@ -312,7 +312,7 @@
                             <img id="pdfEmbeddedInvoiceQr" src="data:image/png;base64,{{ qr_code }}" width="68" height="68" alt="Invoice QR Code" style="border: 0.5pt solid #cbd5e1; padding: 2px; background: #ffffff;" />
                         </td>
                         <td style="vertical-align: top; font-size: 7.8pt; color: #475569; line-height: 1.35; padding-bottom: 8px;">
-                            <strong style="color: #0f766e;">Invoice QR Verification (ID #{{ invoice.id }}):</strong><br>
+                            <strong style="color: #1e3a8a;">Invoice QR Verification (ID #{{ invoice.id }}):</strong><br>
                             Scan to verify bill details ({{ invoice.invoice_number }}, {{ invoice.customer.name }}, Rs. {{ invoice.total_amount }}).
                         </td>
                     </tr>
@@ -320,10 +320,10 @@
                     {% if upi_qr_code %}
                     <tr>
                         <td style="width: 74px; vertical-align: top; padding-right: 10px;">
-                            <img id="pdfEmbeddedUpiQr" src="data:image/png;base64,{{ upi_qr_code }}" width="68" height="68" alt="UPI Scan & Pay" style="border: 0.5pt solid #0f766e; padding: 2px; background: #ffffff;" />
+                            <img id="pdfEmbeddedUpiQr" src="data:image/png;base64,{{ upi_qr_code }}" width="68" height="68" alt="UPI Scan & Pay" style="border: 0.5pt solid #1e3a8a; padding: 2px; background: #ffffff;" />
                         </td>
                         <td style="vertical-align: top; font-size: 7.5pt; color: #334155; line-height: 1.35;">
-                            <strong style="color: #0f766e; font-size: 8.2pt;">SCAN &amp; PAY VIA UPI:</strong><br>
+                            <strong style="color: #1e3a8a; font-size: 8.2pt;">SCAN &amp; PAY VIA UPI:</strong><br>
                             Pay with Google Pay, PhonePe, Paytm or BHIM<br>
                             <strong>UPI ID:</strong> {{ upi_id }} | <strong>Payable:</strong> Rs. {{ balance_due|default:invoice.total_amount }}<br>
                             <span style="color: #64748b; font-size: 7pt;">Terms: Goods once sold will not be returned. Computer generated tax invoice.</span>
@@ -384,7 +384,7 @@
                         <td style="padding: 5px 8px; font-size: 8.5pt; text-align: right; border-bottom: 0.5pt solid #e2e8f0;">Rs. {{ invoice.round_off }}</td>
                     </tr>
                     {% endif %}
-                    <tr style="background-color: #0f766e; color: #ffffff;">
+                    <tr style="background-color: #1e3a8a; color: #ffffff;">
                         <td style="padding: 7px 8px; font-size: 9.5pt; font-weight: bold;">Grand Total:</td>
                         <td style="padding: 7px 8px; font-size: 9.5pt; font-weight: bold; text-align: right;">Rs. {{ invoice.total_amount }}</td>
                     </tr>

@@ -103,3 +103,38 @@ class Admin(models.Model):
 
     def __str__(self):
         return f"Admin: {self.user.get_full_name() or self.user.username}"
+
+
+class SystemAnnouncement(models.Model):
+    """Admin-managed broadcast notices displayed live on all Distributor dashboards."""
+    LEVEL_INFO = "info"
+    LEVEL_WARNING = "warning"
+    LEVEL_URGENT = "urgent"
+    LEVEL_CHOICES = [
+        (LEVEL_INFO, "Info"),
+        (LEVEL_WARNING, "Warning"),
+        (LEVEL_URGENT, "Urgent"),
+    ]
+
+    title = models.CharField(max_length=140)
+    message = models.TextField(max_length=600)
+    level = models.CharField(max_length=16, choices=LEVEL_CHOICES, default=LEVEL_INFO)
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="system_announcements",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "System Announcement"
+        verbose_name_plural = "System Announcements"
+
+    def __str__(self):
+        state = "LIVE" if self.is_active else "PAUSED"
+        return f"[{state}] {self.title}"

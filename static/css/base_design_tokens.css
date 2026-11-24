@@ -135,7 +135,9 @@
    GLOBAL RESETS & ACCESSIBILITY
    ========================================================================== */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -519,42 +521,52 @@ body {
         padding: 0 28px;
         gap: 16px;
     }
+
     .brand-badge-icon {
         width: 52px;
         height: 52px;
     }
+
     .brand-text-group h1 {
         font-size: 20px;
     }
+
     .app-nav-pills {
         gap: 4px;
         padding: 5px;
     }
+
     .app-nav-link {
         padding: 9px 12px;
         font-size: 13px;
         gap: 6px;
     }
+
     .nav-svg-icon {
         width: 14px;
         height: 14px;
     }
+
     .app-header-right {
         gap: 12px;
     }
+
     .app-user-profile-badge {
         height: 46px;
         padding: 4px 14px 4px 5px;
         gap: 9px;
     }
+
     .user-avatar-circle {
         width: 38px;
         height: 38px;
     }
+
     .user-name-label {
         font-size: 13px;
         max-width: 125px;
     }
+
     .btn-app-logout {
         height: 44px;
         padding: 0 16px;
@@ -569,52 +581,65 @@ body {
         padding: 0 20px;
         gap: 12px;
     }
+
     .app-brand-logo {
         gap: 10px;
     }
+
     .brand-badge-icon {
         width: 46px;
         height: 46px;
     }
+
     .brand-text-group h1 {
         font-size: 18px;
     }
+
     .brand-text-group .brand-tagline {
         font-size: 10.5px;
     }
+
     .app-nav-pills {
         gap: 3px;
         padding: 4px;
     }
+
     .app-nav-link {
         padding: 8px 10px;
         font-size: 12.5px;
         gap: 5px;
     }
+
     .nav-svg-icon {
         width: 14px;
         height: 14px;
     }
+
     .app-header-right {
         gap: 10px;
     }
+
     .app-user-profile-badge {
         height: 42px;
         padding: 3px 11px 3px 4px;
         gap: 7px;
     }
+
     .user-avatar-circle {
         width: 34px;
         height: 34px;
         font-size: 13.5px;
     }
+
     .user-name-label {
         font-size: 12.5px;
         max-width: 105px;
     }
+
     .user-role-subtag {
         font-size: 10px;
     }
+
     .btn-app-logout {
         height: 42px;
         padding: 0 14px;
@@ -630,35 +655,44 @@ body {
         padding: 0 20px;
         gap: 12px;
     }
+
     .brand-badge-icon {
         width: 46px;
         height: 46px;
     }
+
     .brand-text-group h1 {
         font-size: 18px;
     }
+
     .app-nav-pills {
         display: none;
     }
+
     .mobile-menu-toggle {
         display: inline-flex;
         align-items: center;
         justify-content: center;
     }
+
     .brand-text-group .brand-tagline {
         display: none;
     }
+
     .app-header-right {
         gap: 10px;
     }
+
     .app-user-profile-badge {
         height: 44px;
         padding: 4px 12px 4px 4px;
     }
+
     .user-avatar-circle {
         width: 36px;
         height: 36px;
     }
+
     .btn-app-logout {
         height: 42px;
         padding: 0 14px;
@@ -672,29 +706,36 @@ body {
         min-height: 70px;
         padding: 0 14px;
     }
+
     .brand-badge-icon {
         width: 40px;
         height: 40px;
     }
+
     .brand-text-group h1 {
         font-size: 16px;
     }
+
     .app-user-profile-badge .user-info-text-col {
         display: none;
     }
+
     .app-user-profile-badge {
         height: 40px;
         padding: 3px;
     }
+
     .user-avatar-circle {
         width: 32px;
         height: 32px;
     }
+
     .btn-app-logout {
         height: 40px;
         padding: 0 10px;
         font-size: 12px;
     }
+
     .mobile-menu-toggle {
         height: 40px;
         width: 40px;
@@ -739,6 +780,7 @@ body {
         opacity: 0;
         transform: translateY(-16px) scale(0.95);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -774,4 +816,59 @@ body {
 .toast-close-btn:hover {
     color: var(--text-main);
     background: var(--slate-100);
+}
+
+/* Global single-line protection for all table action buttons & status badges */
+.action-buttons-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+.badge-pill-role {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.btn-table-edit,
+.btn-table-delete,
+.btn-action-view,
+.btn-view-invoice,
+.btn-primary-add,
+.btn-clear-filter,
+.btn-search-submit,
+.btn-filter-submit,
+.btn-filter-reset,
+.btn-form-submit,
+.btn-form-cancel,
+.btn-download-pdf-report,
+.btn-page-nav,
+.page-link-btn,
+.preset-chip,
+.period-pill-btn,
+.stock-pill,
+.status-pill,
+.invoice-status-pill,
+.status-badge-active,
+.status-badge-inactive,
+.status-badge-success,
+.badge-pill-role,
+.badge-pill-status,
+.badge-pill-cyan,
+.search-stats-badge,
+.report-panel-badge,
+.stat-trend-tag,
+.gst-rate-tag,
+.product-count-chip,
+.item-count-chip,
+.code-type-pill {
+    white-space: nowrap !important;
+    flex-shrink: 0;
 }

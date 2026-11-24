@@ -4,7 +4,7 @@
 {% block title %}{% if is_edit and customer %}Edit Customer | {{ customer.name }}{% else %}Add New Customer{% endif %} | Advance Billing System{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/customer_form.css' %}">
+<link rel="stylesheet" href="{% static 'css/customer_form.css' %}?v=10">
 {% endblock %}
 
 {% block content %}

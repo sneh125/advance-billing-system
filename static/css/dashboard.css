@@ -340,6 +340,7 @@
     .stats-row {
         grid-template-columns: repeat(2, 1fr);
     }
+
     .cards {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -349,22 +350,29 @@
     .dashboard-content {
         padding: 20px 16px 40px 16px;
     }
+
     .welcome-banner {
         padding: 24px 20px;
     }
+
     .welcome-banner h2 {
         font-size: 20px;
     }
+
     .stats-row {
         grid-template-columns: 1fr;
     }
+
     .cards {
         grid-template-columns: 1fr;
     }
+
     .app-shell-header {
         padding: 0 16px;
     }
+
     .app-nav-pills {
-        display: none; /* In mobile, links stack cleanly or compact */
+        display: none;
+        /* In mobile, links stack cleanly or compact */
     }
 }

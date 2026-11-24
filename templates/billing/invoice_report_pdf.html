@@ -25,7 +25,7 @@
         .brand-name {
             font-size: 16pt;
             font-weight: bold;
-            color: #0f766e;
+            color: #1e3a8a;
         }
 
         .brand-sub {
@@ -49,7 +49,7 @@
         }
 
         .divider {
-            border-bottom: 1.5pt solid #0f766e;
+            border-bottom: 1.5pt solid #1e3a8a;
             margin: 8px 0 14px 0;
         }
 
@@ -103,12 +103,12 @@
         }
 
         .data-table th {
-            background-color: #0f766e;
+            background-color: #1e3a8a;
             color: #ffffff;
             font-weight: bold;
             font-size: 8pt;
             padding: 6px 8px;
-            border: 0.5pt solid #0f766e;
+            border: 0.5pt solid #1e3a8a;
             text-transform: uppercase;
         }
 
@@ -140,7 +140,7 @@
         }
 
         .total-row td {
-            border-top: 1.5pt solid #0f766e;
+            border-top: 1.5pt solid #1e3a8a;
             font-weight: bold;
         }
     </style>
@@ -179,7 +179,7 @@
             </td>
             <td class="kpi-cell" style="width: 20%;">
                 <div class="kpi-label">Total Billed</div>
-                <div class="kpi-val" style="color: #0f766e;">Rs. {{ total_amount_collected|floatformat:2 }}</div>
+                <div class="kpi-val" style="color: #1e3a8a;">Rs. {{ total_amount_collected|floatformat:2 }}</div>
             </td>
             <td class="kpi-cell" style="width: 20%;">
                 <div class="kpi-label">Paid Collection</div>
@@ -214,7 +214,7 @@
             {% for inv in invoices %}
             <tr class="{% if forloop.counter|divisibleby:2 %}row-alt{% endif %}">
                 <td style="text-align: center; color: #64748b;">{{ forloop.counter }}</td>
-                <td style="font-weight: bold; color: #0f766e;">{{ inv.invoice_number }}</td>
+                <td style="font-weight: bold; color: #1e3a8a;">{{ inv.invoice_number }}</td>
                 <td>
                     <strong>{{ inv.customer.name }}</strong>
                     {% if inv.customer.phone %}<br><span style="font-size: 7pt; color: #64748b;">{{ inv.customer.phone }}</span>{% endif %}
@@ -243,7 +243,7 @@
                 <td colspan="4" style="text-align: right; text-transform: uppercase;">Total Cumulative (Rs.):</td>
                 <td style="text-align: right;">{{ total_subtotal_amount|floatformat:2 }}</td>
                 <td style="text-align: right; color: #0284c7;">{{ total_tax_collected|floatformat:2 }}</td>
-                <td style="text-align: right; color: #0f766e; font-weight: bold;">{{ total_amount_collected|floatformat:2 }}</td>
+                <td style="text-align: right; color: #1e3a8a; font-weight: bold;">{{ total_amount_collected|floatformat:2 }}</td>
                 <td style="text-align: center;">-</td>
             </tr>
             {% endif %}

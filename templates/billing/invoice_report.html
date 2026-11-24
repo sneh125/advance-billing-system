@@ -6,461 +6,516 @@
 {% block shell_class %}invoice-page-layout{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/invoices.css' %}">
-    <link rel="stylesheet" href="{% static 'css/customers.css' %}">
-    <link rel="stylesheet" href="{% static 'css/invoice_report.css' %}">
+<link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=10">
+<link rel="stylesheet" href="{% static 'css/customers.css' %}?v=10">
+<link rel="stylesheet" href="{% static 'css/invoice_report.css' %}?v=10">
 {% endblock %}
 
 {% block content %}
 <!-- MAIN REPORT PAGE CONTENT -->
-    <main class="invoice-page-content">
+<main class="invoice-page-content">
 
-        <!-- HEADER ROW -->
-        <div class="page-header-row">
-            <div class="page-title-wrap">
-                <h2>Invoice Report Generator</h2>
-                <p>Filter invoices by custom date range, status, and customer to analyze business revenue and settlement.</p>
-            </div>
-            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                <a href="{% url 'invoice_report_pdf' %}?{{ request.GET.urlencode }}" class="btn-download-pdf-report" id="btnDownloadReportPdf" title="Download filtered report as PDF using xhtml2pdf">
-                    📄 Download Report (PDF)
-                </a>
-                <a href="{% url 'invoice_list' %}" class="btn-filter-reset">
-                    ← Back to Invoices Directory
-                </a>
-            </div>
-        </div>
-
-        <!-- REPORT GENERATION FILTER FORM CARD -->
-        <div class="report-filter-card">
-            <div class="report-filter-header">
-                <h3>🔍 Report Filter Criteria</h3>
-                <div class="report-presets-row">
-                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 700;">Quick Presets:</span>
-                    <button type="button" class="preset-chip" onclick="setPreset('today')">Today</button>
-                    <button type="button" class="preset-chip" onclick="setPreset('last7')">Last 7 Days</button>
-                    <button type="button" class="preset-chip" onclick="setPreset('thisMonth')">This Month</button>
-                    <button type="button" class="preset-chip" onclick="resetDates()">Clear Dates</button>
-                </div>
-            </div>
-
-            {% if form.non_field_errors %}
-            <div class="report-form-error">
-                <span>⚠️</span>
-                <div>
-                    {% for error in form.non_field_errors %}
-                    <p style="margin: 0;">{{ error }}</p>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <form method="GET" action="{% url 'invoice_report' %}" id="reportFilterForm">
-                <div class="report-form-grid">
-                    <!-- START DATE -->
-                    <div class="report-form-group">
-                        <label for="startDate">From Date</label>
-                        {{ form.start_date }}
-                        {% if form.start_date.errors %}
-                        <small style="color: #b91c1c;">{{ form.start_date.errors.0 }}</small>
-                        {% endif %}
-                    </div>
-
-                    <!-- END DATE -->
-                    <div class="report-form-group">
-                        <label for="endDate">To Date</label>
-                        {{ form.end_date }}
-                        {% if form.end_date.errors %}
-                        <small style="color: #b91c1c;">{{ form.end_date.errors.0 }}</small>
-                        {% endif %}
-                    </div>
-
-                    <!-- STATUS -->
-                    <div class="report-form-group">
-                        <label for="statusSelect">Payment Status</label>
-                        {{ form.status }}
-                    </div>
-
-                    <!-- CUSTOMER -->
-                    <div class="report-form-group">
-                        <label for="customerSelect">Customer</label>
-                        {{ form.customer }}
-                    </div>
-                </div>
-
-                <div class="report-actions-row">
-                    <a href="{% url 'invoice_report' %}" class="btn-filter-reset">
-                        ↺ Reset
-                    </a>
-                    <button type="submit" class="btn-filter-submit">
-                        📊 Generate Filtered Report
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- CA-READY GSTR-1 TAX FILING EXPORTS -->
-        <div class="report-filter-card" style="background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 100%); border: 1px solid #99f6e4; margin-bottom: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-                <div>
-                    <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 800; color: #0f766e;">🏛️ CA-Ready GSTR-1 GST Filing Exports (CSV)</h3>
-                    <p style="margin: 0; font-size: 12.5px; color: var(--text-secondary);">
-                        Download monthly or date-filtered GST sheets (excludes Cancelled invoices automatically) ready for your CA / GST portal.
-                    </p>
-                </div>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <a href="{% url 'gstr1_export_csv' %}?section=b2b{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" id="btnGstr1B2B" class="btn-filter-submit" style="text-decoration: none; padding: 9px 14px; font-size: 12.5px;">
-                        📊 GSTR-1 B2B (GSTIN)
-                    </a>
-                    <a href="{% url 'gstr1_export_csv' %}?section=b2c{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" id="btnGstr1B2C" class="btn-filter-reset" style="text-decoration: none; padding: 9px 14px; font-size: 12.5px; border-color: #0f766e; color: #0f766e;">
-                        🧾 GSTR-1 B2C Summary
-                    </a>
-                    <a href="{% url 'gstr1_export_csv' %}?section=hsn{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" id="btnGstr1HSN" class="btn-filter-reset" style="text-decoration: none; padding: 9px 14px; font-size: 12.5px; border-color: #7c3aed; color: #6d28d9;">
-                        🏷️ GSTR-1 HSN Summary
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- SUMMARY METRICS KPI CARDS (TASK 44) -->
-        <div class="report-summary-metrics-grid">
-            <div class="report-metric-card metric-invoices">
-                <div class="metric-icon-bubble">🧾</div>
-                <div class="metric-info-col">
-                    <span class="metric-label">Total Invoices</span>
-                    <span class="metric-value" id="summaryTotalInvoices">{{ total_invoices_count }}</span>
-                    <span class="metric-subtext">Within Selected Range</span>
-                </div>
-            </div>
-
-            <div class="report-metric-card metric-amount">
-                <div class="metric-icon-bubble">💰</div>
-                <div class="metric-info-col">
-                    <span class="metric-label">Total Amount</span>
-                    <span class="metric-value text-primary" id="summaryTotalAmount">₹{{ total_amount_collected|floatformat:2 }}</span>
-                    <span class="metric-subtext">Cumulative Billed Value</span>
-                </div>
-            </div>
-
-            <div class="report-metric-card metric-paid">
-                <div class="metric-icon-bubble">✅</div>
-                <div class="metric-info-col">
-                    <span class="metric-label">Amount Collected (Paid)</span>
-                    <span class="metric-value text-success" id="summaryPaidAmount">₹{{ paid_amount|floatformat:2 }}</span>
-                    <span class="metric-subtext">{{ paid_count }} Paid Invoice{{ paid_count|pluralize }}</span>
-                </div>
-            </div>
-
-            <div class="report-metric-card metric-pending">
-                <div class="metric-icon-bubble">⏳</div>
-                <div class="metric-info-col">
-                    <span class="metric-label">Pending Collection</span>
-                    <span class="metric-value text-warning" id="summaryPendingAmount">₹{{ pending_amount|floatformat:2 }}</span>
-                    <span class="metric-subtext">{{ pending_count }} Pending Invoice{{ pending_count|pluralize }}</span>
-                </div>
-            </div>
-
-            <div class="report-metric-card metric-tax">
-                <div class="metric-icon-bubble">🏛️</div>
-                <div class="metric-info-col">
-                    <span class="metric-label">GST Tax Collected</span>
-                    <span class="metric-value text-info" id="summaryTaxAmount">₹{{ total_tax_collected|floatformat:2 }}</span>
-                    <span class="metric-subtext">Net Taxable: ₹{{ total_subtotal_amount|floatformat:2 }}</span>
-                </div>
-            </div>
-
-            <div class="report-metric-card" style="border-left: 4px solid #dc2626;">
-                <div class="metric-icon-bubble" style="background: #fef2f2; color: #dc2626;">✖</div>
-                <div class="metric-info-col">
-                    <span class="metric-label">Cancelled Invoices</span>
-                    <span class="metric-value" style="color: #dc2626;" id="summaryCancelledCount">{{ cancelled_count|default:"0" }}</span>
-                    <span class="metric-subtext">Excluded from revenue</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- MONTHLY REVENUE CHART & CUSTOMER-WISE SALES REPORT -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-bottom: 24px;">
-            <div class="report-filter-card" id="reportMonthlyChart" style="margin-bottom: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                    <h3 style="margin: 0; font-size: 15px; font-weight: 800;">📈 Monthly Revenue vs Collected (6 Months)</h3>
-                    <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 700;">Billed vs Paid</span>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; align-items: end; height: 170px; padding-top: 12px; border-bottom: 1px solid var(--slate-200);">
-                    {% for pt in monthly_revenue_chart %}
-                    <div style="display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; gap: 5px;" title="{{ pt.label }}: Billed ₹{{ pt.revenue|floatformat:0 }} | Collected ₹{{ pt.collected|floatformat:0 }}">
-                        <div style="display: flex; align-items: flex-end; gap: 3px; height: 130px;">
-                            <div style="width: 14px; border-radius: 4px 4px 0 0; background: #0f766e; height: {{ pt.rev_pct }}%; min-height: 3px;"></div>
-                            <div style="width: 14px; border-radius: 4px 4px 0 0; background: #10b981; height: {{ pt.col_pct }}%; min-height: 3px;"></div>
-                        </div>
-                        <span style="font-size: 10.5px; font-weight: 700; color: var(--text-muted);">
-                            {{ pt.label }}
-                        </span>
-                    </div>
-                    {% endfor %}
-                </div>
-                <div style="display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--text-secondary);">
-                    <span><strong style="color: #0f766e;">■</strong> Total Billed</span>
-                    <span><strong style="color: #10b981;">■</strong> Actual Collected</span>
-                </div>
-            </div>
-
-            <div class="report-filter-card" id="customerWiseSalesPanel" style="margin-bottom: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <h3 style="margin: 0; font-size: 15px; font-weight: 800;">👥 Customer-Wise Sales Summary</h3>
-                    <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 700;">Top Accounts</span>
-                </div>
-                {% if customer_sales_report %}
-                <div style="overflow-x: auto; max-height: 210px; overflow-y: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
-                        <thead>
-                            <tr style="border-bottom: 1px solid var(--slate-200); color: var(--text-muted); text-align: left;">
-                                <th style="padding: 6px 4px;">Customer</th>
-                                <th style="padding: 6px 4px; text-align: center;">Bills</th>
-                                <th style="padding: 6px 4px; text-align: right;">Billed</th>
-                                <th style="padding: 6px 4px; text-align: right;">Due</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for cs in customer_sales_report %}
-                            <tr style="border-bottom: 1px solid var(--slate-100);">
-                                <td style="padding: 6px 4px;">
-                                    <a href="{% url 'customer_ledger' cs.customer_id %}" style="font-weight: 700; color: var(--text-main); text-decoration: none;">
-                                        {{ cs.customer_name }}
-                                    </a>
-                                </td>
-                                <td style="padding: 6px 4px; text-align: center;">
-                                    {{ cs.invoice_count }}
-                                </td>
-                                <td style="padding: 6px 4px; text-align: right; font-family: var(--font-mono); font-weight: 700;">
-                                    ₹{{ cs.total_billed|floatformat:2 }}
-                                </td>
-                                <td style="padding: 6px 4px; text-align: right; font-family: var(--font-mono); color: #b45309; font-weight: 700;">
-                                    ₹{{ cs.balance_due|floatformat:2 }}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+    <!-- HEADER ROW -->
+    <div class="page-header-row">
+        <div class="page-title-wrap">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <h2 style="margin: 0;">{% if request.user.is_staff %}System-Wide Invoice Report Generator{% else %}Invoice Report Generator{% endif %}</h2>
+                {% if request.user.is_staff %}
+                <span class="badge-pill-role"
+                    style="background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">🛡️ Admin Global View — All
+                    Distributors</span>
                 {% else %}
-                <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
-                    No customer sales recorded for this filter.
-                </div>
+                <span class="badge-pill-role" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">🏢
+                    Distributor Workspace</span>
                 {% endif %}
             </div>
+            <p>{% if request.user.is_staff %}Analyze consolidated platform revenue, GST collection, and settlement
+                metrics across all distributors.{% else %}Filter your invoices by custom date range, status, and
+                customer to analyze sales and export CA-ready GSTR-1 CSVs.{% endif %}</p>
+        </div>
+        <p>{% if request.user.is_staff %}Analyze consolidated platform revenue, GST collection, and settlement
+            metrics across all distributors.{% else %}Filter your invoices by custom date range, status, and
+            customer to analyze sales and export CA-ready GSTR-1 CSVs.{% endif %}</p>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <a href="{% url 'invoice_report_pdf' %}?{{ request.GET.urlencode }}" class="btn-download-pdf-report"
+            id="btnDownloadReportPdf" title="Download filtered report as PDF using xhtml2pdf">
+            📄 Download Report (PDF)
+        </a>
+        <a href="{% url 'invoice_list' %}" class="btn-filter-reset">
+            ← Back to Invoices Directory
+        </a>
+    </div>
+    </div>
+
+    <!-- REPORT GENERATION FILTER FORM CARD -->
+    <div class="report-filter-card">
+        <div class="report-filter-header">
+            <h3>🔍 Report Filter Criteria</h3>
+            <div class="report-presets-row">
+                <span style="font-size: 12px; color: var(--text-muted); font-weight: 700;">Quick Presets:</span>
+                <button type="button" class="preset-chip" onclick="setPreset('today')">Today</button>
+                <button type="button" class="preset-chip" onclick="setPreset('last7')">Last 7 Days</button>
+                <button type="button" class="preset-chip" onclick="setPreset('thisMonth')">This Month</button>
+                <button type="button" class="preset-chip" onclick="resetDates()">Clear Dates</button>
+            </div>
         </div>
 
-        <!-- REPORT RESULTS LEDGER TABLE -->
-        <div class="invoices-table-card">
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--slate-100); flex-wrap: wrap; gap: 12px;">
-                <div style="font-size: 15px; font-weight: 800; color: var(--text-main);">
-                    Filtered Results
-                    {% if start_date or end_date %}
-                    <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">
-                        (From: {{ start_date|default:"Beginning" }} To: {{ end_date|default:"Present" }})
-                    </span>
+        {% if form.non_field_errors %}
+        <div class="report-form-error">
+            <span>⚠️</span>
+            <div>
+                {% for error in form.non_field_errors %}
+                <p style="margin: 0;">{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <form method="GET" action="{% url 'invoice_report' %}" id="reportFilterForm">
+            <div class="report-form-grid">
+                <!-- START DATE -->
+                <div class="report-form-group">
+                    <label for="startDate">From Date</label>
+                    {{ form.start_date }}
+                    {% if form.start_date.errors %}
+                    <small style="color: #b91c1c;">{{ form.start_date.errors.0 }}</small>
                     {% endif %}
                 </div>
-                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <span class="search-stats-badge">
-                        🧾 {{ total_invoices_count }} Matching Invoice{{ total_invoices_count|pluralize }}
-                    </span>
-                    <a href="{% url 'invoice_report_pdf' %}?{{ request.GET.urlencode }}" class="btn-action-view" style="color: #dc2626; border-color: #fecaca; background: #fef2f2; text-decoration: none; padding: 6px 14px; border-radius: var(--radius-md);" title="Export Filtered Report to PDF">
-                        📥 Download PDF
-                    </a>
+
+                <!-- END DATE -->
+                <div class="report-form-group">
+                    <label for="endDate">To Date</label>
+                    {{ form.end_date }}
+                    {% if form.end_date.errors %}
+                    <small style="color: #b91c1c;">{{ form.end_date.errors.0 }}</small>
+                    {% endif %}
+                </div>
+
+                <!-- STATUS -->
+                <div class="report-form-group">
+                    <label for="statusSelect">Payment Status</label>
+                    {{ form.status }}
+                </div>
+
+                <!-- CUSTOMER -->
+                <div class="report-form-group">
+                    <label for="customerSelect">Customer</label>
+                    {{ form.customer }}
                 </div>
             </div>
 
-            <div class="table-responsive-wrapper">
-                <table class="saas-data-table">
+            <div class="report-actions-row">
+                <a href="{% url 'invoice_report' %}" class="btn-filter-reset">
+                    ↺ Reset
+                </a>
+                <button type="submit" class="btn-filter-submit">
+                    📊 Generate Filtered Report
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- CA-READY GSTR-1 TAX FILING EXPORTS -->
+    <div class="report-filter-card"
+        style="background: #ffffff; border: 1px solid #cbd5e1; border-left: 4px solid #2563eb; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div>
+                <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 800; color: #1d4ed8;">🏛️ CA-Ready GSTR-1
+                    GST Filing Exports (CSV)</h3>
+                <p style="margin: 0; font-size: 12.5px; color: var(--text-secondary);">
+                    Download monthly or date-filtered GST sheets (excludes Cancelled invoices automatically) ready for
+                    your CA / GST portal.
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="{% url 'gstr1_export_csv' %}?section=b2b{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}"
+                    id="btnGstr1B2B" class="btn-filter-submit"
+                    style="text-decoration: none; padding: 9px 14px; font-size: 12.5px;">
+                    📊 GSTR-1 B2B (GSTIN)
+                </a>
+                <a href="{% url 'gstr1_export_csv' %}?section=b2c{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}"
+                    id="btnGstr1B2C" class="btn-filter-reset"
+                    style="text-decoration: none; padding: 9px 14px; font-size: 12.5px; border-color: #1d4ed8; color: #1d4ed8;">
+                    🧾 GSTR-1 B2C Summary
+                </a>
+                <a href="{% url 'gstr1_export_csv' %}?section=hsn{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}"
+                    id="btnGstr1HSN" class="btn-filter-reset"
+                    style="text-decoration: none; padding: 9px 14px; font-size: 12.5px; border-color: #7c3aed; color: #6d28d9;">
+                    🏷️ GSTR-1 HSN Summary
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUMMARY METRICS KPI CARDS (TASK 44) -->
+    <div class="report-summary-metrics-grid">
+        <div class="report-metric-card metric-invoices">
+            <div class="metric-icon-bubble">🧾</div>
+            <div class="metric-info-col">
+                <span class="metric-label">Total Invoices</span>
+                <span class="metric-value" id="summaryTotalInvoices">{{ total_invoices_count }}</span>
+                <span class="metric-subtext">Within Selected Range</span>
+            </div>
+        </div>
+
+        <div class="report-metric-card metric-amount">
+            <div class="metric-icon-bubble">💰</div>
+            <div class="metric-info-col">
+                <span class="metric-label">Total Amount</span>
+                <span class="metric-value text-primary" id="summaryTotalAmount">₹{{ total_amount_collected|floatformat:2 }}</span>
+                <span class="metric-subtext">Cumulative Billed Value</span>
+            </div>
+        </div>
+
+        <div class="report-metric-card metric-paid">
+            <div class="metric-icon-bubble">✅</div>
+            <div class="metric-info-col">
+                <span class="metric-label">Amount Collected (Paid)</span>
+                <span class="metric-value text-success" id="summaryPaidAmount">₹{{ paid_amount|floatformat:2 }}</span>
+                <span class="metric-subtext">{{ paid_count }} Paid Invoice{{ paid_count|pluralize }}</span>
+            </div>
+        </div>
+
+        <div class="report-metric-card metric-pending">
+            <div class="metric-icon-bubble">⏳</div>
+            <div class="metric-info-col">
+                <span class="metric-label">Pending Collection</span>
+                <span class="metric-value text-warning" id="summaryPendingAmount">₹{{ pending_amount|floatformat:2 }}</span>
+                <span class="metric-subtext">{{ pending_count }} Pending Invoice{{ pending_count|pluralize }}</span>
+            </div>
+        </div>
+
+        <div class="report-metric-card metric-tax">
+            <div class="metric-icon-bubble">🏛️</div>
+            <div class="metric-info-col">
+                <span class="metric-label">GST Tax Collected</span>
+                <span class="metric-value text-info" id="summaryTaxAmount">₹{{ total_tax_collected|floatformat:2 }}</span>
+                <span class="metric-subtext">Net Taxable: ₹{{ total_subtotal_amount|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <div class="report-metric-card" style="border-left: 4px solid #dc2626;">
+            <div class="metric-icon-bubble" style="background: #fef2f2; color: #dc2626;">✖</div>
+            <div class="metric-info-col">
+                <span class="metric-label">Cancelled Invoices</span>
+                <span class="metric-value" style="color: #dc2626;" id="summaryCancelledCount">{{ cancelled_count|default:"0" }}</span>
+                <span class="metric-subtext">Excluded from revenue</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MONTHLY REVENUE CHART & CUSTOMER-WISE SALES REPORT -->
+    <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-bottom: 24px;">
+        <div class="report-filter-card" id="reportMonthlyChart" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h3 style="margin: 0; font-size: 15px; font-weight: 800;">📈 Monthly Revenue vs Collected (6 Months)
+                </h3>
+                <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 700;">Billed vs Paid</span>
+            </div>
+            <div
+                style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; align-items: end; height: 170px; padding-top: 12px; border-bottom: 1px solid var(--slate-200);">
+                {% for pt in monthly_revenue_chart %}
+                <div style="display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; gap: 5px;"
+                    title="{{ pt.label }}: Billed ₹{{ pt.revenue|floatformat:0 }} | Collected ₹{{ pt.collected|floatformat:0 }}">
+                    <div style="display: flex; align-items: flex-end; gap: 3px; height: 130px;">
+                        <div
+                            style="width: 14px; border-radius: 4px 4px 0 0; background: #2563eb; height: {{ pt.rev_pct }}%; min-height: 3px;">
+                        </div>
+                        <div
+                            style="width: 14px; border-radius: 4px 4px 0 0; background: #10b981; height: {{ pt.col_pct }}%; min-height: 3px;">
+                        </div>
+                    </div>
+                    <span style="font-size: 10.5px; font-weight: 700; color: var(--text-muted);">
+                        {{ pt.label }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--text-secondary);">
+                <span><strong style="color: #1d4ed8;">■</strong> Total Billed</span>
+                <span><strong style="color: #10b981;">■</strong> Actual Collected</span>
+            </div>
+        </div>
+
+        <div class="report-filter-card" id="customerWiseSalesPanel" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="margin: 0; font-size: 15px; font-weight: 800;">👥 Customer-Wise Sales Summary</h3>
+                <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 700;">Top Accounts</span>
+            </div>
+            {% if customer_sales_report %}
+            <div style="overflow-x: auto; max-height: 210px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
                     <thead>
-                        <tr>
-                            <th>Invoice Number</th>
-                            <th>Customer Details</th>
-                            <th>Date & Time</th>
-                            <th>Products Summary</th>
-                            <th style="text-align: right;">Taxable (₹)</th>
-                            <th style="text-align: right;">GST (₹)</th>
-                            <th style="text-align: right;">Total Bill</th>
-                            <th style="text-align: center;">Status</th>
-                            <th style="text-align: center;">Actions</th>
+                        <tr
+                            style="border-bottom: 1px solid var(--slate-200); color: var(--text-muted); text-align: left;">
+                            <th style="padding: 6px 4px;">Customer</th>
+                            <th style="padding: 6px 4px; text-align: center;">Bills</th>
+                            <th style="padding: 6px 4px; text-align: right;">Billed</th>
+                            <th style="padding: 6px 4px; text-align: right;">Due</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for invoice in invoices %}
-                        <tr>
-                            <td>
-                                <a href="{% url 'invoice_detail' invoice.pk %}" class="invoice-number-link">
-                                    {{ invoice.invoice_number }}
+                        {% for cs in customer_sales_report %}
+                        <tr style="border-bottom: 1px solid var(--slate-100);">
+                            <td style="padding: 6px 4px;">
+                                <a href="{% url 'customer_ledger' cs.customer_id %}"
+                                    style="font-weight: 700; color: var(--text-main); text-decoration: none;">
+                                    {{ cs.customer_name }}
                                 </a>
                             </td>
-                            <td>
-                                <div class="customer-info-cell">
-                                    <span class="customer-name-title">{{ invoice.customer.name }}</span>
-                                    <span class="customer-contact-sub">{{ invoice.customer.phone }}</span>
-                                </div>
+                            <td style="padding: 6px 4px; text-align: center;">
+                                {{ cs.invoice_count }}
                             </td>
-                            <td>
-                                <div class="date-time-cell">
-                                    <span class="date-main">{{ invoice.invoice_date|date:"d M Y" }}</span>
-                                    <span class="time-sub">{{ invoice.invoice_date|date:"h:i A" }}</span>
-                                </div>
+                            <td
+                                style="padding: 6px 4px; text-align: right; font-family: var(--font-mono); font-weight: 700;">
+                                ₹{{ cs.total_billed|floatformat:2 }}
                             </td>
-                            <td>
-                                <div class="product-summary-cell" title="{{ invoice.product_summary }}">
-                                    <span class="product-summary-text">{{ invoice.product_summary|default:"Standard Invoice Items" }}</span>
-                                    <span class="item-count-chip">{{ invoice.product_count|default:1 }} item{{ invoice.product_count|pluralize }}</span>
-                                </div>
-                            </td>
-                            <td style="text-align: right; font-size: 13.5px; color: var(--text-secondary);">
-                                ₹{{ invoice.subtotal|floatformat:2 }}
-                            </td>
-                            <td style="text-align: right; font-size: 13.5px; color: #0284c7;">
-                                ₹{{ invoice.gst_amount|floatformat:2 }}
-                            </td>
-                            <td style="text-align: right;">
-                                <span class="total-bill-amount">₹{{ invoice.total_amount|floatformat:2 }}</span>
-                            </td>
-                            <td style="text-align: center;">
-                                <span class="invoice-status-pill {% if invoice.status == 'Paid' %}status-paid{% else %}status-pending{% endif %}">
-                                    {{ invoice.status }}
-                                </span>
-                            </td>
-                            <td style="text-align: center;">
-                                <div class="action-buttons-wrap" style="justify-content: center;">
-                                    <a href="{% url 'invoice_detail' invoice.pk %}" class="btn-action-view" title="View Full Bill">
-                                        👁️ View
-                                    </a>
-                                    <a href="{% url 'invoice_pdf' invoice.pk %}" class="btn-action-view" style="color: #dc2626; border-color: #fecaca; background: #fef2f2;" title="Download PDF">
-                                        📄 PDF
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="9">
-                                <div class="empty-state-card">
-                                    <div class="empty-state-icon">📅</div>
-                                    <h3>No Invoices Found in Selected Range</h3>
-                                    <p>Try adjusting your date filters, payment status, or customer criteria to view matching records.</p>
-                                    <a href="{% url 'invoice_report' %}" class="btn-primary-add" style="margin-top: 12px;">
-                                        Reset Date Range
-                                    </a>
-                                </div>
+                            <td
+                                style="padding: 6px 4px; text-align: right; font-family: var(--font-mono); color: #b45309; font-weight: 700;">
+                                ₹{{ cs.balance_due|floatformat:2 }}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-
-            <!-- PAGINATION -->
-            {% if invoices.has_other_pages %}
-            <div class="pagination-wrapper">
-                <span class="pagination-summary">
-                    Showing Page <strong>{{ invoices.number }}</strong> of <strong>{{ invoices.paginator.num_pages }}</strong>
-                </span>
-                <div class="pagination-links-row">
-                    {% if invoices.has_previous %}
-                    <a href="?start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&status={{ selected_status }}&customer={{ selected_customer.id|default:'' }}&page={{ invoices.previous_page_number }}" class="page-link-btn">← Prev</a>
-                    {% endif %}
-
-                    <span class="page-link-btn active">{{ invoices.number }}</span>
-
-                    {% if invoices.has_next %}
-                    <a href="?start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&status={{ selected_status }}&customer={{ selected_customer.id|default:'' }}&page={{ invoices.next_page_number }}" class="page-link-btn">Next →</a>
-                    {% endif %}
-                </div>
+            {% else %}
+            <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                No customer sales recorded for this filter.
             </div>
             {% endif %}
         </div>
+    </div>
 
-    </main>
+    <!-- REPORT RESULTS LEDGER TABLE -->
+    <div class="invoices-table-card">
+        <div
+            style="display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--slate-100); flex-wrap: wrap; gap: 12px;">
+            <div style="font-size: 15px; font-weight: 800; color: var(--text-main);">
+                Filtered Results
+                {% if start_date or end_date %}
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">
+                    (From: {{ start_date|default:"Beginning" }} To: {{ end_date|default:"Present" }})
+                </span>
+                {% endif %}
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <span class="search-stats-badge">
+                    🧾 {{ total_invoices_count }} Matching Invoice{{ total_invoices_count|pluralize }}
+                </span>
+                <a href="{% url 'invoice_report_pdf' %}?{{ request.GET.urlencode }}" class="btn-action-view"
+                    style="color: #dc2626; border-color: #fecaca; background: #fef2f2; text-decoration: none; padding: 6px 14px; border-radius: var(--radius-md);"
+                    title="Export Filtered Report to PDF">
+                    📥 Download PDF
+                </a>
+            </div>
+        </div>
+
+        <div class="table-responsive-wrapper">
+            <table class="saas-data-table">
+                <thead>
+                    <tr>
+                        <th>Invoice Number</th>
+                        <th>Customer Details</th>
+                        <th>Date & Time</th>
+                        <th>Products Summary</th>
+                        <th style="text-align: right;">Taxable (₹)</th>
+                        <th style="text-align: right;">GST (₹)</th>
+                        <th style="text-align: right;">Total Bill</th>
+                        <th style="text-align: center;">Status</th>
+                        <th style="text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'invoice_detail' invoice.pk %}" class="invoice-number-link">
+                                {{ invoice.invoice_number }}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="customer-info-cell">
+                                <span class="customer-name-title">{{ invoice.customer.name }}</span>
+                                <span class="customer-contact-sub">{{ invoice.customer.phone }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="date-time-cell">
+                                <span class="date-main">{{ invoice.invoice_date|date:"d M Y" }}</span>
+                                <span class="time-sub">{{ invoice.invoice_date|date:"h:i A" }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="product-summary-cell" title="{{ invoice.product_summary }}">
+                                <span class="product-summary-text">{{ invoice.product_summary|default:"Standard Invoice Items" }}</span>
+                                <span class="item-count-chip">{{ invoice.product_count|default:1 }} item{{ invoice.product_count|pluralize }}</span>
+                            </div>
+                        </td>
+                        <td style="text-align: right; font-size: 13.5px; color: var(--text-secondary);">
+                            ₹{{ invoice.subtotal|floatformat:2 }}
+                        </td>
+                        <td style="text-align: right; font-size: 13.5px; color: #0284c7;">
+                            ₹{{ invoice.gst_amount|floatformat:2 }}
+                        </td>
+                        <td style="text-align: right;">
+                            <span class="total-bill-amount">₹{{ invoice.total_amount|floatformat:2 }}</span>
+                        </td>
+                        <td style="text-align: center;">
+                            {% if invoice.status == 'Paid' %}
+                            <span class="invoice-status-pill status-paid">Paid</span>
+                            {% elif invoice.status == 'Partial' %}
+                            <span class="invoice-status-pill"
+                                style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">Partial</span>
+                            {% elif invoice.status == 'Cancelled' %}
+                            <span class="invoice-status-pill"
+                                style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">Cancelled</span>
+                            {% else %}
+                            <span class="invoice-status-pill status-pending">{{ invoice.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            <div class="action-buttons-wrap" style="justify-content: center;">
+                                <a href="{% url 'invoice_detail' invoice.pk %}" class="btn-action-view"
+                                    title="View Full Bill">
+                                    👁️ View
+                                </a>
+                                <a href="{% url 'invoice_pdf' invoice.pk %}" class="btn-action-view"
+                                    style="color: #dc2626; border-color: #fecaca; background: #fef2f2;"
+                                    title="Download PDF">
+                                    📄 PDF
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9">
+                            <div class="empty-state-card">
+                                <div class="empty-state-icon">📅</div>
+                                <h3>No Invoices Found in Selected Range</h3>
+                                <p>Try adjusting your date filters, payment status, or customer criteria to view
+                                    matching records.</p>
+                                <a href="{% url 'invoice_report' %}" class="btn-primary-add" style="margin-top: 12px;">
+                                    Reset Date Range
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION -->
+        {% if invoices.has_other_pages %}
+        <div class="pagination-wrapper">
+            <span class="pagination-summary">
+                Showing Page <strong>{{ invoices.number }}</strong> of <strong>{{ invoices.paginator.num_pages }}</strong>
+            </span>
+            <div class="pagination-links-row">
+                {% if invoices.has_previous %}
+                <a href="?start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&status={{ selected_status }}&customer={{ selected_customer.id|default:'' }}&page={{ invoices.previous_page_number }}"
+                    class="page-link-btn">← Prev</a>
+                {% endif %}
+
+                <span class="page-link-btn active">{{ invoices.number }}</span>
+
+                {% if invoices.has_next %}
+                <a href="?start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&status={{ selected_status }}&customer={{ selected_customer.id|default:'' }}&page={{ invoices.next_page_number }}"
+                    class="page-link-btn">Next →</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</main>
 {% endblock %}
 
 {% block extra_body %}
 <script>
-function formatDate(d) {
-    let month = '' + (d.getMonth() + 1);
-    let day = '' + d.getDate();
-    let year = d.getFullYear();
-    if (month.length < 2) month = '0' + month;
-    if (day.length < 2) day = '0' + day;
-    return [year, month, day].join('-');
-}
-
-function setPreset(type) {
-    const today = new Date();
-    const startInput = document.getElementById('startDate');
-    const endInput = document.getElementById('endDate');
-
-    if (type === 'today') {
-        const dStr = formatDate(today);
-        startInput.value = dStr;
-        endInput.value = dStr;
-    } else if (type === 'last7') {
-        const d7 = new Date();
-        d7.setDate(today.getDate() - 7);
-        startInput.value = formatDate(d7);
-        endInput.value = formatDate(today);
-    } else if (type === 'thisMonth') {
-        const dMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        startInput.value = formatDate(dMonth);
-        endInput.value = formatDate(today);
+    function formatDate(d) {
+        let month = '' + (d.getMonth() + 1);
+        let day = '' + d.getDate();
+        let year = d.getFullYear();
+        if (month.length < 2) month = '0' + month;
+        if (day.length < 2) day = '0' + day;
+        return [year, month, day].join('-');
     }
-}
 
-function resetDates() {
-    document.getElementById('startDate').value = '';
-    document.getElementById('endDate').value = '';
-}
+    function setPreset(type) {
+        const today = new Date();
+        const startInput = document.getElementById('startDate');
+        const endInput = document.getElementById('endDate');
 
-// Task 46: Client-side validation to prevent empty date selection or invalid ranges
-document.addEventListener('DOMContentLoaded', function() {
-    const filterForm = document.getElementById('reportFilterForm');
-    if (filterForm) {
-        filterForm.addEventListener('submit', function(e) {
-            const startVal = document.getElementById('startDate').value.trim();
-            const endVal = document.getElementById('endDate').value.trim();
-            const statusSelect = document.getElementById('statusSelect');
-            const customerSelect = document.getElementById('customerSelect');
-            const statusVal = statusSelect ? statusSelect.value.trim() : '';
-            const customerVal = customerSelect ? customerSelect.value.trim() : '';
-
-            // If user clicked submit with completely empty filters
-            if (!startVal && !endVal && !statusVal && !customerVal) {
-                e.preventDefault();
-                alert('Please select both From Date and To Date to generate the report.');
-                document.getElementById('startDate').focus();
-                return false;
-            }
-
-            // If one date is chosen and the other is empty
-            if (startVal && !endVal) {
-                e.preventDefault();
-                alert('To Date is required when From Date is selected. Please select a valid end date.');
-                document.getElementById('endDate').focus();
-                return false;
-            }
-
-            if (!startVal && endVal) {
-                e.preventDefault();
-                alert('From Date is required when To Date is selected. Please select a valid start date.');
-                document.getElementById('startDate').focus();
-                return false;
-            }
-
-            // If range is inverted
-            if (startVal && endVal && startVal > endVal) {
-                e.preventDefault();
-                alert('Invalid date range: From Date cannot be later than To Date.');
-                document.getElementById('startDate').focus();
-                return false;
-            }
-        });
+        if (type === 'today') {
+            const dStr = formatDate(today);
+            startInput.value = dStr;
+            endInput.value = dStr;
+        } else if (type === 'last7') {
+            const d7 = new Date();
+            d7.setDate(today.getDate() - 7);
+            startInput.value = formatDate(d7);
+            endInput.value = formatDate(today);
+        } else if (type === 'thisMonth') {
+            const dMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            startInput.value = formatDate(dMonth);
+            endInput.value = formatDate(today);
+        }
     }
-});
+
+    function resetDates() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+    }
+
+    // Task 46: Client-side validation to prevent empty date selection or invalid ranges
+    document.addEventListener('DOMContentLoaded', function () {
+        const filterForm = document.getElementById('reportFilterForm');
+        if (filterForm) {
+            filterForm.addEventListener('submit', function (e) {
+                const startVal = document.getElementById('startDate').value.trim();
+                const endVal = document.getElementById('endDate').value.trim();
+                const statusSelect = document.getElementById('statusSelect');
+                const customerSelect = document.getElementById('customerSelect');
+                const statusVal = statusSelect ? statusSelect.value.trim() : '';
+                const customerVal = customerSelect ? customerSelect.value.trim() : '';
+
+                // If user clicked submit with completely empty filters
+                if (!startVal && !endVal && !statusVal && !customerVal) {
+                    e.preventDefault();
+                    alert('Please select both From Date and To Date to generate the report.');
+                    document.getElementById('startDate').focus();
+                    return false;
+                }
+
+                // If one date is chosen and the other is empty
+                if (startVal && !endVal) {
+                    e.preventDefault();
+                    alert('To Date is required when From Date is selected. Please select a valid end date.');
+                    document.getElementById('endDate').focus();
+                    return false;
+                }
+
+                if (!startVal && endVal) {
+                    e.preventDefault();
+                    alert('From Date is required when To Date is selected. Please select a valid start date.');
+                    document.getElementById('startDate').focus();
+                    return false;
+                }
+
+                // If range is inverted
+                if (startVal && endVal && startVal > endVal) {
+                    e.preventDefault();
+                    alert('Invalid date range: From Date cannot be later than To Date.');
+                    document.getElementById('startDate').focus();
+                    return false;
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

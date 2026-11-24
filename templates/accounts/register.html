@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distributor Registration | Advance Billing System</title>
     <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}?v=1">
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=5">
-    <link rel="stylesheet" href="{% static 'css/register.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=10">
+    <link rel="stylesheet" href="{% static 'css/register.css' %}?v=10">
 </head>
 <body>
 <main class="register-shell">
@@ -179,7 +179,7 @@
                 <span>Didn't receive OTP?</span>
                 <form method="POST" action="{% url 'register_resend_otp' %}" style="display: inline; margin: 0;">
                     {% csrf_token %}
-                    <button type="submit" id="btnRegResendOtp" style="background: none; border: none; color: #0f766e; font-weight: 700; cursor: pointer; text-decoration: underline; font-size: 13px;">
+                    <button type="submit" id="btnRegResendOtp" style="background: none; border: none; color: #2563eb; font-weight: 700; cursor: pointer; text-decoration: underline; font-size: 13px;">
                         Resend OTP
                     </button>
                 </form>

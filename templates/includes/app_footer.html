@@ -5,6 +5,7 @@
         min-height: 100vh;
         overscroll-behavior-y: none;
     }
+
     body {
         display: flex;
         flex-direction: column;
@@ -12,16 +13,18 @@
         padding-bottom: 0 !important;
         overflow-x: clip !important;
     }
-    body > .dashboard-container,
-    body > .invoice-page-layout {
+
+    body>.dashboard-container,
+    body>.invoice-page-layout {
         flex: 1 0 auto;
         display: flex;
         flex-direction: column;
         min-height: calc(100vh - var(--app-header-h, 96px)) !important;
     }
-    body > main,
-    .dashboard-container > main,
-    .invoice-page-layout > main {
+
+    body>main,
+    .dashboard-container>main,
+    .invoice-page-layout>main {
         flex: 1 0 auto;
         width: 100%;
     }
@@ -38,6 +41,7 @@
         border-top: 1px solid rgba(255, 255, 255, 0.08);
         font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
     }
+
     .app-shell-footer::before {
         content: '';
         position: absolute;
@@ -49,6 +53,29 @@
         opacity: 0.75;
         pointer-events: none;
     }
+
+    .app-shell-footer[data-portal="admin"]::before {
+        background: linear-gradient(90deg, transparent 0%, #be123c 25%, #f43f5e 50%, #fb7185 75%, transparent 100%);
+    }
+
+    .app-shell-footer[data-portal="admin"] .app-footer-brand-sub,
+    .app-shell-footer[data-portal="admin"] .app-footer-nav-link:hover,
+    .app-shell-footer[data-portal="admin"] .app-footer-powered strong {
+        color: #fda4af;
+    }
+
+    .app-shell-footer[data-portal="admin"] .app-footer-col-title::before,
+    .app-shell-footer[data-portal="admin"] .app-footer-powered-dot {
+        background: #f43f5e;
+        box-shadow: 0 0 8px rgba(244, 63, 94, 0.75);
+    }
+
+    .app-shell-footer[data-portal="admin"] .app-footer-badge {
+        color: #ffe4e6;
+        background: rgba(244, 63, 94, 0.14);
+        border-color: rgba(244, 63, 94, 0.32);
+    }
+
     .app-shell-footer * {
         box-sizing: border-box;
     }
@@ -71,6 +98,7 @@
         margin-bottom: 14px;
         text-decoration: none;
     }
+
     .app-footer-logo-mark {
         width: 44px;
         height: 44px;
@@ -79,6 +107,7 @@
         flex-shrink: 0;
         box-shadow: 0 6px 18px rgba(20, 184, 166, 0.35);
     }
+
     .app-footer-logo-mark svg,
     .app-footer-logo-mark img {
         width: 100%;
@@ -86,6 +115,7 @@
         display: block;
         object-fit: contain;
     }
+
     .app-footer-brand-title {
         display: block;
         font-size: 18px;
@@ -94,6 +124,7 @@
         line-height: 1.2;
         letter-spacing: -0.3px;
     }
+
     .app-footer-brand-sub {
         display: block;
         font-size: 11.5px;
@@ -102,6 +133,7 @@
         letter-spacing: 0.3px;
         margin-top: 2px;
     }
+
     .app-footer-desc {
         font-size: 13.5px;
         line-height: 1.65;
@@ -109,12 +141,14 @@
         margin: 0 0 18px 0;
         max-width: 340px;
     }
+
     .app-footer-badges {
         display: flex;
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
     }
+
     .app-footer-badge {
         display: inline-flex;
         align-items: center;
@@ -140,6 +174,7 @@
         align-items: center;
         gap: 8px;
     }
+
     .app-footer-col-title::before {
         content: '';
         width: 6px;
@@ -148,6 +183,7 @@
         background: #14b8a6;
         flex-shrink: 0;
     }
+
     .app-footer-list {
         list-style: none;
         margin: 0;
@@ -156,6 +192,7 @@
         flex-direction: column;
         gap: 10px;
     }
+
     .app-footer-nav-link {
         display: inline-flex;
         align-items: center;
@@ -166,6 +203,7 @@
         text-decoration: none;
         transition: color 0.16s ease, transform 0.16s ease;
     }
+
     .app-footer-nav-link:hover,
     .app-footer-nav-link:focus-visible {
         color: #5eead4;
@@ -184,6 +222,7 @@
         align-items: center;
         gap: 10px;
     }
+
     .app-footer-status-dot {
         width: 9px;
         height: 9px;
@@ -192,11 +231,13 @@
         box-shadow: 0 0 10px rgba(16, 185, 129, 0.75);
         flex-shrink: 0;
     }
+
     .app-footer-status-text {
         font-size: 12px;
         line-height: 1.35;
         color: #94a3b8;
     }
+
     .app-footer-status-text strong {
         display: block;
         color: #f1f5f9;
@@ -209,6 +250,7 @@
         border-top: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(2, 6, 23, 0.45);
     }
+
     .app-footer-bottom {
         max-width: 1360px;
         margin: 0 auto;
@@ -219,15 +261,18 @@
         gap: 16px;
         flex-wrap: wrap;
     }
+
     .app-footer-copy {
         font-size: 13px;
         font-weight: 500;
         color: #94a3b8;
     }
+
     .app-footer-copy strong {
         color: #f8fafc;
         font-weight: 700;
     }
+
     .app-footer-powered {
         display: inline-flex;
         align-items: center;
@@ -241,6 +286,7 @@
         color: #94a3b8;
         white-space: nowrap;
     }
+
     .app-footer-powered-dot {
         width: 7px;
         height: 7px;
@@ -249,6 +295,7 @@
         box-shadow: 0 0 8px rgba(20, 184, 166, 0.75);
         flex-shrink: 0;
     }
+
     .app-footer-powered strong {
         color: #5eead4;
         font-weight: 700;
@@ -267,9 +314,11 @@
         padding: 20px;
         z-index: 2000;
     }
+
     .app-footer-modal-overlay.open {
         display: flex;
     }
+
     .app-footer-modal-card {
         width: 100%;
         max-width: 540px;
@@ -280,16 +329,19 @@
         overflow: hidden;
         animation: appFooterModalIn 0.2s ease;
     }
+
     @keyframes appFooterModalIn {
         from {
             opacity: 0;
             transform: translateY(10px) scale(0.98);
         }
+
         to {
             opacity: 1;
             transform: translateY(0) scale(1);
         }
     }
+
     .app-footer-modal-head {
         background: linear-gradient(135deg, #0f172a 0%, #134e4a 100%);
         color: #ffffff;
@@ -299,6 +351,7 @@
         justify-content: space-between;
         gap: 12px;
     }
+
     .app-footer-modal-head h4 {
         margin: 0;
         font-size: 16.5px;
@@ -306,6 +359,7 @@
         letter-spacing: -0.2px;
         color: #ffffff;
     }
+
     .app-footer-modal-close {
         width: 32px;
         height: 32px;
@@ -321,28 +375,35 @@
         justify-content: center;
         transition: background 0.15s ease;
     }
+
     .app-footer-modal-close:hover {
         background: rgba(255, 255, 255, 0.22);
     }
+
     .app-footer-modal-body {
         padding: 22px 24px;
         color: #334155;
         font-size: 14px;
         line-height: 1.65;
     }
+
     .app-footer-modal-body p {
         margin: 0 0 12px 0;
     }
+
     .app-footer-modal-body p:last-child {
         margin-bottom: 0;
     }
+
     .app-footer-modal-body ul {
         margin: 8px 0 0 18px;
         padding: 0;
     }
+
     .app-footer-modal-body li {
         margin-bottom: 6px;
     }
+
     .app-footer-modal-foot {
         padding: 14px 24px;
         background: #f8fafc;
@@ -350,6 +411,7 @@
         display: flex;
         justify-content: flex-end;
     }
+
     .app-footer-modal-btn {
         padding: 8px 18px;
         border-radius: 10px;
@@ -368,6 +430,7 @@
             padding: 36px 24px 28px 24px;
             gap: 28px 32px;
         }
+
         .app-footer-bottom {
             padding: 16px 24px;
         }
@@ -380,6 +443,7 @@
             padding: 30px 18px 24px 18px;
             gap: 24px;
         }
+
         .app-footer-bottom {
             flex-direction: column;
             align-items: center;
@@ -395,6 +459,7 @@
             padding-top: 0 !important;
             padding-bottom: 0 !important;
         }
+
         .app-shell-footer,
         .app-footer-modal-overlay {
             display: none !important;
@@ -402,14 +467,13 @@
     }
 </style>
 
-<footer class="app-shell-footer" role="contentinfo" aria-label="Application Footer">
+<footer class="app-shell-footer" data-portal="{% if request.user.is_staff %}admin{% else %}distributor{% endif %}"
+    role="contentinfo" aria-label="Application Footer">
     <div class="app-footer-main">
         <!-- COL 1: BRAND & OVERVIEW -->
         <div>
-            <a
-                href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
-                class="app-footer-brand-head"
-            >
+            <a href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
+                class="app-footer-brand-head">
                 <div class="app-footer-logo-mark" aria-hidden="true">
                     {% include 'includes/logo_svg.html' with uid='ftr' %}
                 </div>
@@ -417,94 +481,75 @@
                     <span class="app-footer-brand-title">Advance Billing</span>
                     <span class="app-footer-brand-sub">
                         {% if request.user.is_staff %}
-                        Admin Control Portal
+                        Admin Control Center
                         {% else %}
                         Cloud GST Billing ERP
                         {% endif %}
                     </span>
                 </div>
             </a>
+            {% if request.user.is_staff %}
             <p class="app-footer-desc">
-                All-in-one GST invoicing, stock ledger, customer Khata management, and real-time billing analytics built for modern Indian distributors.
+                Centralized administrator command console for distributor oversight, consolidated GST revenue analytics,
+                inventory auditing, and database backups.
+            </p>
+            <div class="app-footer-badges">
+                <span class="app-footer-badge">🛡️ Multi-Tenant Oversight</span>
+                <span class="app-footer-badge">📊 Live Analytics</span>
+                <span class="app-footer-badge">💾 DB Backup</span>
+            </div>
+            {% else %}
+            <p class="app-footer-desc">
+                All-in-one GST invoicing, stock ledger, customer Khata management, and real-time billing analytics built
+                for modern Indian distributors.
             </p>
             <div class="app-footer-badges">
                 <span class="app-footer-badge">✓ GST Compliant</span>
                 <span class="app-footer-badge">⚡ UPI &amp; QR</span>
                 <span class="app-footer-badge">🔒 Secure ERP</span>
             </div>
+            {% endif %}
         </div>
 
         <!-- COL 2: QUICK NAVIGATION -->
         <div>
-            <h4 class="app-footer-col-title">Navigation</h4>
+            <h4 class="app-footer-col-title">{% if request.user.is_staff %}Admin Oversight{% else %}Navigation{% endif %}</h4>
             <ul class="app-footer-list">
-                <li>
-                    <a
-                        href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
-                        class="app-footer-nav-link"
-                    >
-                        Dashboard Overview
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'customer_list' %}" class="app-footer-nav-link">
-                        Customer Directory
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'product_list' %}" class="app-footer-nav-link">
-                        Product Inventory
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'invoice_list' %}" class="app-footer-nav-link">
-                        Tax Invoices
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'quotation_list' %}" class="app-footer-nav-link">
-                        Quotations &amp; Estimates
-                    </a>
-                </li>
+                {% if request.user.is_staff %}
+                <li><a href="{% url 'admin_dashboard' %}" class="app-footer-nav-link">Admin Overview</a></li>
+                <li><a href="{% url 'admin_dashboard' %}#distributors-section" class="app-footer-nav-link">Manage
+                        Distributors</a></li>
+                <li><a href="{% url 'customer_list' %}" class="app-footer-nav-link">All Customers</a></li>
+                <li><a href="{% url 'product_list' %}" class="app-footer-nav-link">All Products</a></li>
+                <li><a href="{% url 'invoice_list' %}" class="app-footer-nav-link">All Tax Invoices</a></li>
+                {% else %}
+                <li><a href="{% url 'distributor_dashboard' %}" class="app-footer-nav-link">Dashboard Overview</a></li>
+                <li><a href="{% url 'customer_list' %}" class="app-footer-nav-link">My Customers</a></li>
+                <li><a href="{% url 'product_list' %}" class="app-footer-nav-link">My Products</a></li>
+                <li><a href="{% url 'invoice_list' %}" class="app-footer-nav-link">My Tax Invoices</a></li>
+                <li><a href="{% url 'quotation_list' %}" class="app-footer-nav-link">Quotations &amp; Estimates</a></li>
+                {% endif %}
             </ul>
         </div>
 
-        <!-- COL 3: BILLING TOOLS -->
+        <!-- COL 3: TOOLS -->
         <div>
-            <h4 class="app-footer-col-title">Billing Tools</h4>
+            <h4 class="app-footer-col-title">{% if request.user.is_staff %}System Controls{% else %}Billing Tools{% endif %}</h4>
             <ul class="app-footer-list">
-                <li>
-                    <a href="{% url 'invoice_create' %}" class="app-footer-nav-link">
-                        Create New Invoice
-                    </a>
+                {% if request.user.is_staff %}
+                <li><a href="{% url 'invoice_report' %}" class="app-footer-nav-link">Consolidated GST Reports</a></li>
+                <li><a href="{% url 'stock_ledger' %}" class="app-footer-nav-link">Stock Audit Ledger</a></li>
+                <li><a href="{% url 'admin_backup_db' %}?format=json" class="app-footer-nav-link">Download DB Backup</a>
                 </li>
-                <li>
-                    <a href="{% url 'invoice_report' %}" class="app-footer-nav-link">
-                        Sales &amp; GSTR-1 Reports
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'stock_ledger' %}" class="app-footer-nav-link">
-                        Stock-In Audit Ledger
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'qr_decoder' %}" class="app-footer-nav-link">
-                        QR Invoice Scanner
-                    </a>
-                </li>
-                {% if not request.user.is_staff %}
-                <li>
-                    <a href="{% url 'distributor_profile' %}" class="app-footer-nav-link">
-                        My Business Profile
-                    </a>
-                </li>
+                <li><a href="{% url 'admin_dashboard' %}?export=csv" class="app-footer-nav-link">Export Analytics
+                        CSV</a></li>
+                <li><a href="/admin/" target="_blank" class="app-footer-nav-link">Django Admin Panel ↗</a></li>
                 {% else %}
-                <li>
-                    <a href="/admin/" target="_blank" class="app-footer-nav-link">
-                        Django Admin Panel ↗
-                    </a>
-                </li>
+                <li><a href="{% url 'invoice_create' %}" class="app-footer-nav-link">Create New Invoice</a></li>
+                <li><a href="{% url 'invoice_report' %}" class="app-footer-nav-link">Sales &amp; GSTR-1 Reports</a></li>
+                <li><a href="{% url 'stock_ledger' %}" class="app-footer-nav-link">Stock-In Audit Ledger</a></li>
+                <li><a href="{% url 'qr_decoder' %}" class="app-footer-nav-link">QR Invoice Scanner</a></li>
+                <li><a href="{% url 'distributor_profile' %}" class="app-footer-nav-link">My Business Profile</a></li>
                 {% endif %}
             </ul>
         </div>
@@ -558,11 +603,13 @@
     </div>
 </footer>
 
-<div class="app-footer-modal-overlay" id="appFooterInfoModal" role="dialog" aria-modal="true" aria-labelledby="appFooterModalTitle" onclick="if (event.target === this) closeAppFooterInfo();">
+<div class="app-footer-modal-overlay" id="appFooterInfoModal" role="dialog" aria-modal="true"
+    aria-labelledby="appFooterModalTitle" onclick="if (event.target === this) closeAppFooterInfo();">
     <div class="app-footer-modal-card">
         <div class="app-footer-modal-head">
             <h4 id="appFooterModalTitle">Advance Billing System</h4>
-            <button type="button" class="app-footer-modal-close" onclick="closeAppFooterInfo()" aria-label="Close">&times;</button>
+            <button type="button" class="app-footer-modal-close" onclick="closeAppFooterInfo()"
+                aria-label="Close">&times;</button>
         </div>
         <div class="app-footer-modal-body" id="appFooterModalBody"></div>
         <div class="app-footer-modal-foot">

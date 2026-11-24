@@ -1,51 +1,61 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Advance Billing System{% endblock %}</title>
     <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}?v=1">
-    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'css/base_design_tokens.css' %}?v=8">
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
 
-<div class="{% block shell_class %}dashboard-container{% endblock %}">
-    {% include 'includes/app_header.html' %}
+    <div class="{% block shell_class %}dashboard-container{% endblock %}">
+        {% include 'includes/app_header.html' %}
 
-    <!-- SHARED FLASH TOAST NOTIFICATIONS -->
-    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true">
-        {% if messages %}
+        <!-- SHARED FLASH TOAST NOTIFICATIONS -->
+        <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true">
+            {% block flash_toasts %}
+            {% if messages %}
             {% for message in messages %}
             <div class="toast-card {% if 'error' in message.tags %}error{% else %}success{% endif %}">
                 <span>{% if 'error' in message.tags %}⚠️{% else %}✓{% endif %} {{ message }}</span>
                 <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">×</button>
             </div>
             {% endfor %}
-        {% endif %}
-        {% block extra_toasts %}{% endblock %}
+            {% endif %}
+            {% endblock %}
+            {% block extra_toasts %}{% endblock %}
+        </div>
+
+        {% block content %}{% endblock %}
+
+        {% include 'includes/app_footer.html' %}
     </div>
 
-    {% block content %}{% endblock %}
+    {% block extra_body %}{% endblock %}
 
-    {% include 'includes/app_footer.html' %}
-</div>
-
-{% block extra_body %}{% endblock %}
-
-<script>
-    (function () {
-        const initialToasts = Array.from(document.querySelectorAll('#toastContainer > .toast-card'));
-        if (initialToasts.length) {
-            setTimeout(function () {
-                initialToasts.forEach(function (t) {
-                    if (t && t.parentNode) t.remove();
-                });
-            }, 4500);
-        }
-    })();
-</script>
+    <script>
+        (function () {
+            const initialToasts = Array.from(document.querySelectorAll('#toastContainer > .toast-card'));
+            if (initialToasts.length) {
+                setTimeout(function () {
+                    initialToasts.forEach(function (t) {
+                        t.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+                        t.style.opacity = '0';
+                        t.style.transform = 'translateY(-10px)';
+                        setTimeout(function () {
+                            if (t && t.parentNode) t.remove();
+                        }, 360);
+                    });
+                }, 3000);
+            }
+        })();
+    </script>
 
 </body>
+
 </html>

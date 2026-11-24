@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Admin, DistributorProfile, PasswordResetOTP, RegistrationOTP
+from .models import Admin, DistributorProfile, PasswordResetOTP, RegistrationOTP, SystemAnnouncement
 
 
 @admin.register(RegistrationOTP)
@@ -29,3 +29,10 @@ class PasswordResetOTPAdmin(admin.ModelAdmin):
     list_filter = ("is_verified",)
     search_fields = ("email",)
     readonly_fields = ("otp",)
+
+
+@admin.register(SystemAnnouncement)
+class SystemAnnouncementAdmin(admin.ModelAdmin):
+    list_display = ("title", "level", "is_active", "created_by", "created_at")
+    list_filter = ("level", "is_active")
+    search_fields = ("title", "message")

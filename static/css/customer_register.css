@@ -1,6 +1,6 @@
 /* ==========================================================================
    ADVANCE BILLING SYSTEM — CUSTOMER REGISTRATION FRONT-END STYLESHEET
-   Design System: SaaS Modern Light & Navy (#0f172a / #14b8a6)
+   Design System: SaaS Modern Light & Navy (#0f172a / #2563eb)
    ========================================================================== */
 
 @import url('base_design_tokens.css');
@@ -68,8 +68,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(20, 184, 166, 0.18);
-    color: #2dd4bf;
+    background: rgba(59, 130, 246, 0.16);
+    color: #93c5fd;
     border: 1px solid rgba(45, 212, 191, 0.3);
     padding: 6px 12px;
     border-radius: var(--radius-full);
@@ -90,7 +90,7 @@
 }
 
 .sidebar-title span {
-    background: linear-gradient(135deg, #2dd4bf 0%, #38bdf8 100%);
+    background: #2563eb;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -171,7 +171,7 @@
     font-weight: 800;
     font-size: 15px;
     flex-shrink: 0;
-    box-shadow: 0 4px 10px rgba(20, 184, 166, 0.3);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
 }
 
 .dist-meta {
@@ -529,7 +529,7 @@ input:checked + .switch-slider:before {
     font-weight: 700;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(20, 184, 166, 0.35);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
     transition: var(--transition-fast);
     display: inline-flex;
     align-items: center;
@@ -538,7 +538,7 @@ input:checked + .switch-slider:before {
 
 .btn-reg-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 22px rgba(20, 184, 166, 0.45);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
 .btn-reg-submit:active {

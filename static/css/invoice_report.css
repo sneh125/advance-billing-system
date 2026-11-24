@@ -102,7 +102,7 @@
 .report-form-group .form-control:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
 .report-actions-row {
@@ -127,13 +127,13 @@
     border-radius: var(--radius-lg);
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(20, 184, 166, 0.35);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
     transition: var(--transition-fast);
 }
 
 .btn-filter-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(20, 184, 166, 0.45);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
 .btn-filter-reset {
@@ -148,6 +148,7 @@
     border-radius: var(--radius-lg);
     border: 1px solid var(--slate-200);
     text-decoration: none;
+    white-space: nowrap;
     transition: var(--transition-fast);
 }
 
@@ -168,6 +169,7 @@
     border-radius: var(--radius-lg);
     border: 1px solid #b91c1c;
     text-decoration: none;
+    white-space: nowrap;
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
     transition: var(--transition-fast);
 }
@@ -177,6 +179,102 @@
     color: #ffffff;
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+}
+
+/* TABLE ACTION PILLS & REPORT LINKS (SINGLE-LINE NO-WRAP) */
+.btn-action-view {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    background: var(--slate-100);
+    border: 1px solid var(--border-color);
+    color: var(--slate-700);
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-action-view:hover {
+    background: var(--primary-50);
+    border-color: var(--primary-300);
+    color: var(--primary-700);
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+.invoice-number-link {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary-700);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.invoice-number-link:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+.pagination-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.pagination-summary {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.pagination-links-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.page-link-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 14px;
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    color: var(--slate-700);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: var(--transition-fast);
+}
+
+.page-link-btn:hover {
+    background: var(--primary-50);
+    border-color: var(--primary-300);
+    color: var(--primary-700);
+}
+
+.page-link-btn.active {
+    background: var(--primary-gradient);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
 
 /* ERROR ALERT BOX */

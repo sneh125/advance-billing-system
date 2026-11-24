@@ -4,9 +4,9 @@
 {% block title %}Product Inventory | Advance Billing System{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-    <link rel="stylesheet" href="{% static 'css/product_list.css' %}">
-    <link rel="stylesheet" href="{% static 'css/customers.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'css/product_list.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'css/customers.css' %}?v=6">
 {% endblock %}
 
 {% block content %}
@@ -16,8 +16,15 @@
         <!-- HEADER ROW -->
         <div class="page-header-row">
             <div class="page-title-wrap">
-                <h2>Product Catalog & Stock</h2>
-                <p>Manage product inventories, live stock counts, GST slab rates, and unit pricing.</p>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <h2 style="margin: 0;">{% if request.user.is_staff %}All Products &amp; Inventory{% else %}My Product Catalog &amp; Stock{% endif %}</h2>
+                    {% if request.user.is_staff %}
+                    <span class="badge-pill-role" style="background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">🛡️ Admin Global View — All Distributors</span>
+                    {% else %}
+                    <span class="badge-pill-role" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">🏢 Distributor Workspace</span>
+                    {% endif %}
+                </div>
+                <p>{% if request.user.is_staff %}Platform-wide product catalog, stock health, and GST slab overview across all distributors.{% else %}Manage your product inventory, live stock counts, GST slab rates, and unit pricing.{% endif %}</p>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <a href="{% url 'stock_ledger' %}" class="btn-clear-filter" style="text-decoration: none; padding: 10px 16px;">
@@ -98,12 +105,12 @@
                 <table class="saas-data-table" aria-label="Products Table">
                     <thead>
                         <tr>
-                            <th style="width: 30%;">Product Details</th>
-                            <th style="width: 18%;">Category</th>
-                            <th style="width: 16%;">Price (INR)</th>
+                            <th style="width: 26%;">Product Details</th>
+                            <th style="width: 14%;">Category</th>
+                            <th style="width: 13%;">Price (INR)</th>
                             <th style="width: 14%;">Stock Status</th>
-                            <th style="width: 10%;">GST Rate</th>
-                            <th style="width: 12%; text-align: right;">Actions</th>
+                            <th style="width: 9%;">GST Rate</th>
+                            <th style="width: 24%; text-align: right;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -114,9 +121,9 @@
                                     <a href="{% url 'product_detail' product.pk %}" style="font-size: 14.5px; font-weight: 700; color: var(--text-main); text-decoration: none;" title="View Product Details">
                                         {{ product.name }}
                                     </a>
-                                    {% if product.sku or product.hsn_code %}
+                                    {% if product.sku or product.hsn_code or request.user.is_staff %}
                                     <small style="color: var(--primary-700); font-family: var(--font-mono); font-size: 11px;">
-                                        {% if product.sku %}SKU: {{ product.sku }}{% endif %}{% if product.sku and product.hsn_code %} • {% endif %}{% if product.hsn_code %}HSN: {{ product.hsn_code }}{% endif %}
+                                        {% if product.sku %}SKU: {{ product.sku }}{% endif %}{% if product.sku and product.hsn_code %} • {% endif %}{% if product.hsn_code %}HSN: {{ product.hsn_code }}{% endif %}{% if request.user.is_staff %}{% if product.sku or product.hsn_code %} • {% endif %}<span style="color: #be123c; font-weight: 700;">Dist: {{ product.distributor.username }}</span>{% endif %}
                                     </small>
                                     {% endif %}
                                     {% if product.description %}

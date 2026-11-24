@@ -6,7 +6,7 @@
 {% block shell_class %}invoice-page-layout{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=10">
 {% endblock %}
 
 {% block content %}
@@ -399,7 +399,7 @@
                     <div style="flex: 1;">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
                             <span class="upi-brand-pill">⚡ UPI Instant Pay</span>
-                            <span style="font-size: 12px; font-weight: 700; color: #0f766e;">Scan &amp; Pay via any UPI App</span>
+                            <span style="font-size: 12px; font-weight: 700; color: #1d4ed8;">Scan &amp; Pay via any UPI App</span>
                         </div>
                         <div class="upi-app-tags">
                             <span class="upi-app-tag">Google Pay</span>
@@ -413,10 +413,10 @@
                         </p>
                         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                             <span style="font-size: 12px; color: var(--text-muted);">
-                                <strong>UPI ID:</strong> <code style="font-family: var(--font-mono); color: #0f766e; font-weight: 700;">{{ upi_id }}</code>
+                                <strong>UPI ID:</strong> <code style="font-family: var(--font-mono); color: #1d4ed8; font-weight: 700;">{{ upi_id }}</code>
                             </span>
                             <span style="font-size: 12px; color: var(--text-muted);">
-                                <strong>Amount:</strong> <code style="font-family: var(--font-mono); color: #0f766e; font-weight: 700;">₹{% if invoice.status == 'Partial' %}{{ balance_due|floatformat:2 }}{% else %}{{ invoice.total_amount }}{% endif %}</code>
+                                <strong>Amount:</strong> <code style="font-family: var(--font-mono); color: #1d4ed8; font-weight: 700;">₹{% if invoice.status == 'Partial' %}{{ balance_due|floatformat:2 }}{% else %}{{ invoice.total_amount }}{% endif %}</code>
                             </span>
                         </div>
                         <div style="margin-top: 10px;">
@@ -426,7 +426,7 @@
                         </div>
                     </div>
 
-                    <div class="qr-code-box" style="border-color: #0f766e; box-shadow: 0 4px 12px rgba(15, 118, 110, 0.15); width: 120px; height: 120px;">
+                    <div class="qr-code-box" style="border-color: #bfdbfe; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06); width: 120px; height: 120px;">
                         <img src="data:image/png;base64,{{ upi_qr_code }}" alt="UPI Payment QR Code">
                     </div>
                 </div>

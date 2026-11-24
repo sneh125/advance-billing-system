@@ -6,8 +6,8 @@
 {% block shell_class %}invoice-page-layout{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/invoices.css' %}">
-    <link rel="stylesheet" href="{% static 'css/customers.css' %}">
+<link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=10">
+    <link rel="stylesheet" href="{% static 'css/customers.css' %}?v=10">
 {% endblock %}
 
 {% block content %}
@@ -17,8 +17,15 @@
         <!-- HEADER ROW -->
         <div class="page-header-row">
             <div class="page-title-wrap">
-                <h2>Tax Invoices Directory</h2>
-                <p>Track all generated invoices, customer billing records, GST breakdowns, and download PDFs.</p>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <h2 style="margin: 0;">{% if request.user.is_staff %}All Tax Invoices{% else %}My Tax Invoices{% endif %}</h2>
+                    {% if request.user.is_staff %}
+                    <span class="badge-pill-role" style="background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">🛡️ Admin Global View — All Distributors</span>
+                    {% else %}
+                    <span class="badge-pill-role" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">🏢 Distributor Workspace</span>
+                    {% endif %}
+                </div>
+                <p>{% if request.user.is_staff %}Consolidated tax invoices, settlement tracking, and PDF audit across all distributors.{% else %}Track your generated invoices, customer billing records, GST breakdowns, and download PDFs.{% endif %}</p>
             </div>
             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                 <a href="{% url 'quotation_list' %}" class="btn-table-edit" style="background: #f5f3ff; color: #6d28d9; font-weight: 700; border: 1px solid #ddd6fe; text-decoration: none; padding: 10px 16px; border-radius: var(--radius-lg); display: inline-flex; align-items: center; gap: 6px;">

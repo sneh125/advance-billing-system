@@ -95,9 +95,33 @@ urlpatterns = [
     ),
 
     path(
+        "admin-dashboard/distributors/<int:pk>/",
+        views.admin_distributor_detail,
+        name="admin_distributor_detail"
+    ),
+
+    path(
         "admin-dashboard/distributors/<int:pk>/toggle-active/",
         views.admin_toggle_distributor_active,
         name="admin_toggle_distributor_active"
+    ),
+
+    path(
+        "admin-dashboard/announcements/create/",
+        views.admin_create_announcement,
+        name="admin_create_announcement"
+    ),
+
+    path(
+        "admin-dashboard/announcements/<int:pk>/toggle/",
+        views.admin_toggle_announcement,
+        name="admin_toggle_announcement"
+    ),
+
+    path(
+        "admin-dashboard/announcements/<int:pk>/delete/",
+        views.admin_delete_announcement,
+        name="admin_delete_announcement"
     ),
 
     path(

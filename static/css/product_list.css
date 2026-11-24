@@ -46,13 +46,13 @@
     font-size: 14px;
     font-weight: 700;
     text-decoration: none;
-    box-shadow: 0 4px 14px rgba(20, 184, 166, 0.35);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
     transition: var(--transition-fast);
 }
 
 .btn-primary-add:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(20, 184, 166, 0.45);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
 /* SEARCH & FILTER BAR */
@@ -235,17 +235,19 @@
 
 /* ACTION BUTTONS */
 .action-buttons-wrap {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     justify-content: flex-end;
+    flex-wrap: nowrap;
 }
 
 .btn-table-edit {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 5px;
-    padding: 6px 12px;
+    padding: 6px 11px;
     border-radius: var(--radius-md);
     background: var(--slate-100);
     border: 1px solid var(--border-color);
@@ -253,6 +255,9 @@
     font-size: 12.5px;
     font-weight: 600;
     text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1.2;
     transition: var(--transition-fast);
 }
 

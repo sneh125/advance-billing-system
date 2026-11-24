@@ -1,5 +1,5 @@
 
-# 🧾 Advance Billing System
+# 🧾 Advance Billing System With QR
 
 ## Project Description
 
@@ -8,7 +8,7 @@
 The platform implements **Role-Based Access Control (RBAC)** with strict multi-tenant data isolation across two dedicated portals:
 
 - **Distributor Portal**: Manage own customers & Khata (Udhar) ledger, product inventory & stock-in audit trail, fast POS tax invoicing, quotations/estimates, partial payments, QR code invoice verification, date-range & GSTR-1 CSV/PDF reports, profile management, and interactive 6-month Sales & GST analytics.
-- **Admin Portal**: Centralized control center providing platform-wide KPIs, revenue & GST trend charts, distributor rankings, settlement & stock health analytics, system-wide low-stock watchlist, distributor activate/deactivate controls, CSV exports, and one-click database backups.
+- **Admin Portal**: Centralized control center with a fixed dark-navy left sidebar providing platform-wide KPIs, revenue & GST trend charts, distributor rankings & audit drill-down views, live broadcast announcements to all distributors, settlement & stock health analytics, system-wide low-stock watchlist, distributor activate/deactivate controls, CSV exports, and one-click database backups.
 
 ---
 
@@ -124,11 +124,11 @@ Once the development server is running, access the local application:
 
 ## Screenshots
 
-1. **Login Page**
-2. **Distributor Registration (with Email OTP)**
-3. **Distributor Dashboard & Monthly Sales Chart**
-4. **GST Invoice Creator & Preview**
-5. **Reports & GSTR-1 Export**
-6. **Admin Dashboard**
+### 1. Login Page
+![Login Page](docs/images/login.png)
 
-*(Tip: Save screenshots into `docs/screenshots/` and add `![Login Page](docs/screenshots/login.png)` under each item above to display them directly on GitHub.)*
+### 2. Distributor Dashboard & Monthly Sales Chart
+![Distributor Dashboard & Monthly Sales Chart](docs/images/distributor_dashboard.png)
+
+### 3. Admin Dashboard
+![Admin Dashboard](docs/images/admin_dashboard.png)

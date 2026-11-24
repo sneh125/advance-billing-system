@@ -1234,6 +1234,147 @@ class SecurityHardeningAndAdminControlTests(TestCase):
         self.assertEqual(profile.state, "Gujarat")
 
 
+class AdminDistributorDetailAndBroadcastTests(TestCase):
+    """Verify Admin Distributor Detail Drill-Down and Broadcast Announcements."""
+
+    def setUp(self):
+        from decimal import Decimal
+        from billing.models import Customer, Product, Invoice
+
+        self.admin = User.objects.create_user(
+            username="audit_admin",
+            email="audit_admin@billing.local",
+            password="StrongAdmin@2026!",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.distributor = User.objects.create_user(
+            username="audit_dist",
+            email="audit_dist@billing.local",
+            password="StrongDist@2026!",
+            first_name="Ramesh",
+            last_name="Patel",
+        )
+        DistributorProfile.objects.create(
+            user=self.distributor,
+            phone="9876501234",
+            business_name="Patel Wholesale Mart",
+            gstin="24ABCDE1234F1Z5",
+            upi_id="patelmart@okicici",
+            city="Ahmedabad",
+            state="Gujarat",
+        )
+        self.customer = Customer.objects.create(
+            distributor=self.distributor,
+            name="Mehta Traders",
+            phone="9898001122",
+            city="Surat",
+            state="Gujarat",
+            pincode="395002",
+        )
+        self.product = Product.objects.create(
+            distributor=self.distributor,
+            name="LED Bulb 9W",
+            category="Electrical",
+            price=Decimal("120.00"),
+            stock=4,
+            gst_rate=Decimal("18.00"),
+        )
+        self.invoice = Invoice.objects.create(
+            invoice_number="INV-AUD-001",
+            customer=self.customer,
+            distributor=self.distributor,
+            subtotal=Decimal("1000.00"),
+            gst_amount=Decimal("180.00"),
+            total_amount=Decimal("1180.00"),
+            amount_paid=Decimal("500.00"),
+            status="Partial",
+        )
+
+    def test_admin_can_view_distributor_detail_and_toggle_returns_here(self):
+        self.client.login(username="audit_admin", password="StrongAdmin@2026!")
+        detail_url = reverse("admin_distributor_detail", kwargs={"pk": self.distributor.pk})
+        res = self.client.get(detail_url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Patel Wholesale Mart")
+        self.assertContains(res, "24ABCDE1234F1Z5")
+        self.assertContains(res, "INV-AUD-001")
+        self.assertContains(res, "Mehta Traders")
+        self.assertContains(res, "LED Bulb 9W")
+        self.assertContains(res, 'id="adminSidebar"')
+
+        # Deactivating from detail page redirects back to detail page
+        res_toggle = self.client.post(
+            reverse("admin_toggle_distributor_active", kwargs={"pk": self.distributor.pk}),
+            {"next": detail_url},
+        )
+        self.assertRedirects(res_toggle, detail_url)
+        self.distributor.refresh_from_db()
+        self.assertFalse(self.distributor.is_active)
+
+    def test_distributor_blocked_from_admin_drilldown_and_broadcast_endpoints(self):
+        self.client.login(username="audit_dist", password="StrongDist@2026!")
+        res_detail = self.client.get(reverse("admin_distributor_detail", kwargs={"pk": self.distributor.pk}))
+        self.assertNotEqual(res_detail.status_code, 200)
+
+        res_create = self.client.post(reverse("admin_create_announcement"), {
+            "title": "Unauthorized",
+            "message": "Should not be allowed",
+            "level": "urgent",
+        })
+        self.assertNotEqual(res_create.status_code, 200)
+        from accounts.models import SystemAnnouncement
+        self.assertEqual(SystemAnnouncement.objects.count(), 0)
+
+    def test_admin_broadcast_announcement_lifecycle_visible_on_distributor_dashboard(self):
+        from accounts.models import SystemAnnouncement
+
+        self.client.login(username="audit_admin", password="StrongAdmin@2026!")
+
+        # Empty input rejected gracefully
+        self.client.post(reverse("admin_create_announcement"), {"title": "", "message": "", "level": "info"})
+        self.assertEqual(SystemAnnouncement.objects.count(), 0)
+
+        # Create live broadcast
+        res_create = self.client.post(reverse("admin_create_announcement"), {
+            "title": "GSTR-1 Filing Reminder",
+            "message": "Please verify all GST invoices before the 11th.",
+            "level": "warning",
+        })
+        self.assertEqual(res_create.status_code, 302)
+        ann = SystemAnnouncement.objects.first()
+        self.assertIsNotNone(ann)
+        self.assertTrue(ann.is_active)
+        self.assertEqual(ann.level, "warning")
+
+        # Distributor sees live banner on dashboard
+        self.client.logout()
+        self.client.login(username="audit_dist", password="StrongDist@2026!")
+        res_dist = self.client.get(reverse("distributor_dashboard"))
+        self.assertEqual(res_dist.status_code, 200)
+        self.assertContains(res_dist, "GSTR-1 Filing Reminder")
+        self.assertContains(res_dist, "Please verify all GST invoices before the 11th.")
+
+        # Admin pauses announcement -> hidden on distributor dashboard
+        self.client.logout()
+        self.client.login(username="audit_admin", password="StrongAdmin@2026!")
+        self.client.post(reverse("admin_toggle_announcement", kwargs={"pk": ann.pk}))
+        ann.refresh_from_db()
+        self.assertFalse(ann.is_active)
+
+        self.client.logout()
+        self.client.login(username="audit_dist", password="StrongDist@2026!")
+        res_dist_paused = self.client.get(reverse("distributor_dashboard"))
+        self.assertNotContains(res_dist_paused, "GSTR-1 Filing Reminder")
+
+        # Admin deletes announcement
+        self.client.logout()
+        self.client.login(username="audit_admin", password="StrongAdmin@2026!")
+        self.client.post(reverse("admin_delete_announcement", kwargs={"pk": ann.pk}))
+        self.assertEqual(SystemAnnouncement.objects.count(), 0)
+
+
+
 
 
 

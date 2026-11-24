@@ -5,798 +5,976 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=4">
-    <link rel="stylesheet" href="{% static 'css/admin_reports.css' %}?v=4">
-    <style>
-        /* PREMIUM MONTHLY SALES & GST ANALYTICS WIDGET */
+<link rel="stylesheet" href="{% static 'css/admin_reports.css' %}?v=4">
+<style>
+    /* PREMIUM MONTHLY SALES & GST ANALYTICS WIDGET */
+    .dist-analytics-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 26px 28px 24px 28px;
+        margin-bottom: 28px;
+        box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.06);
+    }
+
+    .dist-analytics-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .dist-analytics-title-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .dist-analytics-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 16px rgba(15, 118, 110, 0.28);
+        flex-shrink: 0;
+    }
+
+    .dist-analytics-title-group h3 {
+        font-size: 17px;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0;
+        letter-spacing: -0.2px;
+    }
+
+    .dist-analytics-subtitle {
+        font-size: 12.5px;
+        color: #64748b;
+        margin-top: 2px;
+        font-weight: 500;
+    }
+
+    .dist-analytics-controls {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .dist-legend-pills {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .dist-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #475569;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 5px 11px;
+        border-radius: 9999px;
+    }
+
+    .dist-legend-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        display: inline-block;
+    }
+
+    .dist-view-switch {
+        display: inline-flex;
+        background: #f1f5f9;
+        padding: 3px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        gap: 2px;
+    }
+
+    .dist-switch-btn {
+        border: none;
+        background: transparent;
+        padding: 6px 13px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.16s ease;
+    }
+
+    .dist-switch-btn.active {
+        background: #ffffff;
+        color: #0f766e;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+
+    .dist-kpi-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .dist-kpi-chip {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .dist-kpi-chip.highlight {
+        background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+        border-color: #99f6e4;
+    }
+
+    .dist-kpi-chip-lbl {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.45px;
+        color: #64748b;
+    }
+
+    .dist-kpi-chip-val {
+        font-size: 18px;
+        font-weight: 800;
+        color: #0f172a;
+        font-family: var(--font-mono, ui-monospace, monospace);
+    }
+
+    .dist-kpi-chip.highlight .dist-kpi-chip-val {
+        color: #0f766e;
+    }
+
+    .dist-chart-frame {
+        display: grid;
+        grid-template-columns: 62px 1fr;
+        gap: 10px;
+        align-items: stretch;
+        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 24px 20px 16px 14px;
+        position: relative;
+    }
+
+    .dist-y-axis {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 256px;
+        box-sizing: border-box;
+        padding-top: 36px;
+        padding-bottom: 40px;
+        text-align: right;
+        font-size: 11px;
+        font-weight: 700;
+        color: #94a3b8;
+        font-family: var(--font-mono, ui-monospace, monospace);
+        user-select: none;
+    }
+
+    .dist-plot-area {
+        position: relative;
+        height: 256px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: 10px;
+        padding-top: 18px;
+    }
+
+    .dist-gridlines {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 42px;
+        bottom: 46px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .dist-gridline {
+        border-top: 1px dashed #e2e8f0;
+        width: 100%;
+    }
+
+    .dist-gridline:last-child {
+        border-top: 1.5px solid #cbd5e1;
+    }
+
+    .dist-bar-col {
+        flex: 1;
+        height: 238px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        position: relative;
+        z-index: 2;
+        border-radius: 12px;
+        padding: 0 4px;
+        transition: background 0.16s ease;
+        cursor: default;
+    }
+
+    .dist-bar-col:hover {
+        background: rgba(20, 184, 166, 0.06);
+    }
+
+    .dist-bar-bars-zone {
+        width: 100%;
+        height: 192px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        position: relative;
+    }
+
+    .dist-bar-top-val {
+        height: 24px;
+        line-height: 24px;
+        font-size: 11px;
+        font-weight: 800;
+        color: #0f766e;
+        font-family: var(--font-mono, ui-monospace, monospace);
+        white-space: nowrap;
+    }
+
+    .dist-bar-top-val.is-zero {
+        color: #94a3b8;
+        font-weight: 600;
+    }
+
+    .dist-bars-pair {
+        width: 100%;
+        height: 168px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .dist-bar-rev {
+        width: 30px;
+        min-height: 5px;
+        background: linear-gradient(180deg, #2dd4bf 0%, #0d9488 55%, #0f766e 100%);
+        border-radius: 8px 8px 3px 3px;
+        box-shadow: 0 6px 14px rgba(15, 118, 110, 0.24);
+        transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .dist-bar-rev.is-zero {
+        background: #cbd5e1;
+        box-shadow: none;
+        min-height: 4px;
+    }
+
+    .dist-bar-gst {
+        width: 18px;
+        min-height: 5px;
+        background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+        border-radius: 6px 6px 3px 3px;
+        box-shadow: 0 4px 10px rgba(2, 132, 199, 0.2);
+        transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .dist-bar-gst.is-zero {
+        background: #e2e8f0;
+        box-shadow: none;
+        min-height: 4px;
+    }
+
+    .dist-bar-col:hover .dist-bar-rev:not(.is-zero),
+    .dist-bar-col:hover .dist-bar-gst:not(.is-zero) {
+        transform: translateY(-3px);
+        filter: brightness(1.06);
+    }
+
+    .dist-bar-footer {
+        height: 46px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding-top: 6px;
+    }
+
+    .dist-bar-month {
+        font-size: 12px;
+        font-weight: 700;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    .dist-bar-inv-chip {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: #0f766e;
+        background: #f0fdfa;
+        border: 1px solid #ccfbf1;
+        padding: 1px 7px;
+        border-radius: 9999px;
+        white-space: nowrap;
+    }
+
+    .dist-bar-inv-chip.is-zero {
+        color: #94a3b8;
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+    }
+
+    .dist-bar-popover {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        background: #0f172a;
+        color: #ffffff;
+        padding: 10px 13px;
+        border-radius: 12px;
+        min-width: 175px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 30;
+        transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+    }
+
+    .dist-bar-popover::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 6px solid transparent;
+        border-top-color: #0f172a;
+    }
+
+    .dist-bar-col:hover .dist-bar-popover {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    .dist-pop-month {
+        font-size: 11.5px;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 6px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .dist-pop-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    .dist-pop-key {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #cbd5e1;
+    }
+
+    .dist-pop-val {
+        font-weight: 800;
+        color: #ffffff;
+        font-family: var(--font-mono, ui-monospace, monospace);
+    }
+
+    .dist-area-stage {
+        display: none;
+        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 18px 20px 12px 16px;
+        position: relative;
+    }
+
+    .dist-area-stage svg {
+        width: 100%;
+        height: 262px;
+        display: block;
+        overflow: visible;
+    }
+
+    @media (max-width: 768px) {
         .dist-analytics-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 20px;
-            padding: 26px 28px 24px 28px;
-            margin-bottom: 28px;
-            box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.06);
+            padding: 20px 16px;
         }
-        .dist-analytics-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .dist-analytics-title-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .dist-analytics-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 6px 16px rgba(15, 118, 110, 0.28);
-            flex-shrink: 0;
-        }
-        .dist-analytics-title-group h3 {
-            font-size: 17px;
-            font-weight: 800;
-            color: #0f172a;
-            margin: 0;
-            letter-spacing: -0.2px;
-        }
-        .dist-analytics-subtitle {
-            font-size: 12.5px;
-            color: #64748b;
-            margin-top: 2px;
-            font-weight: 500;
-        }
-        .dist-analytics-controls {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            flex-wrap: wrap;
-        }
-        .dist-legend-pills {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .dist-legend-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #475569;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 5px 11px;
-            border-radius: 9999px;
-        }
-        .dist-legend-swatch {
-            width: 10px;
-            height: 10px;
-            border-radius: 3px;
-            display: inline-block;
-        }
-        .dist-view-switch {
-            display: inline-flex;
-            background: #f1f5f9;
-            padding: 3px;
-            border-radius: 10px;
-            border: 1px solid #e2e8f0;
-            gap: 2px;
-        }
-        .dist-switch-btn {
-            border: none;
-            background: transparent;
-            padding: 6px 13px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #64748b;
-            cursor: pointer;
-            transition: all 0.16s ease;
-        }
-        .dist-switch-btn.active {
-            background: #ffffff;
-            color: #0f766e;
-            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
-        }
+
         .dist-kpi-strip {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 14px;
-            margin-bottom: 20px;
+            grid-template-columns: 1fr;
         }
-        .dist-kpi-chip {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 12px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-        .dist-kpi-chip.highlight {
-            background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
-            border-color: #99f6e4;
-        }
-        .dist-kpi-chip-lbl {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.45px;
-            color: #64748b;
-        }
-        .dist-kpi-chip-val {
-            font-size: 18px;
-            font-weight: 800;
-            color: #0f172a;
-            font-family: var(--font-mono, ui-monospace, monospace);
-        }
-        .dist-kpi-chip.highlight .dist-kpi-chip-val {
-            color: #0f766e;
-        }
+
         .dist-chart-frame {
-            display: grid;
-            grid-template-columns: 62px 1fr;
-            gap: 10px;
-            align-items: stretch;
-            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 24px 20px 16px 14px;
-            position: relative;
+            grid-template-columns: 48px 1fr;
+            padding: 18px 10px 12px 8px;
         }
-        .dist-y-axis {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 256px;
-            box-sizing: border-box;
-            padding-top: 36px;
-            padding-bottom: 40px;
-            text-align: right;
-            font-size: 11px;
-            font-weight: 700;
-            color: #94a3b8;
-            font-family: var(--font-mono, ui-monospace, monospace);
-            user-select: none;
-        }
-        .dist-plot-area {
-            position: relative;
-            height: 256px;
-            box-sizing: border-box;
-            display: flex;
-            align-items: stretch;
-            justify-content: space-between;
-            gap: 10px;
-            padding-top: 18px;
-        }
-        .dist-gridlines {
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: 42px;
-            bottom: 46px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .dist-gridline {
-            border-top: 1px dashed #e2e8f0;
-            width: 100%;
-        }
-        .dist-gridline:last-child {
-            border-top: 1.5px solid #cbd5e1;
-        }
-        .dist-bar-col {
-            flex: 1;
-            height: 238px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-end;
-            position: relative;
-            z-index: 2;
-            border-radius: 12px;
-            padding: 0 4px;
-            transition: background 0.16s ease;
-            cursor: default;
-        }
-        .dist-bar-col:hover {
-            background: rgba(20, 184, 166, 0.06);
-        }
-        .dist-bar-bars-zone {
-            width: 100%;
-            height: 192px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-            position: relative;
-        }
-        .dist-bar-top-val {
-            height: 24px;
-            line-height: 24px;
-            font-size: 11px;
-            font-weight: 800;
-            color: #0f766e;
-            font-family: var(--font-mono, ui-monospace, monospace);
-            white-space: nowrap;
-        }
-        .dist-bar-top-val.is-zero {
-            color: #94a3b8;
-            font-weight: 600;
-        }
-        .dist-bars-pair {
-            width: 100%;
-            height: 168px;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            gap: 6px;
-        }
+
         .dist-bar-rev {
-            width: 30px;
-            min-height: 5px;
-            background: linear-gradient(180deg, #2dd4bf 0%, #0d9488 55%, #0f766e 100%);
-            border-radius: 8px 8px 3px 3px;
-            box-shadow: 0 6px 14px rgba(15, 118, 110, 0.24);
-            transition: transform 0.2s ease, filter 0.2s ease;
-        }
-        .dist-bar-rev.is-zero {
-            background: #cbd5e1;
-            box-shadow: none;
-            min-height: 4px;
-        }
-        .dist-bar-gst {
             width: 18px;
-            min-height: 5px;
-            background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
-            border-radius: 6px 6px 3px 3px;
-            box-shadow: 0 4px 10px rgba(2, 132, 199, 0.2);
-            transition: transform 0.2s ease, filter 0.2s ease;
         }
-        .dist-bar-gst.is-zero {
-            background: #e2e8f0;
-            box-shadow: none;
-            min-height: 4px;
+
+        .dist-bar-gst {
+            width: 11px;
         }
-        .dist-bar-col:hover .dist-bar-rev:not(.is-zero),
-        .dist-bar-col:hover .dist-bar-gst:not(.is-zero) {
-            transform: translateY(-3px);
-            filter: brightness(1.06);
-        }
-        .dist-bar-footer {
-            height: 46px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-            padding-top: 6px;
-        }
+
         .dist-bar-month {
-            font-size: 12px;
-            font-weight: 700;
-            color: #334155;
-            white-space: nowrap;
-        }
-        .dist-bar-inv-chip {
             font-size: 10.5px;
-            font-weight: 700;
-            color: #0f766e;
-            background: #f0fdfa;
-            border: 1px solid #ccfbf1;
-            padding: 1px 7px;
-            border-radius: 9999px;
-            white-space: nowrap;
         }
-        .dist-bar-inv-chip.is-zero {
-            color: #94a3b8;
-            background: #f1f5f9;
-            border-color: #e2e8f0;
+
+        .dist-bar-top-val {
+            font-size: 9.5px;
         }
-        .dist-bar-popover {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-            position: absolute;
-            bottom: calc(100% + 6px);
-            left: 50%;
-            transform: translateX(-50%) translateY(4px);
-            background: #0f172a;
-            color: #ffffff;
-            padding: 10px 13px;
-            border-radius: 12px;
-            min-width: 175px;
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 30;
-            transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
-        }
-        .dist-bar-popover::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 6px solid transparent;
-            border-top-color: #0f172a;
-        }
-        .dist-bar-col:hover .dist-bar-popover {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(0);
-        }
-        .dist-pop-month {
-            font-size: 11.5px;
-            font-weight: 800;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            margin-bottom: 6px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .dist-pop-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            font-size: 12px;
-            margin-top: 3px;
-        }
-        .dist-pop-key {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #cbd5e1;
-        }
-        .dist-pop-val {
-            font-weight: 800;
-            color: #ffffff;
-            font-family: var(--font-mono, ui-monospace, monospace);
-        }
-        .dist-area-stage {
-            display: none;
-            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 18px 20px 12px 16px;
-            position: relative;
-        }
-        .dist-area-stage svg {
-            width: 100%;
-            height: 262px;
-            display: block;
-            overflow: visible;
-        }
-        @media (max-width: 768px) {
-            .dist-analytics-card {
-                padding: 20px 16px;
-            }
-            .dist-kpi-strip {
-                grid-template-columns: 1fr;
-            }
-            .dist-chart-frame {
-                grid-template-columns: 48px 1fr;
-                padding: 18px 10px 12px 8px;
-            }
-            .dist-bar-rev {
-                width: 18px;
-            }
-            .dist-bar-gst {
-                width: 11px;
-            }
-            .dist-bar-month {
-                font-size: 10.5px;
-            }
-            .dist-bar-top-val {
-                font-size: 9.5px;
-            }
-        }
-    </style>
+    }
+
+    /* LIVE ADMIN BROADCAST BANNERS */
+    .dist-broadcast-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+    .dist-broadcast-banner {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px 18px;
+        border-radius: 14px;
+        border: 1px solid #bae6fd;
+        background: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%);
+        color: #0c4a6e;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    }
+    .dist-broadcast-banner.is-warning {
+        border-color: #fde68a;
+        background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%);
+        color: #78350f;
+    }
+    .dist-broadcast-banner.is-urgent {
+        border-color: #fecdd3;
+        background: linear-gradient(90deg, #fff1f2 0%, #ffe4e6 100%);
+        color: #881337;
+    }
+    .dist-broadcast-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 9px;
+        border-radius: 9999px;
+        font-size: 10.5px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: rgba(15, 23, 42, 0.09);
+        margin-right: 8px;
+    }
+    .dist-broadcast-dismiss {
+        background: transparent;
+        border: none;
+        color: inherit;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        opacity: 0.65;
+        padding: 2px 6px;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+    .dist-broadcast-dismiss:hover {
+        opacity: 1;
+        background: rgba(15, 23, 42, 0.08);
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <!-- MAIN DASHBOARD CONTENT -->
-    <main class="dashboard-content">
+<main class="dashboard-content">
 
-        <!-- WELCOME BANNER -->
-        <section class="welcome-banner" aria-label="Welcome Banner">
-            <div class="welcome-text-wrap">
-                <div class="welcome-badge-chip">
-                    ✨ Distributor Portal Active
+    {% if active_announcements %}
+    <!-- LIVE ADMIN BROADCAST ANNOUNCEMENTS -->
+    <section class="dist-broadcast-stack" aria-label="System Announcements">
+        {% for ann in active_announcements %}
+        <div class="dist-broadcast-banner is-{{ ann.level }}" data-announcement-id="{{ ann.pk }}">
+            <div style="min-width: 0;">
+                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 4px;">
+                    <span class="dist-broadcast-tag">
+                        {% if ann.level == 'urgent' %}🚨 Urgent Notice{% elif ann.level == 'warning' %}⚠️ Admin Alert{% else %}📢 Admin Broadcast{% endif %}
+                    </span>
+                    <strong style="font-size: 14px;">{{ ann.title }}</strong>
+                    <span style="font-size: 11.5px; opacity: 0.72; margin-left: 6px;">• {{ ann.created_at|date:"d M Y" }}</span>
                 </div>
-                <h2>Welcome Back, {{ request.user.first_name|default:request.user.username }} 👋</h2>
-                <p>Track your real-time billing performance, generate GST compliant invoices, monitor stock alerts, and manage customer profiles effortlessly.</p>
+                <p style="margin: 0; font-size: 13px; line-height: 1.5; opacity: 0.92;">{{ ann.message }}</p>
             </div>
-            <div class="welcome-action-wrap">
-                <a href="{% url 'invoice_create' %}" class="btn-welcome-cta">
-                    + Generate New Bill
-                </a>
+            <button type="button" class="dist-broadcast-dismiss" onclick="dismissBroadcastBanner({{ ann.pk }}, this)" title="Dismiss for this session" aria-label="Dismiss announcement">&times;</button>
+        </div>
+        {% endfor %}
+    </section>
+    <script>
+        (function () {
+            try {
+                const dismissed = JSON.parse(sessionStorage.getItem('dismissed_broadcasts') || '[]');
+                dismissed.forEach(function (id) {
+                    const el = document.querySelector('[data-announcement-id="' + id + '"]');
+                    if (el) el.remove();
+                });
+            } catch (e) {}
+            window.dismissBroadcastBanner = function (id, btn) {
+                const banner = btn && btn.closest('.dist-broadcast-banner');
+                if (banner) banner.remove();
+                try {
+                    const dismissed = JSON.parse(sessionStorage.getItem('dismissed_broadcasts') || '[]');
+                    if (dismissed.indexOf(id) === -1) dismissed.push(id);
+                    sessionStorage.setItem('dismissed_broadcasts', JSON.stringify(dismissed));
+                } catch (e) {}
+            };
+        })();
+    </script>
+    {% endif %}
+
+    <!-- WELCOME BANNER -->
+    <section class="welcome-banner" aria-label="Welcome Banner">
+        <div class="welcome-text-wrap">
+            <div class="welcome-badge-chip">
+                ✨ Distributor Portal Active
             </div>
-        </section>
-
-        <!-- KPI STATS ROW -->
-        <section class="stats-row" aria-label="Key Performance Indicators">
-            
-            <a href="{% url 'customer_list' %}" style="text-decoration: none; color: inherit; display: block;">
-                <div class="stat-card">
-                    <div class="stat-card-top">
-                        <div class="stat-icon teal">👥</div>
-                        <span class="stat-trend-tag">Active Directory</span>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-label">Total Customers</span>
-                        <div class="stat-value">{{ total_customers|default:"0" }}</div>
-                    </div>
-                </div>
+            <h2>Welcome Back, {{ request.user.first_name|default:request.user.username }} 👋</h2>
+            <p>Track your real-time billing performance, generate GST compliant invoices, monitor stock alerts, and
+                manage customer profiles effortlessly.</p>
+        </div>
+        <div class="welcome-action-wrap">
+            <a href="{% url 'invoice_create' %}" class="btn-welcome-cta">
+                + Generate New Bill
             </a>
+        </div>
+    </section>
 
-            <a href="{% url 'invoice_list' %}" style="text-decoration: none; color: inherit; display: block;">
-                <div class="stat-card">
-                    <div class="stat-card-top">
-                        <div class="stat-icon blue">🧾</div>
-                        <span class="stat-trend-tag">GST Compliant</span>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-label">Invoices Generated</span>
-                        <div class="stat-value">{{ total_invoices|default:"0" }}</div>
-                    </div>
-                </div>
-            </a>
+    <!-- KPI STATS ROW -->
+    <section class="stats-row" aria-label="Key Performance Indicators">
 
-            <a href="{% url 'product_list' %}" style="text-decoration: none; color: inherit; display: block;">
-                <div class="stat-card">
-                    <div class="stat-card-top">
-                        <div class="stat-icon purple">📦</div>
-                        <span class="stat-trend-tag">Catalog Live</span>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-label">Products in Stock</span>
-                        <div class="stat-value">{{ total_products|default:"0" }}</div>
-                    </div>
-                </div>
-            </a>
-
+        <a href="{% url 'customer_list' %}" style="text-decoration: none; color: inherit; display: block;">
             <div class="stat-card">
                 <div class="stat-card-top">
-                    <div class="stat-icon orange">💰</div>
-                    <span class="stat-trend-tag" style="background: var(--warning-bg); color: var(--warning-text);">Gross Total</span>
+                    <div class="stat-icon teal">👥</div>
+                    <span class="stat-trend-tag">Active Directory</span>
                 </div>
                 <div class="stat-content">
-                    <span class="stat-label">Total Revenue</span>
-                    <div class="stat-value" style="font-family: var(--font-mono); font-size: 24px;">₹{{ total_billed|floatformat:2|default:"0.00" }}</div>
+                    <span class="stat-label">Total Customers</span>
+                    <div class="stat-value">{{ total_customers|default:"0" }}</div>
                 </div>
             </div>
+        </a>
 
-        </section>
-
-        <!-- BUSINESS INSIGHTS & INVENTORY HEALTH (2-COLUMN ANALYTICS) -->
-        <section class="reports-two-col" aria-label="Business Insights and Stock Alerts">
-
-            <!-- LEFT: SETTLEMENT & GST SUMMARY -->
-            <div class="report-card-panel">
-                <div class="report-panel-header">
-                    <h3>📊 Settlement & GST Summary</h3>
-                    <span class="report-panel-badge">Cash Flow</span>
+        <a href="{% url 'invoice_list' %}" style="text-decoration: none; color: inherit; display: block;">
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon blue">🧾</div>
+                    <span class="stat-trend-tag">GST Compliant</span>
                 </div>
-
-                <div class="ratio-bar-wrap">
-                    <div class="ratio-bar-labels">
-                        <span style="color: #059669;">✓ Paid: ₹{{ paid_revenue|default:"0"|floatformat:2 }} ({{ paid_percentage }}%)</span>
-                        <span style="color: #d97706;">⏳ Pending: ₹{{ pending_revenue|default:"0"|floatformat:2 }} ({{ pending_percentage }}%)</span>
-                    </div>
-                    <div class="ratio-progress-track">
-                        <div class="ratio-progress-fill-paid" style="width: {{ paid_percentage }}%;"></div>
-                        <div class="ratio-progress-fill-pending" style="width: {{ pending_percentage }}%;"></div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 4px;">
-                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-lg); padding: 11px;">
-                        <div style="font-size: 10.5px; font-weight: 700; color: #166534; text-transform: uppercase;">Paid Bills</div>
-                        <div style="font-size: 19px; font-weight: 800; color: #15803d; margin-top: 4px;">{{ paid_invoices_count|default:"0" }}</div>
-                    </div>
-                    <div style="background: #fffbeb; border: 1px solid #fef08a; border-radius: var(--radius-lg); padding: 11px;">
-                        <div style="font-size: 10.5px; font-weight: 700; color: #92400e; text-transform: uppercase;">Pending / Partial</div>
-                        <div style="font-size: 19px; font-weight: 800; color: #b45309; margin-top: 4px;">{{ pending_invoices_count|default:"0" }}{% if partial_invoices_count %} / {{ partial_invoices_count }}{% endif %}</div>
-                    </div>
-                    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-lg); padding: 11px;">
-                        <div style="font-size: 10.5px; font-weight: 700; color: #991b1b; text-transform: uppercase;">Overdue</div>
-                        <div style="font-size: 19px; font-weight: 800; color: #dc2626; margin-top: 4px;">{{ overdue_invoices_count|default:"0" }}</div>
-                    </div>
-                    <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-lg); padding: 11px;">
-                        <div style="font-size: 10.5px; font-weight: 700; color: #075985; text-transform: uppercase;">GST Collected</div>
-                        <div style="font-size: 16px; font-weight: 800; color: #0284c7; margin-top: 4px; font-family: var(--font-mono);">₹{{ total_gst_collected|default:"0"|floatformat:0 }}</div>
-                    </div>
+                <div class="stat-content">
+                    <span class="stat-label">Invoices Generated</span>
+                    <div class="stat-value">{{ total_invoices|default:"0" }}</div>
                 </div>
             </div>
+        </a>
 
-            <!-- RIGHT: LOW STOCK INVENTORY ALERTS -->
-            <div class="report-card-panel">
-                <div class="report-panel-header">
-                    <h3>⚠️ Low Stock Inventory Alerts</h3>
-                    <span class="report-panel-badge" style="{% if low_stock_count %}background: #fef2f2; color: #b91c1c;{% else %}background: #ecfdf5; color: #065f46;{% endif %}">
-                        {{ low_stock_count|default:"0" }} Item{{ low_stock_count|default:0|pluralize }}
-                    </span>
+        <a href="{% url 'product_list' %}" style="text-decoration: none; color: inherit; display: block;">
+            <div class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon purple">📦</div>
+                    <span class="stat-trend-tag">Catalog Live</span>
                 </div>
-
-                {% if low_stock_products %}
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    {% for prod in low_stock_products %}
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-lg);">
-                        <div>
-                            <strong style="font-size: 13.5px; color: var(--text-main);">{{ prod.name }}</strong>
-                            <div style="font-size: 11.5px; color: var(--text-muted);">{{ prod.category }} • ₹{{ prod.price }}</div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            {% if prod.stock == 0 %}
-                            <span class="status-pill danger">Out of Stock</span>
-                            {% else %}
-                            <span class="status-pill pending">{{ prod.stock }} left</span>
-                            {% endif %}
-                            <a href="{% url 'product_edit' prod.pk %}" style="font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none;">Restock →</a>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div style="display: flex; align-items: center; gap: 12px; padding: 18px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-lg); color: #166534;">
-                    <span style="font-size: 24px;">✅</span>
-                    <div>
-                        <strong style="font-size: 14px; display: block;">All Products Well-Stocked</strong>
-                        <span style="font-size: 12.5px;">No items are currently below the 10-unit reorder threshold.</span>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-
-        </section>
-
-        <!-- MONTHLY SALES & GST CHART -->
-        <section class="dist-analytics-card" id="distributorMonthlySalesChart" aria-label="Monthly Sales Chart">
-            <div class="dist-analytics-top">
-                <div class="dist-analytics-title-group">
-                    <div class="dist-analytics-icon" aria-hidden="true">
-                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 3v18h18"/>
-                            <path d="m19 9-5 5-4-4-3 3"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h3>Monthly Sales &amp; GST Trend (Last 6 Months)</h3>
-                        <div class="dist-analytics-subtitle">Gross billed revenue vs GST tax collected across recent billing cycles</div>
-                    </div>
-                </div>
-                <div class="dist-analytics-controls">
-                    <div class="dist-legend-pills">
-                        <span class="dist-legend-item">
-                            <span class="dist-legend-swatch" style="background: linear-gradient(180deg, #2dd4bf, #0f766e);"></span>
-                            Monthly Sales (₹)
-                        </span>
-                        <span class="dist-legend-item">
-                            <span class="dist-legend-swatch" style="background: linear-gradient(180deg, #38bdf8, #0284c7);"></span>
-                            GST Tax (₹)
-                        </span>
-                    </div>
-                    <div class="dist-view-switch" role="tablist" aria-label="Chart View Mode">
-                        <button type="button" class="dist-switch-btn active" id="btnDistBar" onclick="switchDistChartView('bar')">Bar</button>
-                        <button type="button" class="dist-switch-btn" id="btnDistArea" onclick="switchDistChartView('area')">Area</button>
-                    </div>
+                <div class="stat-content">
+                    <span class="stat-label">Products in Stock</span>
+                    <div class="stat-value">{{ total_products|default:"0" }}</div>
                 </div>
             </div>
+        </a>
 
-            <div class="dist-kpi-strip">
-                <div class="dist-kpi-chip">
-                    <span class="dist-kpi-chip-lbl">6-Month Total Sales</span>
-                    <span class="dist-kpi-chip-val" id="distKpi6mSales">₹0</span>
-                </div>
-                <div class="dist-kpi-chip">
-                    <span class="dist-kpi-chip-lbl">6-Month GST Collected</span>
-                    <span class="dist-kpi-chip-val" id="distKpi6mGst" style="color: #0284c7;">₹0</span>
-                </div>
-                <div class="dist-kpi-chip highlight">
-                    <span class="dist-kpi-chip-lbl">Best Performing Month</span>
-                    <span class="dist-kpi-chip-val" id="distKpiPeakMonth">—</span>
-                </div>
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-icon orange">💰</div>
+                <span class="stat-trend-tag" style="background: var(--warning-bg); color: var(--warning-text);">Gross
+                    Total</span>
             </div>
-
-            <!-- BAR CHART VIEW -->
-            <div id="distBarChartView" class="dist-chart-frame">
-                <div class="dist-y-axis" id="distYAxisTicks">
-                    <span>—</span>
-                    <span>—</span>
-                    <span>—</span>
-                    <span>—</span>
-                    <span>₹0</span>
-                </div>
-                <div class="dist-plot-area" id="distBarPlot">
-                    <div class="dist-gridlines" aria-hidden="true">
-                        <div class="dist-gridline"></div>
-                        <div class="dist-gridline"></div>
-                        <div class="dist-gridline"></div>
-                        <div class="dist-gridline"></div>
-                        <div class="dist-gridline"></div>
-                    </div>
-                    {% for pt in monthly_sales_chart %}
-                    <div
-                        class="dist-bar-col"
-                        data-label="{{ pt.label }}"
-                        data-revenue="{{ pt.revenue }}"
-                        data-gst="{{ pt.gst }}"
-                        data-count="{{ pt.count }}"
-                        data-rev-pct="{{ pt.rev_pct }}"
-                        data-gst-pct="{{ pt.gst_pct }}"
-                    >
-                        <div class="dist-bar-popover">
-                            <div class="dist-pop-month">{{ pt.label }}</div>
-                            <div class="dist-pop-row">
-                                <span class="dist-pop-key">
-                                    <span class="dist-legend-swatch" style="background: #14b8a6;"></span>
-                                    Sales
-                                </span>
-                                <span class="dist-pop-val">₹{{ pt.revenue|floatformat:0 }}</span>
-                            </div>
-                            <div class="dist-pop-row">
-                                <span class="dist-pop-key">
-                                    <span class="dist-legend-swatch" style="background: #38bdf8;"></span>
-                                    GST
-                                </span>
-                                <span class="dist-pop-val">₹{{ pt.gst|floatformat:0 }}</span>
-                            </div>
-                            <div class="dist-pop-row">
-                                <span class="dist-pop-key">Invoices</span>
-                                <span class="dist-pop-val">{{ pt.count }}</span>
-                            </div>
-                        </div>
-                        <div class="dist-bar-bars-zone">
-                            <span class="dist-bar-top-val {% if not pt.revenue %}is-zero{% endif %}" data-compact-amt="{{ pt.revenue }}">
-                                ₹{{ pt.revenue|floatformat:0 }}
-                            </span>
-                            <div class="dist-bars-pair">
-                                <div
-                                    class="dist-bar-rev {% if not pt.revenue %}is-zero{% endif %}"
-                                    style="height: {{ pt.rev_pct }}%;"
-                                ></div>
-                                <div
-                                    class="dist-bar-gst {% if not pt.gst %}is-zero{% endif %}"
-                                    style="height: {{ pt.gst_pct }}%;"
-                                ></div>
-                            </div>
-                        </div>
-                        <div class="dist-bar-footer">
-                            <span class="dist-bar-month">{{ pt.label }}</span>
-                            <span class="dist-bar-inv-chip {% if not pt.count %}is-zero{% endif %}">{{ pt.count }} inv</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+            <div class="stat-content">
+                <span class="stat-label">Total Revenue</span>
+                <div class="stat-value" style="font-family: var(--font-mono); font-size: 24px;">₹{{ total_billed|floatformat:2|default:"0.00" }}</div>
             </div>
-
-            <!-- SVG AREA / LINE CHART VIEW -->
-            <div id="distAreaChartView" class="dist-area-stage">
-                <svg id="distTrendAreaSvg" viewBox="0 0 760 262" aria-label="Monthly Sales Area Chart"></svg>
-            </div>
-        </section>
-
-        <!-- RECENT INVOICES TABLE -->
-        <section class="report-card-panel" aria-label="Recent Invoices">
-            <div class="report-panel-header">
-                <h3>🧾 Recent Invoices</h3>
-                <a href="{% url 'invoice_list' %}" style="font-size: 13px; font-weight: 700; color: var(--primary); text-decoration: none;">View All Invoices →</a>
-            </div>
-
-            <div class="report-table-responsive">
-                <table class="report-data-table">
-                    <thead>
-                        <tr>
-                            <th>Invoice #</th>
-                            <th>Customer</th>
-                            <th>Date</th>
-                            <th style="text-align: right;">Amount (₹)</th>
-                            <th style="text-align: center;">Status</th>
-                            <th style="text-align: right;">Quick Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for inv in recent_invoices %}
-                        <tr>
-                            <td><strong style="font-family: var(--font-mono); color: var(--primary-700);">{{ inv.invoice_number }}</strong></td>
-                            <td>{{ inv.customer.name }}</td>
-                            <td>{{ inv.created_at|date:"d M Y, h:i A" }}</td>
-                            <td style="text-align: right; font-weight: 800; font-family: var(--font-mono);">₹{{ inv.total_amount|floatformat:2 }}</td>
-                            <td style="text-align: center;">
-                                {% if inv.status == 'Paid' %}
-                                <span class="status-pill paid">✓ Paid</span>
-                                {% else %}
-                                <span class="status-pill pending">⏳ {{ inv.status|default:"Pending" }}</span>
-                                {% endif %}
-                            </td>
-                            <td style="text-align: right;">
-                                <a href="{% url 'invoice_preview' inv.pk %}" style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-decoration: none; margin-right: 10px;">👁️ Preview</a>
-                                <a href="{% url 'invoice_pdf' inv.pk %}" style="font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none;">📄 PDF</a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
-                                No invoices generated yet. <a href="{% url 'invoice_create' %}" style="color: var(--primary); font-weight: 700;">Create your first bill →</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- QUICK ACTIONS GRID -->
-        <div class="section-title-wrap">
-            <h3>⚡ Quick Action Hub</h3>
         </div>
 
-        <section class="cards" aria-label="Quick Actions">
-            <a href="{% url 'customer_list' %}" class="card">
-                <div class="card-icon">👥</div>
-                <h3>Customer Directory</h3>
-                <p>Register, update and search through your distributor customer records.</p>
-                <span class="card-arrow">Open Customers →</span>
-            </a>
+    </section>
 
-            <a href="{% url 'invoice_list' %}" class="card">
-                <div class="card-icon">🧾</div>
-                <h3>Invoices & History</h3>
-                <p>View generated tax invoices, toggle payment status, and download branded PDFs.</p>
-                <span class="card-arrow">View Invoices →</span>
-            </a>
+    <!-- BUSINESS INSIGHTS & INVENTORY HEALTH (2-COLUMN ANALYTICS) -->
+    <section class="reports-two-col" aria-label="Business Insights and Stock Alerts">
 
-            <a href="{% url 'product_list' %}" class="card">
-                <div class="card-icon">📦</div>
-                <h3>Product Inventory</h3>
-                <p>Manage product catalog, check live stock badges and configure GST rates.</p>
-                <span class="card-arrow">Manage Products →</span>
-            </a>
+        <!-- LEFT: SETTLEMENT & GST SUMMARY -->
+        <div class="report-card-panel">
+            <div class="report-panel-header">
+                <h3>📊 Settlement & GST Summary</h3>
+                <span class="report-panel-badge">Cash Flow</span>
+            </div>
 
-            <a href="{% url 'invoice_create' %}" class="card" style="border-color: var(--primary-200); background: linear-gradient(180deg, #ffffff 0%, var(--primary-50) 100%);">
-                <div class="card-icon" style="background: var(--primary-100); border-color: var(--primary-300);">⚡</div>
-                <h3 style="color: var(--primary-800);">Quick Bill Creator</h3>
-                <p>Add dynamic multiple products with real-time tax and auto-discount engine.</p>
-                <span class="card-arrow" style="font-weight: 800;">Create Bill Now →</span>
-            </a>
+            <div class="ratio-bar-wrap">
+                <div class="ratio-bar-labels">
+                    <span style="color: #059669;">✓ Paid: ₹{{ paid_revenue|default:"0"|floatformat:2 }} ({{ paid_percentage }}%)</span>
+                    <span style="color: #d97706;">⏳ Pending: ₹{{ pending_revenue|default:"0"|floatformat:2 }} ({{ pending_percentage }}%)</span>
+                </div>
+                <div class="ratio-progress-track">
+                    <div class="ratio-progress-fill-paid" style="width: {{ paid_percentage }}%;"></div>
+                    <div class="ratio-progress-fill-pending" style="width: {{ pending_percentage }}%;"></div>
+                </div>
+            </div>
 
-            <a href="{% url 'quotation_list' %}" class="card">
-                <div class="card-icon">📝</div>
-                <h3>Quotations &amp; Estimates</h3>
-                <p>Send GST rate estimates and convert approved quotes into Tax Invoices in 1 click.</p>
-                <span class="card-arrow">Open Quotations ({{ quotations_count|default:"0" }}) →</span>
-            </a>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 4px;">
+                <div
+                    style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-lg); padding: 11px;">
+                    <div style="font-size: 10.5px; font-weight: 700; color: #166534; text-transform: uppercase;">Paid
+                        Bills</div>
+                    <div style="font-size: 19px; font-weight: 800; color: #15803d; margin-top: 4px;">{{ paid_invoices_count|default:"0" }}</div>
+                </div>
+                <div
+                    style="background: #fffbeb; border: 1px solid #fef08a; border-radius: var(--radius-lg); padding: 11px;">
+                    <div style="font-size: 10.5px; font-weight: 700; color: #92400e; text-transform: uppercase;">Pending
+                        / Partial</div>
+                    <div style="font-size: 19px; font-weight: 800; color: #b45309; margin-top: 4px;">{{ pending_invoices_count|default:"0" }}{% if partial_invoices_count %} / {{ partial_invoices_count }}{% endif %}</div>
+                </div>
+                <div
+                    style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-lg); padding: 11px;">
+                    <div style="font-size: 10.5px; font-weight: 700; color: #991b1b; text-transform: uppercase;">Overdue
+                    </div>
+                    <div style="font-size: 19px; font-weight: 800; color: #dc2626; margin-top: 4px;">{{ overdue_invoices_count|default:"0" }}</div>
+                </div>
+                <div
+                    style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-lg); padding: 11px;">
+                    <div style="font-size: 10.5px; font-weight: 700; color: #075985; text-transform: uppercase;">GST
+                        Collected</div>
+                    <div
+                        style="font-size: 16px; font-weight: 800; color: #0284c7; margin-top: 4px; font-family: var(--font-mono);">
+                        ₹{{ total_gst_collected|default:"0"|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
 
-            <a href="{% url 'stock_ledger' %}" class="card">
-                <div class="card-icon">📋</div>
-                <h3>Stock-In Audit Ledger</h3>
-                <p>Track every purchase restock, sale deduction, and cancellation stock restore.</p>
-                <span class="card-arrow">View Stock Ledger →</span>
-            </a>
-        </section>
+        <!-- RIGHT: LOW STOCK INVENTORY ALERTS -->
+        <div class="report-card-panel">
+            <div class="report-panel-header">
+                <h3>⚠️ Low Stock Inventory Alerts</h3>
+                <span class="report-panel-badge"
+                    style="{% if low_stock_count %}background: #fef2f2; color: #b91c1c;{% else %}background: #ecfdf5; color: #065f46;{% endif %}">
+                    {{ low_stock_count|default:"0" }} Item{{ low_stock_count|default:0|pluralize }}
+                </span>
+            </div>
 
-    </main>
+            {% if low_stock_products %}
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                {% for prod in low_stock_products %}
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-lg);">
+                    <div>
+                        <strong style="font-size: 13.5px; color: var(--text-main);">{{ prod.name }}</strong>
+                        <div style="font-size: 11.5px; color: var(--text-muted);">{{ prod.category }} • ₹{{ prod.price }}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        {% if prod.stock == 0 %}
+                        <span class="status-pill danger">Out of Stock</span>
+                        {% else %}
+                        <span class="status-pill pending">{{ prod.stock }} left</span>
+                        {% endif %}
+                        <a href="{% url 'product_edit' prod.pk %}"
+                            style="font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none;">Restock
+                            →</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div
+                style="display: flex; align-items: center; gap: 12px; padding: 18px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-lg); color: #166534;">
+                <span style="font-size: 24px;">✅</span>
+                <div>
+                    <strong style="font-size: 14px; display: block;">All Products Well-Stocked</strong>
+                    <span style="font-size: 12.5px;">No items are currently below the 10-unit reorder threshold.</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </section>
+
+    <!-- MONTHLY SALES & GST CHART -->
+    <section class="dist-analytics-card" id="distributorMonthlySalesChart" aria-label="Monthly Sales Chart">
+        <div class="dist-analytics-top">
+            <div class="dist-analytics-title-group">
+                <div class="dist-analytics-icon" aria-hidden="true">
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18" />
+                        <path d="m19 9-5 5-4-4-3 3" />
+                    </svg>
+                </div>
+                <div>
+                    <h3>Monthly Sales &amp; GST Trend (Last 6 Months)</h3>
+                    <div class="dist-analytics-subtitle">Gross billed revenue vs GST tax collected across recent billing
+                        cycles</div>
+                </div>
+            </div>
+            <div class="dist-analytics-controls">
+                <div class="dist-legend-pills">
+                    <span class="dist-legend-item">
+                        <span class="dist-legend-swatch"
+                            style="background: linear-gradient(180deg, #2dd4bf, #0f766e);"></span>
+                        Monthly Sales (₹)
+                    </span>
+                    <span class="dist-legend-item">
+                        <span class="dist-legend-swatch"
+                            style="background: linear-gradient(180deg, #38bdf8, #0284c7);"></span>
+                        GST Tax (₹)
+                    </span>
+                </div>
+                <div class="dist-view-switch" role="tablist" aria-label="Chart View Mode">
+                    <button type="button" class="dist-switch-btn active" id="btnDistBar"
+                        onclick="switchDistChartView('bar')">Bar</button>
+                    <button type="button" class="dist-switch-btn" id="btnDistArea"
+                        onclick="switchDistChartView('area')">Area</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="dist-kpi-strip">
+            <div class="dist-kpi-chip">
+                <span class="dist-kpi-chip-lbl">6-Month Total Sales</span>
+                <span class="dist-kpi-chip-val" id="distKpi6mSales">₹0</span>
+            </div>
+            <div class="dist-kpi-chip">
+                <span class="dist-kpi-chip-lbl">6-Month GST Collected</span>
+                <span class="dist-kpi-chip-val" id="distKpi6mGst" style="color: #0284c7;">₹0</span>
+            </div>
+            <div class="dist-kpi-chip highlight">
+                <span class="dist-kpi-chip-lbl">Best Performing Month</span>
+                <span class="dist-kpi-chip-val" id="distKpiPeakMonth">—</span>
+            </div>
+        </div>
+
+        <!-- BAR CHART VIEW -->
+        <div id="distBarChartView" class="dist-chart-frame">
+            <div class="dist-y-axis" id="distYAxisTicks">
+                <span>—</span>
+                <span>—</span>
+                <span>—</span>
+                <span>—</span>
+                <span>₹0</span>
+            </div>
+            <div class="dist-plot-area" id="distBarPlot">
+                <div class="dist-gridlines" aria-hidden="true">
+                    <div class="dist-gridline"></div>
+                    <div class="dist-gridline"></div>
+                    <div class="dist-gridline"></div>
+                    <div class="dist-gridline"></div>
+                    <div class="dist-gridline"></div>
+                </div>
+                {% for pt in monthly_sales_chart %}
+                <div class="dist-bar-col" data-label="{{ pt.label }}" data-revenue="{{ pt.revenue }}"
+                    data-gst="{{ pt.gst }}" data-count="{{ pt.count }}" data-rev-pct="{{ pt.rev_pct }}"
+                    data-gst-pct="{{ pt.gst_pct }}">
+                    <div class="dist-bar-popover">
+                        <div class="dist-pop-month">{{ pt.label }}</div>
+                        <div class="dist-pop-row">
+                            <span class="dist-pop-key">
+                                <span class="dist-legend-swatch" style="background: #14b8a6;"></span>
+                                Sales
+                            </span>
+                            <span class="dist-pop-val">₹{{ pt.revenue|floatformat:0 }}</span>
+                        </div>
+                        <div class="dist-pop-row">
+                            <span class="dist-pop-key">
+                                <span class="dist-legend-swatch" style="background: #38bdf8;"></span>
+                                GST
+                            </span>
+                            <span class="dist-pop-val">₹{{ pt.gst|floatformat:0 }}</span>
+                        </div>
+                        <div class="dist-pop-row">
+                            <span class="dist-pop-key">Invoices</span>
+                            <span class="dist-pop-val">{{ pt.count }}</span>
+                        </div>
+                    </div>
+                    <div class="dist-bar-bars-zone">
+                        <span class="dist-bar-top-val {% if not pt.revenue %}is-zero{% endif %}"
+                            data-compact-amt="{{ pt.revenue }}">
+                            ₹{{ pt.revenue|floatformat:0 }}
+                        </span>
+                        <div class="dist-bars-pair">
+                            <div class="dist-bar-rev {% if not pt.revenue %}is-zero{% endif %}"
+                                style="height: {{ pt.rev_pct }}%;"></div>
+                            <div class="dist-bar-gst {% if not pt.gst %}is-zero{% endif %}"
+                                style="height: {{ pt.gst_pct }}%;"></div>
+                        </div>
+                    </div>
+                    <div class="dist-bar-footer">
+                        <span class="dist-bar-month">{{ pt.label }}</span>
+                        <span class="dist-bar-inv-chip {% if not pt.count %}is-zero{% endif %}">{{ pt.count }}
+                            inv</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- SVG AREA / LINE CHART VIEW -->
+        <div id="distAreaChartView" class="dist-area-stage">
+            <svg id="distTrendAreaSvg" viewBox="0 0 760 262" aria-label="Monthly Sales Area Chart"></svg>
+        </div>
+    </section>
+
+    <!-- RECENT INVOICES TABLE -->
+    <section class="report-card-panel" aria-label="Recent Invoices">
+        <div class="report-panel-header">
+            <h3>🧾 Recent Invoices</h3>
+            <a href="{% url 'invoice_list' %}"
+                style="font-size: 13px; font-weight: 700; color: var(--primary); text-decoration: none;">View All
+                Invoices →</a>
+        </div>
+
+        <div class="report-table-responsive">
+            <table class="report-data-table">
+                <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th style="text-align: right;">Amount (₹)</th>
+                        <th style="text-align: center;">Status</th>
+                        <th style="text-align: right;">Quick Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in recent_invoices %}
+                    <tr>
+                        <td><strong style="font-family: var(--font-mono); color: var(--primary-700);">{{ inv.invoice_number }}</strong></td>
+                        <td>{{ inv.customer.name }}</td>
+                        <td>{{ inv.created_at|date:"d M Y, h:i A" }}</td>
+                        <td style="text-align: right; font-weight: 800; font-family: var(--font-mono);">₹{{ inv.total_amount|floatformat:2 }}</td>
+                        <td style="text-align: center;">
+                            {% if inv.status == 'Paid' %}
+                            <span class="status-pill paid">✓ Paid</span>
+                            {% else %}
+                            <span class="status-pill pending">⏳ {{ inv.status|default:"Pending" }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{% url 'invoice_preview' inv.pk %}"
+                                style="display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-decoration: none; margin-right: 10px;">👁️
+                                Preview</a>
+                            <a href="{% url 'invoice_pdf' inv.pk %}"
+                                style="display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none;">📄
+                                PDF</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                            No invoices generated yet. <a href="{% url 'invoice_create' %}"
+                                style="color: var(--primary); font-weight: 700;">Create your first bill →</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- QUICK ACTIONS GRID -->
+    <div class="section-title-wrap">
+        <h3>⚡ Quick Action Hub</h3>
+    </div>
+
+    <section class="cards" aria-label="Quick Actions">
+        <a href="{% url 'customer_list' %}" class="card">
+            <div class="card-icon">👥</div>
+            <h3>Customer Directory</h3>
+            <p>Register, update and search through your distributor customer records.</p>
+            <span class="card-arrow">Open Customers →</span>
+        </a>
+
+        <a href="{% url 'invoice_list' %}" class="card">
+            <div class="card-icon">🧾</div>
+            <h3>Invoices & History</h3>
+            <p>View generated tax invoices, toggle payment status, and download branded PDFs.</p>
+            <span class="card-arrow">View Invoices →</span>
+        </a>
+
+        <a href="{% url 'product_list' %}" class="card">
+            <div class="card-icon">📦</div>
+            <h3>Product Inventory</h3>
+            <p>Manage product catalog, check live stock badges and configure GST rates.</p>
+            <span class="card-arrow">Manage Products →</span>
+        </a>
+
+        <a href="{% url 'invoice_create' %}" class="card"
+            style="border-color: var(--primary-200); background: linear-gradient(180deg, #ffffff 0%, var(--primary-50) 100%);">
+            <div class="card-icon" style="background: var(--primary-100); border-color: var(--primary-300);">⚡</div>
+            <h3 style="color: var(--primary-800);">Quick Bill Creator</h3>
+            <p>Add dynamic multiple products with real-time tax and auto-discount engine.</p>
+            <span class="card-arrow" style="font-weight: 800;">Create Bill Now →</span>
+        </a>
+
+        <a href="{% url 'quotation_list' %}" class="card">
+            <div class="card-icon">📝</div>
+            <h3>Quotations &amp; Estimates</h3>
+            <p>Send GST rate estimates and convert approved quotes into Tax Invoices in 1 click.</p>
+            <span class="card-arrow">Open Quotations ({{ quotations_count|default:"0" }}) →</span>
+        </a>
+
+        <a href="{% url 'stock_ledger' %}" class="card">
+            <div class="card-icon">📋</div>
+            <h3>Stock-In Audit Ledger</h3>
+            <p>Track every purchase restock, sale deduction, and cancellation stock restore.</p>
+            <span class="card-arrow">View Stock Ledger →</span>
+        </a>
+    </section>
+
+</main>
 {% endblock %}
 
 {% block extra_body %}
 <script>
-// Format compact Indian currency (₹1.27L, ₹35.1k, ₹850)
+    // Format compact Indian currency (₹1.27L, ₹35.1k, ₹850)
     function formatCompactINR(val) {
         const n = Number(val) || 0;
         if (n <= 0) return '₹0';

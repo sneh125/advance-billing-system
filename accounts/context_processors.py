@@ -2,6 +2,7 @@
 
 _ACTIVE_PAGE_BY_URL_NAME = {
     "admin_dashboard": "dashboard",
+    "admin_distributor_detail": "distributors",
     "distributor_dashboard": "dashboard",
     "customer_list": "customers",
     "customer_add": "customers",

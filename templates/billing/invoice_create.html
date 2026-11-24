@@ -6,14 +6,14 @@
 {% block shell_class %}invoice-page-layout{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/invoices.css' %}?v=10">
     <style>
         .quick-pos-bar {
             display: flex;
             align-items: center;
             gap: 10px;
-            background: #f0fdfa;
-            border: 1.5px solid #99f6e4;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
             border-radius: 12px;
             padding: 10px 14px;
             margin-bottom: 12px;
@@ -55,7 +55,7 @@
             font-size: 13px;
         }
         .quick-pos-item:hover {
-            background: #f0fdfa;
+            background: #eff6ff;
         }
         .term-chip {
             padding: 4px 9px;
@@ -70,7 +70,7 @@
         .term-chip:hover {
             border-color: var(--primary);
             color: var(--primary-700);
-            background: #f0fdfa;
+            background: #eff6ff;
         }
         .billing-meta-grid {
             display: grid;
@@ -204,7 +204,7 @@
                             <div class="quick-pos-bar">
                                 <span style="font-size: 16px;">⚡</span>
                                 <input type="text" id="productQuickAddInput" class="quick-pos-input" placeholder="Scan SKU/Barcode or type product name / HSN & press Enter to add instantly..." autocomplete="off">
-                                <span style="font-size: 11px; font-weight: 700; color: #0f766e; background: #ccfbf1; padding: 3px 8px; border-radius: 9999px;">Fast POS Search</span>
+                                <span style="font-size: 11px; font-weight: 700; color: #1d4ed8; background: #dbeafe; padding: 3px 8px; border-radius: 9999px;">Fast POS Search</span>
                                 <div id="productQuickMatches" class="quick-pos-dropdown"></div>
                             </div>
 
@@ -594,7 +594,7 @@
                 matches.forEach(p => {
                     const div = document.createElement('div');
                     div.className = 'quick-pos-item';
-                    div.innerHTML = `<div><strong>${p.name}</strong>${p.sku ? ' <code style="font-size:11px;color:#0f766e;">[' + p.sku + ']</code>' : ''}${p.hsn ? ' <small style="color:#64748b;">HSN:' + p.hsn + '</small>' : ''}</div><div style="font-family:var(--font-mono);font-size:12px;"><strong>₹${p.price}</strong> • Stock: ${p.stock}</div>`;
+                    div.innerHTML = `<div><strong>${p.name}</strong>${p.sku ? ' <code style="font-size:11px;color:#1d4ed8;">[' + p.sku + ']</code>' : ''}${p.hsn ? ' <small style="color:#64748b;">HSN:' + p.hsn + '</small>' : ''}</div><div style="font-family:var(--font-mono);font-size:12px;"><strong>₹${p.price}</strong> • Stock: ${p.stock}</div>`;
                     div.addEventListener('mousedown', function(ev) {
                         ev.preventDefault();
                         addOrIncrementProduct(p.id);

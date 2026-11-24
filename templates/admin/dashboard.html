@@ -5,616 +5,704 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2">
-    <link rel="stylesheet" href="{% static 'css/admin_reports.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'css/admin_reports.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
 <!-- ADMIN CONTENT -->
-    <main class="dashboard-content">
+<main class="dashboard-content">
 
-        <!-- WELCOME BANNER -->
-        <section id="system-overview" class="welcome-banner" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #881337 100%);">
-            <div class="welcome-text-wrap">
-                <div class="welcome-badge-chip" style="background: rgba(244, 63, 94, 0.2); border-color: rgba(244, 63, 94, 0.4); color: #fda4af;">
-                    🛡️ Administrator Control Center
-                </div>
-                <h2>System Overview & Monitoring ⚡</h2>
-                <p>Track all registered distributors, global customer registrations, product inventories, and overall platform revenue metrics.</p>
+    <!-- WELCOME BANNER -->
+    <section id="system-overview" class="welcome-banner"
+        style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #881337 100%);">
+        <div class="welcome-text-wrap">
+            <div class="welcome-badge-chip"
+                style="background: rgba(244, 63, 94, 0.2); border-color: rgba(244, 63, 94, 0.4); color: #fda4af;">
+                🛡️ Administrator Control Center
             </div>
-            <div class="welcome-action-wrap">
-                <a href="#reports-section" class="btn-welcome-cta" style="background: linear-gradient(135deg, #f43f5e, #e11d48); box-shadow: 0 4px 18px rgba(225, 29, 72, 0.4);">
-                    📊 View Detailed Reports
+            <h2>System Overview & Monitoring ⚡</h2>
+            <p>Track all registered distributors, global customer registrations, product inventories, and overall
+                platform revenue metrics.</p>
+        </div>
+        <div class="welcome-action-wrap">
+            <a href="#reports-section" class="btn-welcome-cta"
+                style="background: linear-gradient(135deg, #f43f5e, #e11d48); box-shadow: 0 4px 18px rgba(225, 29, 72, 0.4);">
+                📊 View Detailed Reports
+            </a>
+        </div>
+    </section>
+
+    <!-- KPI STATS ROW -->
+    <section class="stats-row" aria-label="System Metrics">
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-icon teal">👥</div>
+                <span class="stat-trend-tag">{{ active_distributors_count }}/{{ total_distributors_count }}
+                    Active</span>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Distributors</span>
+                <div class="stat-value">{{ total_distributors_count|default:"0" }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-icon blue">🧾</div>
+                <span class="stat-trend-tag">System Wide</span>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Total Invoices</span>
+                <div class="stat-value">{{ total_invoices_count|default:"0" }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-icon purple">📦</div>
+                <span class="stat-trend-tag">Catalog Items</span>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Total Products</span>
+                <div class="stat-value">{{ total_products_count|default:"0" }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-icon orange">💰</div>
+                <span class="stat-trend-tag" style="background: var(--warning-bg); color: var(--warning-text);">Platform
+                    Sales</span>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Gross Billed</span>
+                <div class="stat-value">₹{{ gross_revenue|default:"0"|floatformat:2 }}</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- DEDICATED REPORTS SECTION                                     -->
+    <!-- ============================================================= -->
+    <section class="admin-reports-section" id="reports-section" aria-label="System Reports">
+
+        <!-- REPORTS HEADER BAR -->
+        <div class="reports-header-bar">
+            <div class="reports-header-title-wrap">
+                <span class="reports-header-badge">📈 Executive Business Intelligence</span>
+                <h2>Dedicated System Reports & Analytics</h2>
+                <p>Aggregated multi-dimensional revenue analytics, GST tax remittance breakdown, distributor performance
+                    ledger, and inventory auditing.</p>
+            </div>
+
+            <div class="reports-header-controls">
+                <!-- PERIOD FILTER PILLS -->
+                <div class="period-filter-group" aria-label="Filter report range">
+                    <a href="?period=all#reports-section"
+                        class="period-pill-btn {% if period == 'all' or not period %}active{% endif %}">All Time</a>
+                    <a href="?period=month#reports-section"
+                        class="period-pill-btn {% if period == 'month' %}active{% endif %}">30 Days</a>
+                    <a href="?period=week#reports-section"
+                        class="period-pill-btn {% if period == 'week' %}active{% endif %}">7 Days</a>
+                    <a href="?period=today#reports-section"
+                        class="period-pill-btn {% if period == 'today' %}active{% endif %}">Today</a>
+                </div>
+
+                <!-- EXPORT & PRINT BUTTONS -->
+                <a href="?period={{ period }}&export=csv" class="btn-report-action" title="Download CSV Report">
+                    📥 Export CSV
                 </a>
+                <a href="{% url 'admin_backup_db' %}?format=json" id="btnAdminBackupDb" class="btn-report-action"
+                    title="Download Full Database Backup">
+                    💾 Backup DB
+                </a>
+                <button type="button" onclick="window.print()" class="btn-report-action primary"
+                    title="Print Executive Summary">
+                    🖨️ Print Report
+                </button>
             </div>
-        </section>
+        </div>
 
-        <!-- KPI STATS ROW -->
-        <section class="stats-row" aria-label="System Metrics">
-            <div class="stat-card">
-                <div class="stat-card-top">
-                    <div class="stat-icon teal">👥</div>
-                    <span class="stat-trend-tag">{{ active_distributors_count }}/{{ total_distributors_count }} Active</span>
+        <!-- FINANCIAL & GST TAX AUDIT METRICS -->
+        <div class="report-financial-grid">
+            <div class="report-metric-tile">
+                <div class="report-metric-top">
+                    <span class="report-metric-label">Gross Billed</span>
+                    <span class="report-metric-icon">💵</span>
                 </div>
-                <div class="stat-content">
-                    <span class="stat-label">Distributors</span>
-                    <div class="stat-value">{{ total_distributors_count|default:"0" }}</div>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-card-top">
-                    <div class="stat-icon blue">🧾</div>
-                    <span class="stat-trend-tag">System Wide</span>
-                </div>
-                <div class="stat-content">
-                    <span class="stat-label">Total Invoices</span>
-                    <div class="stat-value">{{ total_invoices_count|default:"0" }}</div>
+                <div class="report-metric-value">₹{{ gross_revenue|default:"0"|floatformat:2 }}</div>
+                <div class="report-metric-footer">
+                    <span>Across {{ total_invoices_count }} invoice{{ total_invoices_count|pluralize }}</span>
                 </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-card-top">
-                    <div class="stat-icon purple">📦</div>
-                    <span class="stat-trend-tag">Catalog Items</span>
+            <div class="report-metric-tile">
+                <div class="report-metric-top">
+                    <span class="report-metric-label">Taxable Subtotal</span>
+                    <span class="report-metric-icon">📑</span>
                 </div>
-                <div class="stat-content">
-                    <span class="stat-label">Total Products</span>
-                    <div class="stat-value">{{ total_products_count|default:"0" }}</div>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-card-top">
-                    <div class="stat-icon orange">💰</div>
-                    <span class="stat-trend-tag" style="background: var(--warning-bg); color: var(--warning-text);">Platform Sales</span>
-                </div>
-                <div class="stat-content">
-                    <span class="stat-label">Gross Billed</span>
-                    <div class="stat-value">₹{{ gross_revenue|default:"0"|floatformat:2 }}</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ============================================================= -->
-        <!-- DEDICATED REPORTS SECTION                                     -->
-        <!-- ============================================================= -->
-        <section class="admin-reports-section" id="reports-section" aria-label="System Reports">
-
-            <!-- REPORTS HEADER BAR -->
-            <div class="reports-header-bar">
-                <div class="reports-header-title-wrap">
-                    <span class="reports-header-badge">📈 Executive Business Intelligence</span>
-                    <h2>Dedicated System Reports & Analytics</h2>
-                    <p>Aggregated multi-dimensional revenue analytics, GST tax remittance breakdown, distributor performance ledger, and inventory auditing.</p>
-                </div>
-
-                <div class="reports-header-controls">
-                    <!-- PERIOD FILTER PILLS -->
-                    <div class="period-filter-group" aria-label="Filter report range">
-                        <a href="?period=all#reports-section" class="period-pill-btn {% if period == 'all' or not period %}active{% endif %}">All Time</a>
-                        <a href="?period=month#reports-section" class="period-pill-btn {% if period == 'month' %}active{% endif %}">30 Days</a>
-                        <a href="?period=week#reports-section" class="period-pill-btn {% if period == 'week' %}active{% endif %}">7 Days</a>
-                        <a href="?period=today#reports-section" class="period-pill-btn {% if period == 'today' %}active{% endif %}">Today</a>
-                    </div>
-
-                    <!-- EXPORT & PRINT BUTTONS -->
-                    <a href="?period={{ period }}&export=csv" class="btn-report-action" title="Download CSV Report">
-                        📥 Export CSV
-                    </a>
-                    <a href="{% url 'admin_backup_db' %}?format=json" id="btnAdminBackupDb" class="btn-report-action" title="Download Full Database Backup">
-                        💾 Backup DB
-                    </a>
-                    <button type="button" onclick="window.print()" class="btn-report-action primary" title="Print Executive Summary">
-                        🖨️ Print Report
-                    </button>
+                <div class="report-metric-value">₹{{ net_taxable_subtotal|default:"0"|floatformat:2 }}</div>
+                <div class="report-metric-footer">
+                    <span>Net base transaction volume</span>
                 </div>
             </div>
 
-            <!-- FINANCIAL & GST TAX AUDIT METRICS -->
-            <div class="report-financial-grid">
-                <div class="report-metric-tile">
-                    <div class="report-metric-top">
-                        <span class="report-metric-label">Gross Billed</span>
-                        <span class="report-metric-icon">💵</span>
-                    </div>
-                    <div class="report-metric-value">₹{{ gross_revenue|default:"0"|floatformat:2 }}</div>
-                    <div class="report-metric-footer">
-                        <span>Across {{ total_invoices_count }} invoice{{ total_invoices_count|pluralize }}</span>
-                    </div>
+            <div class="report-metric-tile">
+                <div class="report-metric-top">
+                    <span class="report-metric-label">GST Tax Remittance</span>
+                    <span class="report-metric-icon">🏛️</span>
                 </div>
-
-                <div class="report-metric-tile">
-                    <div class="report-metric-top">
-                        <span class="report-metric-label">Taxable Subtotal</span>
-                        <span class="report-metric-icon">📑</span>
-                    </div>
-                    <div class="report-metric-value">₹{{ net_taxable_subtotal|default:"0"|floatformat:2 }}</div>
-                    <div class="report-metric-footer">
-                        <span>Net base transaction volume</span>
-                    </div>
-                </div>
-
-                <div class="report-metric-tile">
-                    <div class="report-metric-top">
-                        <span class="report-metric-label">GST Tax Remittance</span>
-                        <span class="report-metric-icon">🏛️</span>
-                    </div>
-                    <div class="report-metric-value" style="color: #0284c7;">₹{{ total_tax_collected|default:"0"|floatformat:2 }}</div>
-                    <div class="report-metric-footer">
-                        <span>Aggregated GST compliance</span>
-                    </div>
-                </div>
-
-                <div class="report-metric-tile">
-                    <div class="report-metric-top">
-                        <span class="report-metric-label">Avg. Invoice Ticket</span>
-                        <span class="report-metric-icon">🏷️</span>
-                    </div>
-                    <div class="report-metric-value" style="color: #059669;">₹{{ avg_invoice_value|default:"0"|floatformat:2 }}</div>
-                    <div class="report-metric-footer">
-                        <span>Per generated invoice</span>
-                    </div>
+                <div class="report-metric-value" style="color: #0284c7;">₹{{ total_tax_collected|default:"0"|floatformat:2 }}</div>
+                <div class="report-metric-footer">
+                    <span>Aggregated GST compliance</span>
                 </div>
             </div>
 
-            <!-- VISUAL ANALYTICS CHARTS (ROW 1: TREND & DISTRIBUTOR COMPARISON) -->
-            <div class="reports-two-col">
+            <div class="report-metric-tile">
+                <div class="report-metric-top">
+                    <span class="report-metric-label">Avg. Invoice Ticket</span>
+                    <span class="report-metric-icon">🏷️</span>
+                </div>
+                <div class="report-metric-value" style="color: #059669;">₹{{ avg_invoice_value|default:"0"|floatformat:2 }}</div>
+                <div class="report-metric-footer">
+                    <span>Per generated invoice</span>
+                </div>
+            </div>
+        </div>
 
-                <!-- CHART 1: REVENUE & GST TREND GRAPH -->
-                <div class="report-card-panel" id="adminRevenueTrendChart">
-                    <div class="report-panel-header">
-                        <h3>📈 Revenue &amp; GST Trend Graph</h3>
-                        <div class="chart-toggle-group" role="group" aria-label="Chart Type Toggle">
-                            <button
-                                type="button"
-                                class="chart-toggle-btn active"
-                                id="btnTrendBar"
-                                onclick="switchAdminTrendView('bar')"
-                            >
-                                Bar
-                            </button>
-                            <button
-                                type="button"
-                                class="chart-toggle-btn"
-                                id="btnTrendLine"
-                                onclick="switchAdminTrendView('line')"
-                            >
-                                Line
-                            </button>
+        <!-- VISUAL ANALYTICS CHARTS (ROW 1: TREND & DISTRIBUTOR COMPARISON) -->
+        <div class="reports-two-col">
+
+            <!-- CHART 1: REVENUE & GST TREND GRAPH -->
+            <div class="report-card-panel" id="adminRevenueTrendChart">
+                <div class="report-panel-header">
+                    <h3>📈 Revenue &amp; GST Trend Graph</h3>
+                    <div class="chart-toggle-group" role="group" aria-label="Chart Type Toggle">
+                        <button type="button" class="chart-toggle-btn active" id="btnTrendBar"
+                            onclick="switchAdminTrendView('bar')">
+                            Bar
+                        </button>
+                        <button type="button" class="chart-toggle-btn" id="btnTrendLine"
+                            onclick="switchAdminTrendView('line')">
+                            Line
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chart-legend-row">
+                    <span>
+                        <span class="legend-dot" style="background: #e11d48;"></span>
+                        Gross Billed (₹)
+                    </span>
+                    <span>
+                        <span class="legend-dot" style="background: #0284c7;"></span>
+                        GST Tax (₹)
+                    </span>
+                </div>
+
+                <!-- BAR GRAPH VIEW -->
+                <div id="trendBarView" class="trend-bar-stage">
+                    {% for pt in trend_chart_data %}
+                    <div class="trend-bar-col">
+                        <div class="trend-bar-tooltip">
+                            {{ pt.label }}: ₹{{ pt.revenue|floatformat:0 }}
+                            (GST ₹{{ pt.gst|floatformat:0 }} • {{ pt.count }} inv)
+                        </div>
+                        <div class="trend-bars-pair">
+                            <div class="trend-bar-rev" style="height: {{ pt.rev_pct }}%;"></div>
+                            <div class="trend-bar-gst" style="height: {{ pt.gst_pct }}%;"></div>
+                        </div>
+                        <span class="trend-bar-label">{{ pt.label }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- SVG LINE / AREA GRAPH VIEW -->
+                <div id="trendLineView" style="display: none;">
+                    <svg id="adminTrendLineSvg" viewBox="0 0 540 205"
+                        style="width: 100%; height: 210px; display: block;" aria-label="Revenue Line Chart"></svg>
+                </div>
+            </div>
+
+            <!-- CHART 2: DISTRIBUTOR REVENUE COMPARISON BAR CHART -->
+            <div class="report-card-panel" id="adminDistributorBarChart">
+                <div class="report-panel-header">
+                    <h3>🏢 Distributor Revenue Comparison</h3>
+                    <span class="report-panel-badge">Top Performers</span>
+                </div>
+
+                <div class="dist-chart-list">
+                    {% for d in distributor_reports|slice:":5" %}
+                    <div class="dist-chart-row">
+                        <div class="dist-chart-meta">
+                            <span>
+                                <strong>#{{ forloop.counter }}</strong>
+                                {{ d.user.get_full_name|default:d.user.username }}
+                                <small style="color: var(--text-muted);">
+                                    ({{ d.invoice_count }} inv)
+                                </small>
+                            </span>
+                            <span style="font-weight: 800; color: var(--slate-900);">
+                                ₹{{ d.revenue|floatformat:2 }}
+                                <small style="color: #0f766e;">
+                                    ({{ d.share_pct }}%)
+                                </small>
+                            </span>
+                        </div>
+                        <div class="dist-chart-track">
+                            <div class="dist-chart-fill" style="width: {{ d.bar_pct }}%;"></div>
                         </div>
                     </div>
+                    {% empty %}
+                    <div style="padding: 28px; text-align: center; color: var(--text-muted);">
+                        No distributor billing activity available yet.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
 
-                    <div class="chart-legend-row">
-                        <span>
-                            <span class="legend-dot" style="background: #e11d48;"></span>
-                            Gross Billed (₹)
-                        </span>
+        </div>
+
+        <!-- TWO-COLUMN REPORT BREAKDOWNS (ROW 2: DONUT CHARTS + METRICS) -->
+        <div class="reports-two-col">
+
+            <!-- SETTLEMENT STATUS PANEL WITH DONUT CHART -->
+            <div class="report-card-panel">
+                <div class="report-panel-header">
+                    <h3>📊 Invoice Settlement Ratio</h3>
+                    <span class="report-panel-badge">Cash Flow Health</span>
+                </div>
+
+                <div class="donut-summary-row">
+                    <div id="adminSettlementDonut" class="donut-ring-chart"
+                        style="background: {% if gross_revenue > 0 %}conic-gradient(#10b981 0% {{ paid_percentage }}%, #f59e0b {{ paid_percentage }}% 100%){% else %}#e2e8f0{% endif %};">
+                        <div class="donut-ring-hole">
+                            <strong>{{ paid_percentage }}%</strong>
+                            <span>Paid</span>
+                        </div>
+                    </div>
+                    <div style="flex: 1; min-width: 180px;">
+                        <div class="ratio-bar-wrap">
+                            <div class="ratio-bar-labels">
+                                <span style="color: #059669;">
+                                    ✓ Paid: ₹{{ paid_revenue|default:"0"|floatformat:2 }} ({{ paid_percentage }}%)
+                                </span>
+                                <span style="color: #d97706;">
+                                    ⏳ Pending: ₹{{ pending_revenue|default:"0"|floatformat:2 }} ({{ pending_percentage }}%)
+                                </span>
+                            </div>
+                            <div class="ratio-progress-track">
+                                <div class="ratio-progress-fill-paid" style="width: {{ paid_percentage }}%;"></div>
+                                <div class="ratio-progress-fill-pending" style="width: {{ pending_percentage }}%;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px;">
+                    <div
+                        style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-lg); padding: 14px;">
+                        <div style="font-size: 12px; font-weight: 700; color: #166534; text-transform: uppercase;">Paid
+                            Invoices</div>
+                        <div style="font-size: 22px; font-weight: 800; color: #15803d; margin-top: 4px;">{{ paid_invoices_count }}</div>
+                        <div style="font-size: 11.5px; color: #166534;">Fully Cleared</div>
+                    </div>
+                    <div
+                        style="background: #fffbeb; border: 1px solid #fef08a; border-radius: var(--radius-lg); padding: 14px;">
+                        <div style="font-size: 12px; font-weight: 700; color: #92400e; text-transform: uppercase;">
+                            Pending Invoices</div>
+                        <div style="font-size: 22px; font-weight: 800; color: #b45309; margin-top: 4px;">{{ pending_invoices_count }}</div>
+                        <div style="font-size: 11.5px; color: #92400e;">Awaiting Settlement</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INVENTORY & ASSET REPORT PANEL WITH DONUT CHART -->
+            <div class="report-card-panel">
+                <div class="report-panel-header">
+                    <h3>📦 Catalog Valuation & Stock Health</h3>
+                    <span class="report-panel-badge">Asset Audit</span>
+                </div>
+
+                <div class="donut-summary-row">
+                    <div id="adminStockDonut" class="donut-ring-chart"
+                        style="background: {% if total_products_count > 0 %}conic-gradient(#0284c7 0% {{ in_stock_end_pct }}%, #ea580c {{ in_stock_end_pct }}% {{ low_stock_end_pct }}%, #dc2626 {{ low_stock_end_pct }}% 100%){% else %}#e2e8f0{% endif %};">
+                        <div class="donut-ring-hole">
+                            <strong>{{ total_products_count|default:"0" }}</strong>
+                            <span>SKUs</span>
+                        </div>
+                    </div>
+                    <div class="chart-legend-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
                         <span>
                             <span class="legend-dot" style="background: #0284c7;"></span>
-                            GST Tax (₹)
+                            Healthy In-Stock: {{ in_stock_pct }}% ({{ in_stock_products_count }})
+                        </span>
+                        <span>
+                            <span class="legend-dot" style="background: #ea580c;"></span>
+                            Low Stock: {{ low_stock_pct }}% ({{ low_stock_products_count }})
+                        </span>
+                        <span>
+                            <span class="legend-dot" style="background: #dc2626;"></span>
+                            Out of Stock: {{ out_of_stock_pct }}% ({{ out_of_stock_products_count }})
                         </span>
                     </div>
+                </div>
 
-                    <!-- BAR GRAPH VIEW -->
-                    <div id="trendBarView" class="trend-bar-stage">
-                        {% for pt in trend_chart_data %}
-                        <div class="trend-bar-col">
-                            <div class="trend-bar-tooltip">
-                                {{ pt.label }}: ₹{{ pt.revenue|floatformat:0 }}
-                                (GST ₹{{ pt.gst|floatformat:0 }} • {{ pt.count }} inv)
-                            </div>
-                            <div class="trend-bars-pair">
-                                <div
-                                    class="trend-bar-rev"
-                                    style="height: {{ pt.rev_pct }}%;"
-                                ></div>
-                                <div
-                                    class="trend-bar-gst"
-                                    style="height: {{ pt.gst_pct }}%;"
-                                ></div>
-                            </div>
-                            <span class="trend-bar-label">{{ pt.label }}</span>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div
+                        style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-lg); padding: 14px;">
+                        <div
+                            style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                            Inventory Asset Value</div>
+                        <div style="font-size: 22px; font-weight: 800; color: var(--slate-900); margin-top: 4px;">₹{{ total_inventory_valuation|default:"0"|floatformat:2 }}</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted);">{{ total_products_count }} Total SKUs
                         </div>
-                        {% endfor %}
                     </div>
-
-                    <!-- SVG LINE / AREA GRAPH VIEW -->
-                    <div id="trendLineView" style="display: none;">
-                        <svg
-                            id="adminTrendLineSvg"
-                            viewBox="0 0 540 205"
-                            style="width: 100%; height: 210px; display: block;"
-                            aria-label="Revenue Line Chart"
-                        ></svg>
+                    <div
+                        style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-lg); padding: 14px;">
+                        <div
+                            style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                            Healthy In-Stock</div>
+                        <div style="font-size: 22px; font-weight: 800; color: #0284c7; margin-top: 4px;">{{ in_stock_products_count }}</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted);">>10 units on hand</div>
                     </div>
                 </div>
 
-                <!-- CHART 2: DISTRIBUTOR REVENUE COMPARISON BAR CHART -->
-                <div class="report-card-panel" id="adminDistributorBarChart">
-                    <div class="report-panel-header">
-                        <h3>🏢 Distributor Revenue Comparison</h3>
-                        <span class="report-panel-badge">Top Performers</span>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div
+                        style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: var(--radius-lg); padding: 14px;">
+                        <div style="font-size: 12px; font-weight: 700; color: #c2410c; text-transform: uppercase;">Low
+                            Stock Warning</div>
+                        <div style="font-size: 20px; font-weight: 800; color: #ea580c; margin-top: 4px;">{{ low_stock_products_count }} SKUs</div>
+                        <div style="font-size: 11.5px; color: #c2410c;">Reorder Recommended</div>
                     </div>
-
-                    <div class="dist-chart-list">
-                        {% for d in distributor_reports|slice:":5" %}
-                        <div class="dist-chart-row">
-                            <div class="dist-chart-meta">
-                                <span>
-                                    <strong>#{{ forloop.counter }}</strong>
-                                    {{ d.user.get_full_name|default:d.user.username }}
-                                    <small style="color: var(--text-muted);">
-                                        ({{ d.invoice_count }} inv)
-                                    </small>
-                                </span>
-                                <span style="font-weight: 800; color: var(--slate-900);">
-                                    ₹{{ d.revenue|floatformat:2 }}
-                                    <small style="color: #0f766e;">
-                                        ({{ d.share_pct }}%)
-                                    </small>
-                                </span>
-                            </div>
-                            <div class="dist-chart-track">
-                                <div
-                                    class="dist-chart-fill"
-                                    style="width: {{ d.bar_pct }}%;"
-                                ></div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div style="padding: 28px; text-align: center; color: var(--text-muted);">
-                            No distributor billing activity available yet.
-                        </div>
-                        {% endfor %}
+                    <div
+                        style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-lg); padding: 14px;">
+                        <div style="font-size: 12px; font-weight: 700; color: #b91c1c; text-transform: uppercase;">Out
+                            of Stock</div>
+                        <div style="font-size: 20px; font-weight: 800; color: #dc2626; margin-top: 4px;">{{ out_of_stock_products_count }} SKUs</div>
+                        <div style="font-size: 11.5px; color: #b91c1c;">Zero units available</div>
                     </div>
                 </div>
-
             </div>
 
-            <!-- TWO-COLUMN REPORT BREAKDOWNS (ROW 2: DONUT CHARTS + METRICS) -->
-            <div class="reports-two-col">
+        </div>
 
-                <!-- SETTLEMENT STATUS PANEL WITH DONUT CHART -->
-                <div class="report-card-panel">
-                    <div class="report-panel-header">
-                        <h3>📊 Invoice Settlement Ratio</h3>
-                        <span class="report-panel-badge">Cash Flow Health</span>
-                    </div>
-
-                    <div class="donut-summary-row">
-                        <div
-                            id="adminSettlementDonut"
-                            class="donut-ring-chart"
-                            style="background: {% if gross_revenue > 0 %}conic-gradient(#10b981 0% {{ paid_percentage }}%, #f59e0b {{ paid_percentage }}% 100%){% else %}#e2e8f0{% endif %};"
-                        >
-                            <div class="donut-ring-hole">
-                                <strong>{{ paid_percentage }}%</strong>
-                                <span>Paid</span>
-                            </div>
-                        </div>
-                        <div style="flex: 1; min-width: 180px;">
-                            <div class="ratio-bar-wrap">
-                                <div class="ratio-bar-labels">
-                                    <span style="color: #059669;">
-                                        ✓ Paid: ₹{{ paid_revenue|default:"0"|floatformat:2 }} ({{ paid_percentage }}%)
-                                    </span>
-                                    <span style="color: #d97706;">
-                                        ⏳ Pending: ₹{{ pending_revenue|default:"0"|floatformat:2 }} ({{ pending_percentage }}%)
-                                    </span>
-                                </div>
-                                <div class="ratio-progress-track">
-                                    <div
-                                        class="ratio-progress-fill-paid"
-                                        style="width: {{ paid_percentage }}%;"
-                                    ></div>
-                                    <div
-                                        class="ratio-progress-fill-pending"
-                                        style="width: {{ pending_percentage }}%;"
-                                    ></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px;">
-                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-lg); padding: 14px;">
-                            <div style="font-size: 12px; font-weight: 700; color: #166534; text-transform: uppercase;">Paid Invoices</div>
-                            <div style="font-size: 22px; font-weight: 800; color: #15803d; margin-top: 4px;">{{ paid_invoices_count }}</div>
-                            <div style="font-size: 11.5px; color: #166534;">Fully Cleared</div>
-                        </div>
-                        <div style="background: #fffbeb; border: 1px solid #fef08a; border-radius: var(--radius-lg); padding: 14px;">
-                            <div style="font-size: 12px; font-weight: 700; color: #92400e; text-transform: uppercase;">Pending Invoices</div>
-                            <div style="font-size: 22px; font-weight: 800; color: #b45309; margin-top: 4px;">{{ pending_invoices_count }}</div>
-                            <div style="font-size: 11.5px; color: #92400e;">Awaiting Settlement</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- INVENTORY & ASSET REPORT PANEL WITH DONUT CHART -->
-                <div class="report-card-panel">
-                    <div class="report-panel-header">
-                        <h3>📦 Catalog Valuation & Stock Health</h3>
-                        <span class="report-panel-badge">Asset Audit</span>
-                    </div>
-
-                    <div class="donut-summary-row">
-                        <div
-                            id="adminStockDonut"
-                            class="donut-ring-chart"
-                            style="background: {% if total_products_count > 0 %}conic-gradient(#0284c7 0% {{ in_stock_end_pct }}%, #ea580c {{ in_stock_end_pct }}% {{ low_stock_end_pct }}%, #dc2626 {{ low_stock_end_pct }}% 100%){% else %}#e2e8f0{% endif %};"
-                        >
-                            <div class="donut-ring-hole">
-                                <strong>{{ total_products_count|default:"0" }}</strong>
-                                <span>SKUs</span>
-                            </div>
-                        </div>
-                        <div class="chart-legend-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                            <span>
-                                <span class="legend-dot" style="background: #0284c7;"></span>
-                                Healthy In-Stock: {{ in_stock_pct }}% ({{ in_stock_products_count }})
-                            </span>
-                            <span>
-                                <span class="legend-dot" style="background: #ea580c;"></span>
-                                Low Stock: {{ low_stock_pct }}% ({{ low_stock_products_count }})
-                            </span>
-                            <span>
-                                <span class="legend-dot" style="background: #dc2626;"></span>
-                                Out of Stock: {{ out_of_stock_pct }}% ({{ out_of_stock_products_count }})
-                            </span>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-                        <div style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-lg); padding: 14px;">
-                            <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Inventory Asset Value</div>
-                            <div style="font-size: 22px; font-weight: 800; color: var(--slate-900); margin-top: 4px;">₹{{ total_inventory_valuation|default:"0"|floatformat:2 }}</div>
-                            <div style="font-size: 11.5px; color: var(--text-muted);">{{ total_products_count }} Total SKUs</div>
-                        </div>
-                        <div style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-lg); padding: 14px;">
-                            <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Healthy In-Stock</div>
-                            <div style="font-size: 22px; font-weight: 800; color: #0284c7; margin-top: 4px;">{{ in_stock_products_count }}</div>
-                            <div style="font-size: 11.5px; color: var(--text-muted);">>10 units on hand</div>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-                        <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: var(--radius-lg); padding: 14px;">
-                            <div style="font-size: 12px; font-weight: 700; color: #c2410c; text-transform: uppercase;">Low Stock Warning</div>
-                            <div style="font-size: 20px; font-weight: 800; color: #ea580c; margin-top: 4px;">{{ low_stock_products_count }} SKUs</div>
-                            <div style="font-size: 11.5px; color: #c2410c;">Reorder Recommended</div>
-                        </div>
-                        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-lg); padding: 14px;">
-                            <div style="font-size: 12px; font-weight: 700; color: #b91c1c; text-transform: uppercase;">Out of Stock</div>
-                            <div style="font-size: 20px; font-weight: 800; color: #dc2626; margin-top: 4px;">{{ out_of_stock_products_count }} SKUs</div>
-                            <div style="font-size: 11.5px; color: #b91c1c;">Zero units available</div>
-                        </div>
-                    </div>
-                </div>
-
+        <!-- DISTRIBUTOR PERFORMANCE LEDGER TABLE -->
+        <div class="report-card-panel" id="distributors-section" style="padding: 24px; scroll-margin-top: 80px;">
+            <div class="report-panel-header">
+                <h3>👥 Distributor Performance & Revenue Rankings</h3>
+                <span class="report-panel-badge">{{ total_distributors_count }} Registered Distributors</span>
             </div>
 
-            <!-- DISTRIBUTOR PERFORMANCE LEDGER TABLE -->
-            <div class="report-card-panel" style="padding: 24px;">
-                <div class="report-panel-header">
-                    <h3>👥 Distributor Performance & Revenue Rankings</h3>
-                    <span class="report-panel-badge">{{ total_distributors_count }} Registered Distributors</span>
-                </div>
-
-                <div class="report-table-responsive">
-                    <table class="report-data-table">
-                        <thead>
-                            <tr>
-                                <th>Distributor Name</th>
-                                <th>Contact & Email</th>
-                                <th style="text-align: center;">Customers</th>
-                                <th style="text-align: center;">SKUs</th>
-                                <th style="text-align: center;">Invoices</th>
-                                <th style="text-align: right;">Gross Billed (₹)</th>
-                                <th style="text-align: center;">Account Status</th>
-                                <th style="text-align: center;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for d in distributor_reports %}
-                            <tr>
-                                <td>
-                                    <strong>{{ d.user.get_full_name|default:d.user.username }}</strong>
-                                    <div style="font-size: 11px; color: var(--text-muted);">Joined {{ d.user.date_joined|date:"M d, Y" }}</div>
-                                </td>
-                                <td>
-                                    <div>{{ d.user.email }}</div>
-                                    <div style="font-size: 11px; color: var(--text-muted);">{{ d.phone|default:"No phone" }}</div>
-                                </td>
-                                <td style="text-align: center;">{{ d.customer_count }}</td>
-                                <td style="text-align: center;">{{ d.product_count }}</td>
-                                <td style="text-align: center;">{{ d.invoice_count }}</td>
-                                <td style="text-align: right; font-weight: 800; color: var(--slate-900);">
-                                    ₹{{ d.revenue|floatformat:2 }}
-                                </td>
-                                <td style="text-align: center;">
-                                    {% if d.is_active %}
-                                    <span class="status-pill paid">Active</span>
-                                    {% else %}
-                                    <span class="status-pill danger">Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td style="text-align: center;">
+            <div class="report-table-responsive">
+                <table class="report-data-table">
+                    <thead>
+                        <tr>
+                            <th>Distributor Name</th>
+                            <th>Contact & Email</th>
+                            <th style="text-align: center;">Customers</th>
+                            <th style="text-align: center;">SKUs</th>
+                            <th style="text-align: center;">Invoices</th>
+                            <th style="text-align: right;">Gross Billed (₹)</th>
+                            <th style="text-align: center;">Account Status</th>
+                            <th style="text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in distributor_reports %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'admin_distributor_detail' d.user.pk %}" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px;" title="Open Distributor Audit Profile">
+                                    <strong style="color: #be123c;">{{ d.user.get_full_name|default:d.user.username }}</strong>
+                                    <span style="font-size: 11px; color: #f43f5e;">↗</span>
+                                </a>
+                                <div style="font-size: 11px; color: var(--text-muted);">Joined {{ d.user.date_joined|date:"M d, Y" }}</div>
+                            </td>
+                            <td>
+                                <div>{{ d.user.email }}</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">{{ d.phone|default:"No phone" }}</div>
+                            </td>
+                            <td style="text-align: center;">{{ d.customer_count }}</td>
+                            <td style="text-align: center;">{{ d.product_count }}</td>
+                            <td style="text-align: center;">{{ d.invoice_count }}</td>
+                            <td style="text-align: right; font-weight: 800; color: var(--slate-900);">
+                                ₹{{ d.revenue|floatformat:2 }}
+                            </td>
+                            <td style="text-align: center;">
+                                {% if d.is_active %}
+                                <span class="status-pill paid">Active</span>
+                                {% else %}
+                                <span class="status-pill danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center; white-space: nowrap;">
+                                <div style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: nowrap;">
+                                    <a href="{% url 'admin_distributor_detail' d.user.pk %}" style="display: inline-flex; align-items: center; padding: 4px 10px; font-size: 11.5px; font-weight: 700; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; text-decoration: none; white-space: nowrap;">
+                                        View
+                                    </a>
                                     <form method="POST" action="{% url 'admin_toggle_distributor_active' d.user.pk %}" style="display: inline; margin: 0;">
                                         {% csrf_token %}
                                         {% if d.is_active %}
-                                        <button type="submit" style="padding: 4px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; cursor: pointer;">
+                                        <button type="submit" style="padding: 4px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; cursor: pointer; white-space: nowrap;">
                                             Deactivate
                                         </button>
                                         {% else %}
-                                        <button type="submit" style="padding: 4px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #065f46; cursor: pointer;">
+                                        <button type="submit" style="padding: 4px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #065f46; cursor: pointer; white-space: nowrap;">
                                             Activate
                                         </button>
                                         {% endif %}
                                     </form>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">
-                                    No distributor accounts registered in the system.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                                No distributor accounts registered in the system.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-
-            <!-- LOW STOCK PRODUCTS WATCHLIST -->
-            <div class="report-card-panel" id="adminLowStockPanel" style="padding: 24px;">
-                <div class="report-panel-header">
-                    <h3>⚠️ System-Wide Low Stock Products</h3>
-                    <span class="report-panel-badge" style="background: #fef2f2; color: #b91c1c;">
-                        {{ low_stock_products|length }} Alert{{ low_stock_products|length|pluralize }}
-                    </span>
-                </div>
-
-                {% if low_stock_products %}
-                <div class="report-table-responsive">
-                    <table class="report-data-table">
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>Distributor</th>
-                                <th>Category</th>
-                                <th style="text-align: right;">Price (₹)</th>
-                                <th style="text-align: center;">Stock</th>
-                                <th style="text-align: right;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for prod in low_stock_products %}
-                            <tr>
-                                <td>
-                                    <strong>{{ prod.name }}</strong>
-                                </td>
-                                <td>{{ prod.distributor.username }}</td>
-                                <td>{{ prod.category|default:"General" }}</td>
-                                <td style="text-align: right; font-family: var(--font-mono);">
-                                    ₹{{ prod.price|floatformat:2 }}
-                                </td>
-                                <td style="text-align: center;">
-                                    {% if prod.stock == 0 %}
-                                    <span class="status-pill danger">Out of Stock</span>
-                                    {% else %}
-                                    <span class="status-pill pending">{{ prod.stock }} left</span>
-                                    {% endif %}
-                                </td>
-                                <td style="text-align: right;">
-                                    <a href="{% url 'product_detail' prod.pk %}" style="font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none;">
-                                        Restock →
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div style="padding: 16px; border-radius: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: 13.5px; font-weight: 600;">
-                    ✅ All platform products are currently well-stocked above the 10-unit threshold.
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- RECENT AUDIT INVOICES LEDGER TABLE -->
-            <div class="report-card-panel" style="padding: 24px;">
-                <div class="report-panel-header">
-                    <h3>🧾 Recent System Transactions & Invoice Audit</h3>
-                    <span class="report-panel-badge">Audit Log</span>
-                </div>
-
-                <div class="report-table-responsive">
-                    <table class="report-data-table">
-                        <thead>
-                            <tr>
-                                <th>Invoice #</th>
-                                <th>Date</th>
-                                <th>Distributor</th>
-                                <th>Customer</th>
-                                <th style="text-align: right;">Subtotal (₹)</th>
-                                <th style="text-align: right;">GST (₹)</th>
-                                <th style="text-align: right;">Total Amount (₹)</th>
-                                <th style="text-align: center;">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for inv in recent_invoices %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'invoice_detail' inv.pk %}" style="text-decoration: none;">
-                                        <strong style="color: var(--primary);">{{ inv.invoice_number }}</strong>
-                                    </a>
-                                </td>
-                                <td>{{ inv.invoice_date|date:"d M Y, H:i" }}</td>
-                                <td>{{ inv.distributor.username }}</td>
-                                <td>{{ inv.customer.name }}</td>
-                                <td style="text-align: right;">₹{{ inv.subtotal|floatformat:2 }}</td>
-                                <td style="text-align: right; color: #0284c7;">₹{{ inv.gst_amount|floatformat:2 }}</td>
-                                <td style="text-align: right; font-weight: 800; color: var(--slate-900);">₹{{ inv.total_amount|floatformat:2 }}</td>
-                                <td style="text-align: center;">
-                                    {% if inv.status == 'Paid' %}
-                                    <span class="status-pill paid">Paid</span>
-                                    {% else %}
-                                    <span class="status-pill pending">{{ inv.status }}</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">
-                                    No invoice records found for the selected period.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-        </section>
-
-        <!-- QUICK ACTIONS GRID -->
-        <div class="section-title-wrap">
-            <h3>⚙️ Platform Administration Core</h3>
         </div>
 
-        <section class="cards">
-            <a href="/admin/" class="card" target="_blank">
-                <div class="card-icon">🔐</div>
-                <h3>Django Admin Core</h3>
-                <p>Manage raw database tables, user authentication permissions, and system models.</p>
-                <span class="card-arrow">Open Django Admin →</span>
-            </a>
-
-            <a href="#reports-section" class="card">
-                <div class="card-icon">📊</div>
-                <h3>Reports & Business Insights</h3>
-                <p>Real-time financial summaries, tax auditing, and distributor ranking reports.</p>
-                <span class="card-arrow" style="color: #e11d48;">View Reports Suite ↓</span>
-            </a>
-
-            <div class="card">
-                <div class="card-icon">🏢</div>
-                <h3>Multi-Tenancy Guard</h3>
-                <p>Tenant isolation active ensuring each distributor can only view their own records.</p>
-                <span class="card-arrow" style="color: var(--success);">100% Enforced ✓</span>
+        <!-- BROADCAST ANNOUNCEMENTS PANEL (ADMIN -> ALL DISTRIBUTORS) -->
+        <div class="report-card-panel" id="announcements-section" style="padding: 24px; scroll-margin-top: 80px;">
+            <div class="report-panel-header">
+                <h3>📢 System Broadcast Announcements</h3>
+                <span class="report-panel-badge" style="background: #fff1f2; color: #be123c;">
+                    {{ active_announcements_count }} Live on Distributor Dashboards
+                </span>
             </div>
 
-            <div class="card">
-                <div class="card-icon">⚡</div>
-                <h3>Database Health</h3>
-                <p>SQLite3 engine running in full sync with atomic transactions on invoice saves.</p>
-                <span class="card-arrow" style="color: var(--success);">Operational ✓</span>
-            </div>
-        </section>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 22px; align-items: start;">
+                <!-- PUBLISH NEW BROADCAST FORM -->
+                <form method="POST" action="{% url 'admin_create_announcement' %}" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px;">
+                    {% csrf_token %}
+                    <div style="font-size: 13px; font-weight: 800; color: #0f172a;">Publish Notice to All Distributors</div>
+                    <div>
+                        <label for="annTitle" style="display: block; font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 5px;">Headline *</label>
+                        <input type="text" id="annTitle" name="title" maxlength="140" required placeholder="e.g., GSTR-1 Filing Reminder — Due 11th" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 9px; font-size: 13px; background: #ffffff; color: #0f172a;">
+                    </div>
+                    <div>
+                        <label for="annLevel" style="display: block; font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 5px;">Priority Level</label>
+                        <select id="annLevel" name="level" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 9px; font-size: 13px; background: #ffffff; color: #0f172a;">
+                            <option value="info">ℹ️ Info (General Update)</option>
+                            <option value="warning">⚠️ Warning (Deadline / Compliance)</option>
+                            <option value="urgent">🚨 Urgent (Critical Action)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="annMessage" style="display: block; font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 5px;">Message *</label>
+                        <textarea id="annMessage" name="message" rows="3" maxlength="600" required placeholder="Write a short announcement visible to every logged-in distributor..." style="width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 9px; font-size: 13px; background: #ffffff; color: #0f172a; resize: vertical; font-family: inherit;"></textarea>
+                    </div>
+                    <button type="submit" style="display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 16px; border-radius: 10px; border: none; background: linear-gradient(135deg, #be123c 0%, #f43f5e 100%); color: #ffffff; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.28); white-space: nowrap;">
+                        📣 Publish Live Broadcast
+                    </button>
+                </form>
 
-    </main>
+                <!-- EXISTING ANNOUNCEMENTS LIST -->
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    {% for ann in announcements %}
+                    <div style="border: 1px solid {% if ann.is_active %}#fecdd3{% else %}#e2e8f0{% endif %}; background: {% if ann.is_active %}#fffafb{% else %}#f8fafc{% endif %}; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                {% if ann.is_active %}
+                                <span class="status-pill paid">LIVE</span>
+                                {% else %}
+                                <span class="status-pill" style="background: #e2e8f0; color: #475569;">PAUSED</span>
+                                {% endif %}
+                                {% if ann.level == 'urgent' %}
+                                <span class="status-pill danger">🚨 Urgent</span>
+                                {% elif ann.level == 'warning' %}
+                                <span class="status-pill pending">⚠️ Warning</span>
+                                {% else %}
+                                <span class="status-pill" style="background: #e0f2fe; color: #0369a1;">ℹ️ Info</span>
+                                {% endif %}
+                                <strong style="font-size: 13.5px; color: #0f172a;">{{ ann.title }}</strong>
+                            </div>
+                            <span style="font-size: 11px; color: #64748b;">{{ ann.created_at|date:"d M Y, H:i" }}</span>
+                        </div>
+                        <p style="margin: 0; font-size: 13px; color: #334155; line-height: 1.5;">{{ ann.message }}</p>
+                        <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
+                            <form method="POST" action="{% url 'admin_toggle_announcement' ann.pk %}" style="display: inline; margin: 0;">
+                                {% csrf_token %}
+                                <button type="submit" style="padding: 4px 11px; font-size: 11.5px; font-weight: 700; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; cursor: pointer; white-space: nowrap;">
+                                    {% if ann.is_active %}⏸ Pause{% else %}▶ Activate{% endif %}
+                                </button>
+                            </form>
+                            <form method="POST" action="{% url 'admin_delete_announcement' ann.pk %}" style="display: inline; margin: 0;">
+                                {% csrf_token %}
+                                <button type="submit" style="padding: 4px 11px; font-size: 11.5px; font-weight: 700; border-radius: 6px; border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; cursor: pointer; white-space: nowrap;">
+                                    🗑️ Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="padding: 24px 18px; border-radius: 12px; border: 1px dashed #cbd5e1; background: #f8fafc; text-align: center; color: #64748b; font-size: 13px;">
+                        No broadcast announcements yet. Publish one on the left to notify all distributors live on their dashboard!
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- LOW STOCK PRODUCTS WATCHLIST -->
+        <div class="report-card-panel" id="adminLowStockPanel" style="padding: 24px;">
+            <div class="report-panel-header">
+                <h3>⚠️ System-Wide Low Stock Products</h3>
+                <span class="report-panel-badge" style="background: #fef2f2; color: #b91c1c;">
+                    {{ low_stock_products|length }} Alert{{ low_stock_products|length|pluralize }}
+                </span>
+            </div>
+
+            {% if low_stock_products %}
+            <div class="report-table-responsive">
+                <table class="report-data-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Distributor</th>
+                            <th>Category</th>
+                            <th style="text-align: right;">Price (₹)</th>
+                            <th style="text-align: center;">Stock</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prod in low_stock_products %}
+                        <tr>
+                            <td>
+                                <strong>{{ prod.name }}</strong>
+                            </td>
+                            <td>{{ prod.distributor.username }}</td>
+                            <td>{{ prod.category|default:"General" }}</td>
+                            <td style="text-align: right; font-family: var(--font-mono);">
+                                ₹{{ prod.price|floatformat:2 }}
+                            </td>
+                            <td style="text-align: center;">
+                                {% if prod.stock == 0 %}
+                                <span class="status-pill danger">Out of Stock</span>
+                                {% else %}
+                                <span class="status-pill pending">{{ prod.stock }} left</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                <a href="{% url 'product_detail' prod.pk %}"
+                                    style="font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none;">
+                                    Restock →
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div
+                style="padding: 16px; border-radius: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: 13.5px; font-weight: 600;">
+                ✅ All platform products are currently well-stocked above the 10-unit threshold.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- RECENT AUDIT INVOICES LEDGER TABLE -->
+        <div class="report-card-panel" style="padding: 24px;">
+            <div class="report-panel-header">
+                <h3>🧾 Recent System Transactions & Invoice Audit</h3>
+                <span class="report-panel-badge">Audit Log</span>
+            </div>
+
+            <div class="report-table-responsive">
+                <table class="report-data-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Date</th>
+                            <th>Distributor</th>
+                            <th>Customer</th>
+                            <th style="text-align: right;">Subtotal (₹)</th>
+                            <th style="text-align: right;">GST (₹)</th>
+                            <th style="text-align: right;">Total Amount (₹)</th>
+                            <th style="text-align: center;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in recent_invoices %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'invoice_detail' inv.pk %}" style="text-decoration: none;">
+                                    <strong style="color: var(--primary);">{{ inv.invoice_number }}</strong>
+                                </a>
+                            </td>
+                            <td>{{ inv.invoice_date|date:"d M Y, H:i" }}</td>
+                            <td>{{ inv.distributor.username }}</td>
+                            <td>{{ inv.customer.name }}</td>
+                            <td style="text-align: right;">₹{{ inv.subtotal|floatformat:2 }}</td>
+                            <td style="text-align: right; color: #0284c7;">₹{{ inv.gst_amount|floatformat:2 }}</td>
+                            <td style="text-align: right; font-weight: 800; color: var(--slate-900);">₹{{ inv.total_amount|floatformat:2 }}</td>
+                            <td style="text-align: center;">
+                                {% if inv.status == 'Paid' %}
+                                <span class="status-pill paid">Paid</span>
+                                {% else %}
+                                <span class="status-pill pending">{{ inv.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                                No invoice records found for the selected period.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- QUICK ACTIONS GRID -->
+    <div class="section-title-wrap">
+        <h3>⚙️ Platform Administration Core</h3>
+    </div>
+
+    <section class="cards">
+        <a href="/admin/" class="card" target="_blank">
+            <div class="card-icon">🔐</div>
+            <h3>Django Admin Core</h3>
+            <p>Manage raw database tables, user authentication permissions, and system models.</p>
+            <span class="card-arrow">Open Django Admin →</span>
+        </a>
+
+        <a href="#reports-section" class="card">
+            <div class="card-icon">📊</div>
+            <h3>Reports & Business Insights</h3>
+            <p>Real-time financial summaries, tax auditing, and distributor ranking reports.</p>
+            <span class="card-arrow" style="color: #e11d48;">View Reports Suite ↓</span>
+        </a>
+
+        <div class="card">
+            <div class="card-icon">🏢</div>
+            <h3>Multi-Tenancy Guard</h3>
+            <p>Tenant isolation active ensuring each distributor can only view their own records.</p>
+            <span class="card-arrow" style="color: var(--success);">100% Enforced ✓</span>
+        </div>
+
+        <div class="card">
+            <div class="card-icon">⚡</div>
+            <h3>Database Health</h3>
+            <p>SQLite3 engine running in full sync with atomic transactions on invoice saves.</p>
+            <span class="card-arrow" style="color: var(--success);">Operational ✓</span>
+        </div>
+    </section>
+
+</main>
 {% endblock %}
 
 {% block extra_body %}

@@ -357,6 +357,7 @@
     body {
         background: #ffffff !important;
     }
+
     .app-shell-header,
     .welcome-banner,
     .reports-header-controls,
@@ -364,12 +365,14 @@
     .section-title-wrap {
         display: none !important;
     }
+
     .admin-reports-section {
         border: none !important;
         box-shadow: none !important;
         padding: 0 !important;
         margin: 0 !important;
     }
+
     .report-table-responsive {
         border: 1px solid #000 !important;
     }
@@ -380,6 +383,7 @@
     .report-financial-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+
     .reports-two-col {
         grid-template-columns: 1fr;
     }
@@ -389,9 +393,11 @@
     .admin-reports-section {
         padding: 20px 16px;
     }
+
     .report-financial-grid {
         grid-template-columns: 1fr;
     }
+
     .reports-header-bar {
         flex-direction: column;
         align-items: flex-start;

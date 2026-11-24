@@ -25,7 +25,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 
 from .decorators import admin_required
-from .models import Admin, DistributorProfile, PasswordResetOTP, RegistrationOTP
+from .models import Admin, DistributorProfile, PasswordResetOTP, RegistrationOTP, SystemAnnouncement
 from .utils import sanitize_csv_cell, send_otp_email, send_otp_email_with_status
 
 
@@ -1370,9 +1370,96 @@ def admin_dashboard(request):
         "distributor_reports": distributor_reports,
         "recent_invoices": recent_invoices,
         "low_stock_products": low_stock_products,
+        # Broadcast Announcements
+        "announcements": SystemAnnouncement.objects.select_related("created_by").order_by("-created_at")[:8],
+        "active_announcements_count": SystemAnnouncement.objects.filter(is_active=True).count(),
     }
 
     return render(request, "admin/dashboard.html", context)
+
+
+@admin_required
+def admin_distributor_detail(request, pk):
+    """
+    Dedicated Administrator drill-down audit profile for a single distributor:
+    business metadata, financial KPIs, settlement efficiency, customers,
+    low-stock watchlist, and recent tax invoices.
+    """
+    from billing.models import Customer, Product, Invoice, Quotation
+
+    distributor = get_object_or_404(User, pk=pk, is_staff=False, is_superuser=False)
+    profile = DistributorProfile.objects.filter(user=distributor).first()
+
+    customers_qs = Customer.objects.filter(distributor=distributor).order_by("-created_at")
+    products_qs = Product.objects.filter(distributor=distributor).order_by("stock", "name")
+    invoices_qs = Invoice.objects.filter(distributor=distributor).select_related("customer").order_by("-created_at")
+    active_invoices_qs = invoices_qs.exclude(status__iexact="Cancelled")
+
+    zero_dec = Value(Decimal("0.00"), output_field=DecimalField(max_digits=14, decimal_places=2))
+    inv_agg = active_invoices_qs.aggregate(
+        total_invoices=Count("id"),
+        gross_revenue=Coalesce(Sum("total_amount"), zero_dec),
+        taxable_subtotal=Coalesce(Sum("subtotal"), zero_dec),
+        total_gst=Coalesce(Sum("gst_amount"), zero_dec),
+        paid_count=Count("id", filter=Q(status__iexact="Paid")),
+        partial_count=Count("id", filter=Q(status__iexact="Partial")),
+        pending_count=Count("id", filter=Q(status__iexact="Pending")),
+    )
+
+    cancelled_invoices_count = invoices_qs.filter(status__iexact="Cancelled").count()
+    gross_revenue = inv_agg["gross_revenue"]
+    paid_revenue = Decimal("0.00")
+    pending_revenue = Decimal("0.00")
+    overdue_invoices_count = 0
+    for inv in active_invoices_qs.select_related(None).only("total_amount", "amount_paid", "status", "due_date"):
+        paid_revenue += inv.effective_amount_paid
+        pending_revenue += inv.balance_due
+        if inv.is_overdue:
+            overdue_invoices_count += 1
+
+    paid_percentage = round((float(paid_revenue) / float(gross_revenue)) * 100, 1) if gross_revenue > 0 else 0
+    pending_percentage = round((float(pending_revenue) / float(gross_revenue)) * 100, 1) if gross_revenue > 0 else 0
+
+    total_inventory_valuation = products_qs.aggregate(
+        val=Coalesce(
+            Sum(ExpressionWrapper(F("price") * F("stock"), output_field=DecimalField(max_digits=14, decimal_places=2))),
+            zero_dec,
+        )
+    )["val"]
+
+    low_stock_products = list(products_qs.filter(stock__lte=10)[:10])
+    low_stock_count = products_qs.filter(stock__lte=10).count()
+    out_of_stock_count = products_qs.filter(stock=0).count()
+    quotations_count = Quotation.objects.filter(distributor=distributor).count()
+
+    context = {
+        "distributor": distributor,
+        "profile": profile,
+        "total_customers_count": customers_qs.count(),
+        "active_customers_count": customers_qs.filter(is_active=True).count(),
+        "total_products_count": products_qs.count(),
+        "low_stock_count": low_stock_count,
+        "out_of_stock_count": out_of_stock_count,
+        "total_inventory_valuation": total_inventory_valuation,
+        "quotations_count": quotations_count,
+        "total_invoices_count": inv_agg["total_invoices"],
+        "paid_invoices_count": inv_agg["paid_count"],
+        "partial_invoices_count": inv_agg["partial_count"],
+        "pending_invoices_count": inv_agg["pending_count"],
+        "cancelled_invoices_count": cancelled_invoices_count,
+        "overdue_invoices_count": overdue_invoices_count,
+        "gross_revenue": gross_revenue,
+        "taxable_subtotal": inv_agg["taxable_subtotal"],
+        "total_gst_collected": inv_agg["total_gst"],
+        "paid_revenue": paid_revenue,
+        "pending_revenue": pending_revenue,
+        "paid_percentage": paid_percentage,
+        "pending_percentage": pending_percentage,
+        "recent_invoices": invoices_qs[:15],
+        "recent_customers": customers_qs[:10],
+        "low_stock_products": low_stock_products,
+    }
+    return render(request, "admin/distributor_detail.html", context)
 
 
 @admin_required
@@ -1389,7 +1476,69 @@ def admin_toggle_distributor_active(request, pk):
     distributor.save(update_fields=["is_active"])
     state_label = "activated" if distributor.is_active else "deactivated"
     messages.success(request, f"Distributor '{distributor.username}' has been {state_label}.")
+
+    next_url = (request.POST.get("next") or "").strip()
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
     return redirect("admin_dashboard")
+
+
+@admin_required
+def admin_create_announcement(request):
+    """Allow Administrators to publish a live broadcast banner to all Distributor dashboards."""
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("admin_dashboard")
+
+    title = (request.POST.get("title") or "").strip()
+    message_text = (request.POST.get("message") or "").strip()
+    level = (request.POST.get("level") or SystemAnnouncement.LEVEL_INFO).strip().lower()
+    valid_levels = {choice[0] for choice in SystemAnnouncement.LEVEL_CHOICES}
+    if level not in valid_levels:
+        level = SystemAnnouncement.LEVEL_INFO
+
+    if not title or not message_text:
+        messages.error(request, "Announcement title and message are both required.")
+        return redirect("/admin-dashboard/#announcements-section")
+
+    SystemAnnouncement.objects.create(
+        title=title[:140],
+        message=message_text[:600],
+        level=level,
+        is_active=True,
+        created_by=request.user,
+    )
+    messages.success(request, f"Broadcast '{title[:60]}' is now live on all Distributor dashboards.")
+    return redirect("/admin-dashboard/#announcements-section")
+
+
+@admin_required
+def admin_toggle_announcement(request, pk):
+    """Pause or re-activate an existing broadcast announcement."""
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("admin_dashboard")
+
+    ann = get_object_or_404(SystemAnnouncement, pk=pk)
+    ann.is_active = not ann.is_active
+    ann.save(update_fields=["is_active", "updated_at"])
+    state_label = "activated" if ann.is_active else "paused"
+    messages.success(request, f"Announcement '{ann.title}' has been {state_label}.")
+    return redirect("/admin-dashboard/#announcements-section")
+
+
+@admin_required
+def admin_delete_announcement(request, pk):
+    """Permanently delete a broadcast announcement."""
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("admin_dashboard")
+
+    ann = get_object_or_404(SystemAnnouncement, pk=pk)
+    title = ann.title
+    ann.delete()
+    messages.success(request, f"Announcement '{title}' deleted.")
+    return redirect("/admin-dashboard/#announcements-section")
 
 
 @admin_required
@@ -1539,6 +1688,7 @@ def distributor_dashboard(request):
             "low_stock_products": low_stock_products,
             "recent_invoices": recent_invoices,
             "monthly_sales_chart": monthly_sales_chart,
+            "active_announcements": SystemAnnouncement.objects.filter(is_active=True).order_by("-created_at")[:3],
         }
     )
 

@@ -1,17 +1,883 @@
-<!-- UNIFIED 3-ZONE APP HEADER (CACHE-PROOF SCOPED STYLES) -->
+{% if request.user.is_staff %}
+<!-- ADMIN CONTROL CENTER: FIXED DARK-NAVY LEFT SIDEBAR + SLIM TOP CONTEXT BAR -->
 <style>
     :root {
-        --app-header-h: 96px;
+        --app-header-h: 64px;
+        --admin-sidebar-w: 256px;
     }
+
     html,
     body {
         margin: 0 !important;
         overscroll-behavior-y: none;
     }
+
+    body {
+        box-sizing: border-box !important;
+        padding-top: var(--app-header-h, 64px) !important;
+        padding-left: var(--admin-sidebar-w, 256px) !important;
+        overflow-x: clip !important;
+    }
+
+    .toast-container {
+        top: calc(var(--app-header-h, 64px) + 12px) !important;
+    }
+
+    /* FIXED DARK-NAVY LEFT SIDEBAR */
+    .admin-sidebar {
+        box-sizing: border-box;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: var(--admin-sidebar-w, 256px) !important;
+        z-index: 1001 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        background: linear-gradient(180deg, #0b1120 0%, #0f172a 62%, #1d1020 100%) !important;
+        border-right: 1px solid rgba(244, 63, 94, 0.24);
+        box-shadow: 4px 0 28px rgba(2, 6, 23, 0.32);
+        color: #e2e8f0;
+        font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+    }
+
+    .admin-sidebar * {
+        box-sizing: border-box;
+    }
+
+    /* SIDEBAR TOP BRAND */
+    .admin-sidebar-brand {
+        height: 64px;
+        min-height: 64px;
+        padding: 0 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(2, 6, 23, 0.32);
+        flex-shrink: 0;
+    }
+
+    .admin-sidebar-brand-link {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        text-decoration: none;
+        color: #ffffff;
+        min-width: 0;
+    }
+
+    .admin-sidebar .brand-badge-icon {
+        width: 38px !important;
+        height: 38px !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        background: transparent !important;
+        border-radius: 10px !important;
+        flex-shrink: 0;
+        box-shadow: 0 4px 14px rgba(244, 63, 94, 0.36);
+    }
+
+    .admin-sidebar .brand-badge-icon svg,
+    .admin-sidebar .brand-badge-icon img {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+        object-fit: contain;
+    }
+
+    .admin-sidebar .brand-text-group {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+    }
+
+    .admin-sidebar .brand-text-group h1 {
+        font-size: 16px !important;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.15;
+        margin: 0;
+        letter-spacing: -0.3px;
+        white-space: nowrap;
+    }
+
+    .admin-sidebar .brand-tagline {
+        font-size: 9.5px;
+        color: #fda4af;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.75px;
+        margin-top: 2px;
+        white-space: nowrap;
+    }
+
+    .admin-sidebar-close {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.06);
+        color: #f8fafc;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .admin-sidebar-close:hover {
+        background: rgba(244, 63, 94, 0.25);
+        border-color: rgba(244, 63, 94, 0.45);
+    }
+
+    /* SIDEBAR SCROLLABLE NAV */
+    .admin-sidebar-nav {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 16px 12px 18px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .admin-sidebar-nav::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .admin-sidebar-nav::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .admin-sidebar-nav::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.25);
+        border-radius: 9999px;
+    }
+
+    .admin-nav-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .admin-nav-group-label {
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.95px;
+        color: #64748b;
+        padding: 0 12px 5px 12px;
+        user-select: none;
+    }
+
+    .admin-sidebar .app-nav-link {
+        display: flex !important;
+        align-items: center !important;
+        gap: 11px !important;
+        width: 100%;
+        padding: 10px 13px !important;
+        border-radius: 11px !important;
+        font-size: 13.5px !important;
+        font-weight: 600;
+        color: #cbd5e1 !important;
+        text-decoration: none !important;
+        white-space: nowrap !important;
+        line-height: 1.25;
+        transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .admin-sidebar .app-nav-link:hover {
+        color: #ffffff !important;
+        background: rgba(244, 63, 94, 0.13) !important;
+        transform: translateX(2px);
+    }
+
+    .admin-sidebar .app-nav-link.active {
+        background: linear-gradient(135deg, #be123c 0%, #f43f5e 100%) !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        box-shadow: 0 6px 18px rgba(244, 63, 94, 0.36);
+        transform: none;
+    }
+
+    .admin-sidebar .nav-svg-icon {
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+        opacity: 0.82;
+    }
+
+    .admin-sidebar .app-nav-link:hover .nav-svg-icon,
+    .admin-sidebar .app-nav-link.active .nav-svg-icon {
+        opacity: 1;
+    }
+
+    .admin-nav-ext-badge {
+        margin-left: auto;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fda4af;
+        background: rgba(244, 63, 94, 0.16);
+        border: 1px solid rgba(244, 63, 94, 0.28);
+        border-radius: 6px;
+        padding: 1px 6px;
+        line-height: 1.3;
+    }
+
+    /* SIDEBAR BOTTOM PROFILE & LOGOUT */
+    .admin-sidebar-footer {
+        flex-shrink: 0;
+        padding: 14px 12px 15px 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(2, 6, 23, 0.42);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .admin-sidebar-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        text-decoration: none;
+        color: #ffffff;
+    }
+
+    .admin-sidebar-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 9999px;
+        background: linear-gradient(135deg, #f43f5e, #be123c);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 800;
+        color: #ffffff;
+        position: relative;
+        flex-shrink: 0;
+        box-shadow: 0 3px 10px rgba(244, 63, 94, 0.35);
+    }
+
+    .admin-sidebar-avatar .avatar-online-dot {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 9px;
+        height: 9px;
+        border-radius: 9999px;
+        background: #10b981;
+        border: 2px solid #0f172a;
+    }
+
+    .admin-sidebar-user-meta {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .admin-sidebar-user-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: #f8fafc;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .admin-sidebar-user-role {
+        font-size: 10px;
+        font-weight: 700;
+        color: #fda4af;
+        text-transform: uppercase;
+        letter-spacing: 0.55px;
+        margin-top: 2px;
+    }
+
+    .btn-sidebar-logout {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        width: 100%;
+        height: 38px !important;
+        padding: 0 14px !important;
+        border-radius: 10px !important;
+        background: rgba(244, 63, 94, 0.14) !important;
+        border: 1px solid rgba(244, 63, 94, 0.3) !important;
+        color: #fda4af !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        text-decoration: none !important;
+        white-space: nowrap !important;
+        transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+    }
+
+    .btn-sidebar-logout:hover {
+        background: #e11d48 !important;
+        border-color: #e11d48 !important;
+        color: #ffffff !important;
+    }
+
+    /* SLIM TOP CONTEXT BAR */
+    .app-shell-header[data-portal="admin"] {
+        box-sizing: border-box;
+        position: fixed !important;
+        top: 0 !important;
+        left: var(--admin-sidebar-w, 256px) !important;
+        right: 0 !important;
+        width: calc(100% - var(--admin-sidebar-w, 256px)) !important;
+        height: 64px !important;
+        min-height: 64px !important;
+        padding: 0 28px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 16px !important;
+        background: rgba(255, 255, 255, 0.94) !important;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        color: #0f172a;
+        z-index: 999 !important;
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 2px 14px rgba(15, 23, 42, 0.05);
+    }
+
+    .app-shell-header[data-portal="admin"] * {
+        box-sizing: border-box;
+    }
+
+    .admin-topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .admin-sidebar-toggle {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #0f172a;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .admin-sidebar-toggle:hover {
+        background: #fff1f2;
+        border-color: #fecdd3;
+        color: #be123c;
+    }
+
+    .admin-portal-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 5px 12px;
+        border-radius: 9999px;
+        background: #fff1f2;
+        border: 1px solid #fecdd3;
+        color: #9f1239;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .admin-portal-pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 9999px;
+        background: #e11d48;
+        box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.18);
+        flex-shrink: 0;
+    }
+
+    .admin-topbar-divider {
+        color: #cbd5e1;
+        font-size: 14px;
+        font-weight: 500;
+        user-select: none;
+    }
+
+    .admin-topbar-context {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1e293b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .admin-topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    .admin-topbar-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        height: 36px !important;
+        padding: 0 13px !important;
+        border-radius: 10px !important;
+        font-size: 12.5px !important;
+        font-weight: 600 !important;
+        text-decoration: none !important;
+        white-space: nowrap !important;
+        color: #334155 !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        transition: all 0.15s ease;
+    }
+
+    .admin-topbar-btn:hover {
+        background: #f1f5f9 !important;
+        border-color: #cbd5e1 !important;
+        color: #0f172a !important;
+    }
+
+    .admin-topbar-btn.crimson {
+        color: #be123c !important;
+        background: #fff1f2 !important;
+        border-color: #fecdd3 !important;
+    }
+
+    .admin-topbar-btn.crimson:hover {
+        background: #ffe4e6 !important;
+        border-color: #fda4af !important;
+        color: #9f1239 !important;
+    }
+
+    .admin-topbar-btn svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+    }
+
+    .admin-topbar-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 36px;
+        padding: 3px 12px 3px 4px;
+        border-radius: 9999px;
+        background: #0f172a;
+        color: #f8fafc;
+        text-decoration: none;
+        font-size: 12.5px;
+        font-weight: 700;
+        white-space: nowrap;
+        border: 1px solid rgba(244, 63, 94, 0.35);
+    }
+
+    .admin-topbar-chip-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 9999px;
+        background: linear-gradient(135deg, #f43f5e, #be123c);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+    /* MOBILE DRAWER BACKDROP */
+    .admin-sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.58);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.22s ease;
+    }
+
+    .admin-sidebar-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* FOOTER GRID BALANCE NEXT TO 256PX SIDEBAR ON MEDIUM LAPTOPS */
+    @media (max-width: 1320px) and (min-width: 1025px) {
+        .app-shell-footer[data-portal="admin"] .app-footer-main {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 28px 32px;
+        }
+    }
+
+    /* TABLET & MOBILE: SLIDE-IN SIDEBAR DRAWER */
+    @media (max-width: 1024px) {
+        body {
+            padding-left: 0 !important;
+        }
+
+        .app-shell-header[data-portal="admin"] {
+            left: 0 !important;
+            width: 100% !important;
+            padding: 0 18px !important;
+        }
+
+        .admin-sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .admin-sidebar.open {
+            transform: translateX(0);
+        }
+
+        .admin-sidebar-toggle,
+        .admin-sidebar-close {
+            display: inline-flex !important;
+        }
+    }
+
+    @media (max-width: 720px) {
+
+        .admin-topbar-divider,
+        .admin-topbar-context,
+        .admin-topbar-btn {
+            display: none !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .app-shell-header[data-portal="admin"] {
+            padding: 0 12px !important;
+        }
+
+        .admin-portal-pill {
+            font-size: 11px;
+            padding: 4px 10px;
+        }
+
+        .admin-topbar-chip span:last-child {
+            display: none;
+        }
+
+        .admin-topbar-chip {
+            padding: 3px;
+        }
+    }
+
+    /* PRINT: HIDE SIDEBAR, TOP BAR, AND RESET BODY PADDING */
+    @media print {
+        body {
+            padding-top: 0 !important;
+            padding-left: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        .admin-sidebar,
+        .admin-sidebar-backdrop,
+        .app-shell-header {
+            display: none !important;
+        }
+    }
+</style>
+
+<!-- FIXED DARK-NAVY ADMIN SIDEBAR -->
+<aside class="admin-sidebar" id="adminSidebar" aria-label="Admin Navigation Sidebar">
+    <div class="admin-sidebar-brand">
+        <a href="{% url 'admin_dashboard' %}" class="admin-sidebar-brand-link">
+            <div class="brand-badge-icon">
+                {% include 'includes/logo_svg.html' with uid='hdr' %}
+            </div>
+            <div class="brand-text-group">
+                <h1>Advance Billing</h1>
+                <span class="brand-tagline">Admin Control Center</span>
+            </div>
+        </a>
+        <button type="button" class="admin-sidebar-close" onclick="closeAdminSidebar()" aria-label="Close Sidebar"
+            title="Close Sidebar">
+            &times;
+        </button>
+    </div>
+
+    <nav class="admin-sidebar-nav" aria-label="Main Navigation">
+        <!-- GROUP 1: OVERVIEW -->
+        <div class="admin-nav-group">
+            <div class="admin-nav-group-label">Overview</div>
+            <a href="{% url 'admin_dashboard' %}"
+                class="app-nav-link {% if active_page == 'dashboard' %}active{% endif %}">
+                <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="9" rx="1" />
+                    <rect x="14" y="3" width="7" height="5" rx="1" />
+                    <rect x="14" y="12" width="7" height="9" rx="1" />
+                    <rect x="3" y="16" width="7" height="5" rx="1" />
+                </svg>
+                Dashboard Overview
+            </a>
+            <a href="{% url 'admin_dashboard' %}#distributors-section"
+                class="app-nav-link {% if active_page == 'distributors' %}active{% endif %}"
+                onclick="closeAdminSidebar()">
+                <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 21h18" />
+                    <path d="M5 21V7l8-4v18" />
+                    <path d="M19 21V11l-6-4" />
+                    <path d="M9 9v.01" />
+                    <path d="M9 12v.01" />
+                    <path d="M9 15v.01" />
+                    <path d="M9 18v.01" />
+                </svg>
+                Distributors
+            </a>
+            <a href="{% url 'admin_dashboard' %}#announcements-section" class="app-nav-link"
+                onclick="closeAdminSidebar()">
+                <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m3 11 18-5v12L3 14v-3z" />
+                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+                </svg>
+                Announcements
+            </a>
+        </div>
+
+        <!-- GROUP 2: GLOBAL DATA -->
+        <div class="admin-nav-group">
+            <div class="admin-nav-group-label">Global Data</div>
+            <a href="{% url 'customer_list' %}"
+                class="app-nav-link {% if active_page == 'customers' %}active{% endif %}">
+                <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                All Customers
+            </a>
+            <a href="{% url 'product_list' %}"
+                class="app-nav-link {% if active_page == 'products' and request.resolver_match.url_name != 'stock_ledger' %}active{% endif %}">
+                <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path
+                        d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                    <path d="m3.3 7 8.7 5 8.7-5" />
+                    <path d="M12 22V12" />
+                </svg>
+                All Products
+            </a>
+            <a href="{% url 'invoice_list' %}" class="app-nav-link {% if active_page == 'invoices' %}active{% endif %}">
+                <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+                    <path d="M8 7h8" />
+                    <path d="M8 11h8" />
+                    <path d="M8 15h5" />
+                </svg>
+                All Invoices
+            </a>
+            <a href="{% url 'stock_ledger' %}"
+                class="app-nav-link {% if request.resolver_match.url_name == 'stock_ledger' %}active{% endif %}">
+                <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                    <rect x="9" y="3" width="6" height="4" rx="1" />
+                    <path d="M9 12h6" />
+                    <path d="M9 16h4" />
+                </svg>
+                Stock Ledger
+            </a>
+        </div>
+
+        <!-- GROUP 3: ANALYTICS & SYSTEM -->
+        <div class="admin-nav-group">
+            <div class="admin-nav-group-label">Analytics &amp; System</div>
+            <a href="{% url 'invoice_report' %}"
+                class="app-nav-link {% if active_page == 'reports' %}active{% endif %}">
+                <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 3v18h18" />
+                    <path d="M18 17V9" />
+                    <path d="M13 17V5" />
+                    <path d="M8 17v-3" />
+                </svg>
+                GST Reports
+            </a>
+            <a href="{% url 'admin_backup_db' %}?format=json" class="app-nav-link"
+                title="Download Full Database Backup (JSON)">
+                <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <ellipse cx="12" cy="5" rx="9" ry="3" />
+                    <path d="M3 5v14a9 3 0 0 0 18 0V5" />
+                    <path d="M3 12a9 3 0 0 0 18 0" />
+                </svg>
+                Download DB Backup
+            </a>
+            <a href="/admin/" target="_blank" rel="noopener" class="app-nav-link" title="Open Django Admin Console">
+                <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                </svg>
+                Django Admin
+                <span class="admin-nav-ext-badge" aria-hidden="true">&#8599;</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- SIDEBAR FOOTER: ADMIN IDENTITY & LOGOUT -->
+    <div class="admin-sidebar-footer">
+        <a href="{% url 'admin_dashboard' %}" class="admin-sidebar-user" title="Signed in as Administrator">
+            <div class="admin-sidebar-avatar">
+                {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+                <span class="avatar-online-dot"></span>
+            </div>
+            <div class="admin-sidebar-user-meta">
+                <span class="admin-sidebar-user-name">{{ request.user.first_name|default:request.user.username }}</span>
+                <span class="admin-sidebar-user-role">Administrator</span>
+            </div>
+        </a>
+        <a href="{% url 'logout' %}" class="btn-sidebar-logout" title="Sign Out">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Logout
+        </a>
+    </div>
+</aside>
+
+<!-- MOBILE SIDEBAR BACKDROP -->
+<div class="admin-sidebar-backdrop" id="adminSidebarBackdrop" onclick="closeAdminSidebar()"></div>
+
+<!-- SLIM TOP CONTEXT BAR (64px) -->
+<header class="app-shell-header" data-portal="admin">
+    <div class="admin-topbar-left">
+        <button type="button" class="admin-sidebar-toggle" onclick="toggleAdminSidebar()"
+            aria-label="Open Navigation Sidebar" title="Toggle Sidebar">
+            ☰
+        </button>
+        <span class="admin-portal-pill">
+            <span class="admin-portal-pulse" aria-hidden="true"></span>
+            🛡️ Admin Control Center
+        </span>
+        <span class="admin-topbar-divider" aria-hidden="true">/</span>
+        <span class="admin-topbar-context">
+            {% if active_page == 'dashboard' %}
+            System Overview
+            {% elif active_page == 'distributors' %}
+            Distributor Audit Profile
+            {% elif active_page == 'customers' %}
+            All Customers
+            {% elif request.resolver_match.url_name == 'stock_ledger' %}
+            Stock Audit Ledger
+            {% elif active_page == 'products' %}
+            All Products
+            {% elif active_page == 'invoices' %}
+            All Invoices
+            {% elif active_page == 'reports' %}
+            Consolidated GST Reports
+            {% else %}
+            Multi-Tenant Oversight
+            {% endif %}
+        </span>
+    </div>
+
+    <div class="admin-topbar-right">
+        <a href="{% url 'admin_dashboard' %}?export=csv" class="admin-topbar-btn" title="Export Platform CSV Report">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export CSV
+        </a>
+        <a href="{% url 'admin_backup_db' %}?format=json" class="admin-topbar-btn crimson"
+            title="Download Database Backup">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <ellipse cx="12" cy="5" rx="9" ry="3" />
+                <path d="M3 5v14a9 3 0 0 0 18 0V5" />
+            </svg>
+            Backup DB
+        </a>
+        <a href="{% url 'admin_dashboard' %}" class="admin-topbar-chip" title="Administrator Account">
+            <span class="admin-topbar-chip-avatar">{{ request.user.first_name|first|upper|default:request.user.username|first|upper }}</span>
+            <span>{{ request.user.first_name|default:request.user.username }}</span>
+        </a>
+    </div>
+</header>
+
+<script>
+    (function () {
+        window.openAdminSidebar = function () {
+            const sb = document.getElementById('adminSidebar');
+            const bd = document.getElementById('adminSidebarBackdrop');
+            if (sb) sb.classList.add('open');
+            if (bd) bd.classList.add('open');
+        };
+        window.closeAdminSidebar = function () {
+            const sb = document.getElementById('adminSidebar');
+            const bd = document.getElementById('adminSidebarBackdrop');
+            if (sb) sb.classList.remove('open');
+            if (bd) bd.classList.remove('open');
+        };
+        window.toggleAdminSidebar = function () {
+            const sb = document.getElementById('adminSidebar');
+            if (sb && sb.classList.contains('open')) {
+                window.closeAdminSidebar();
+            } else {
+                window.openAdminSidebar();
+            }
+        };
+        window.toggleMobileNav = window.toggleAdminSidebar;
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                window.closeAdminSidebar();
+            }
+        });
+    })();
+</script>
+
+{% else %}
+<!-- UNIFIED 3-ZONE DISTRIBUTOR APP HEADER (CACHE-PROOF SCOPED STYLES) -->
+<style>
+    :root {
+        --app-header-h: 96px;
+    }
+
+    html,
+    body {
+        margin: 0 !important;
+        overscroll-behavior-y: none;
+    }
+
     body {
         padding-top: var(--app-header-h, 96px) !important;
         overflow-x: clip !important;
     }
+
     .app-shell-header {
         box-sizing: border-box;
         width: 100% !important;
@@ -34,6 +900,7 @@
         box-shadow: 0 4px 24px -2px rgba(15, 23, 42, 0.4);
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
+
     .mobile-nav-drawer {
         position: fixed !important;
         top: var(--app-header-h, 80px) !important;
@@ -44,12 +911,15 @@
         overflow-y: auto;
         box-shadow: 0 12px 28px rgba(15, 23, 42, 0.45);
     }
+
     .toast-container {
         top: calc(var(--app-header-h, 96px) + 12px) !important;
     }
+
     .app-shell-header * {
         box-sizing: border-box;
     }
+
     .app-shell-header .app-brand-logo {
         display: flex;
         align-items: center;
@@ -59,6 +929,7 @@
         flex-shrink: 0;
         white-space: nowrap;
     }
+
     .app-shell-header .brand-badge-icon {
         width: 52px !important;
         height: 52px !important;
@@ -69,6 +940,7 @@
         flex-shrink: 0;
         box-shadow: 0 6px 18px rgba(20, 184, 166, 0.38);
     }
+
     .app-shell-header .brand-badge-icon svg,
     .app-shell-header .brand-badge-icon img {
         width: 100% !important;
@@ -76,11 +948,13 @@
         display: block;
         object-fit: contain;
     }
+
     .app-shell-header .brand-text-group {
         display: flex;
         flex-direction: column;
         justify-content: center;
     }
+
     .app-shell-header .brand-text-group h1 {
         font-size: 20px !important;
         font-weight: 800;
@@ -89,6 +963,7 @@
         margin: 0;
         letter-spacing: -0.4px;
     }
+
     .app-shell-header .brand-tagline {
         font-size: 11.5px;
         color: #94a3b8;
@@ -96,6 +971,7 @@
         letter-spacing: 0.25px;
         margin-top: 2px;
     }
+
     .app-shell-header .app-nav-pills {
         display: inline-flex;
         align-items: center;
@@ -108,6 +984,7 @@
         flex-shrink: 0;
         width: max-content;
     }
+
     .app-shell-header .app-nav-link {
         display: inline-flex;
         align-items: center;
@@ -123,32 +1000,38 @@
         line-height: 1.2;
         transition: all 0.15s ease;
     }
+
     .app-shell-header .app-nav-link:hover {
         color: #ffffff;
         background: rgba(255, 255, 255, 0.09);
     }
+
     .app-shell-header .app-nav-link.active {
         background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
         color: #ffffff;
         font-weight: 700;
         box-shadow: 0 4px 14px rgba(20, 184, 166, 0.42);
     }
+
     .nav-svg-icon {
         width: 15px;
         height: 15px;
         flex-shrink: 0;
         opacity: 0.85;
     }
+
     .app-nav-link:hover .nav-svg-icon,
     .app-nav-link.active .nav-svg-icon {
         opacity: 1;
     }
+
     .app-shell-header .app-header-right {
         display: flex;
         align-items: center;
         gap: 14px;
         flex-shrink: 0;
     }
+
     .app-shell-header .app-user-profile-badge {
         display: flex;
         align-items: center;
@@ -163,11 +1046,13 @@
         white-space: nowrap;
         flex-shrink: 0;
     }
+
     .app-shell-header .app-user-profile-badge.active {
         border-color: #14b8a6;
         background: rgba(20, 184, 166, 0.16);
         box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.25);
     }
+
     .app-shell-header .user-avatar-circle {
         width: 38px !important;
         height: 38px !important;
@@ -182,9 +1067,7 @@
         position: relative;
         flex-shrink: 0;
     }
-    .app-shell-header .user-avatar-circle.is-admin {
-        background: linear-gradient(135deg, #f43f5e, #be123c);
-    }
+
     .app-shell-header .user-name-label {
         font-size: 13.5px;
         font-weight: 700;
@@ -195,6 +1078,7 @@
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+
     .app-shell-header .user-role-subtag {
         font-size: 10.5px;
         color: #5eead4;
@@ -202,6 +1086,7 @@
         text-transform: uppercase;
         letter-spacing: 0.35px;
     }
+
     .app-shell-header .btn-app-logout {
         display: inline-flex;
         align-items: center;
@@ -219,117 +1104,145 @@
         white-space: nowrap;
         flex-shrink: 0;
     }
+
     .app-shell-header .btn-app-logout:hover {
         background: #f43f5e;
         color: #ffffff;
         border-color: #f43f5e;
     }
+
     @media (max-width: 1560px) {
         .app-shell-header {
             padding: 0 28px !important;
             gap: 16px !important;
         }
+
         .app-shell-header .app-brand-logo {
             gap: 12px;
         }
+
         .app-shell-header .brand-badge-icon {
             width: 52px !important;
             height: 52px !important;
         }
+
         .app-shell-header .brand-text-group h1 {
             font-size: 20px !important;
         }
+
         .app-shell-header .app-nav-pills {
             gap: 4px;
             padding: 5px;
         }
+
         .app-shell-header .app-nav-link {
             padding: 9px 12px !important;
             font-size: 13px !important;
             gap: 6px;
         }
+
         .app-shell-header .nav-svg-icon {
             width: 14px;
             height: 14px;
         }
+
         .app-shell-header .app-header-right {
             gap: 12px;
         }
+
         .app-shell-header .app-user-profile-badge {
             height: 46px !important;
             padding: 4px 14px 4px 5px !important;
             gap: 9px;
         }
+
         .app-shell-header .user-avatar-circle {
             width: 38px !important;
             height: 38px !important;
         }
+
         .app-shell-header .user-name-label {
             font-size: 13px;
             max-width: 125px;
         }
+
         .app-shell-header .btn-app-logout {
             height: 44px !important;
             padding: 0 16px !important;
             font-size: 13px !important;
         }
     }
+
     @media (max-width: 1360px) {
         :root {
             --app-header-h: 90px;
         }
+
         .app-shell-header {
             height: 90px !important;
             min-height: 90px !important;
             padding: 0 20px !important;
             gap: 12px !important;
         }
+
         .app-shell-header .app-brand-logo {
             gap: 10px;
         }
+
         .app-shell-header .brand-badge-icon {
             width: 46px !important;
             height: 46px !important;
         }
+
         .app-shell-header .brand-text-group h1 {
             font-size: 18px !important;
         }
+
         .app-shell-header .brand-tagline {
             font-size: 10.5px;
         }
+
         .app-shell-header .app-nav-pills {
             gap: 3px;
             padding: 4px;
         }
+
         .app-shell-header .app-nav-link {
             padding: 8px 10px !important;
             font-size: 12.5px !important;
             gap: 5px;
         }
+
         .app-shell-header .nav-svg-icon {
             width: 14px;
             height: 14px;
         }
+
         .app-shell-header .app-header-right {
             gap: 10px;
         }
+
         .app-shell-header .app-user-profile-badge {
             height: 42px !important;
             padding: 3px 11px 3px 4px !important;
             gap: 7px;
         }
+
         .app-shell-header .user-avatar-circle {
             width: 34px !important;
             height: 34px !important;
             font-size: 13.5px;
         }
+
         .app-shell-header .user-name-label {
             font-size: 12.5px;
             max-width: 105px;
         }
+
         .app-shell-header .user-role-subtag {
             font-size: 10px;
         }
+
         .app-shell-header .btn-app-logout {
             height: 42px !important;
             padding: 0 14px !important;
@@ -337,26 +1250,32 @@
             gap: 5px;
         }
     }
+
     @media (max-width: 1180px) {
         :root {
             --app-header-h: 80px;
         }
+
         .app-shell-header {
             height: 80px !important;
             min-height: 80px !important;
             padding: 0 20px !important;
             gap: 12px !important;
         }
+
         .app-shell-header .brand-badge-icon {
             width: 46px !important;
             height: 46px !important;
         }
+
         .app-shell-header .brand-text-group h1 {
             font-size: 18px !important;
         }
+
         .app-shell-header .app-nav-pills {
             display: none !important;
         }
+
         .app-shell-header .mobile-menu-toggle {
             display: inline-flex !important;
             align-items: center;
@@ -364,68 +1283,84 @@
             height: 44px;
             width: 44px;
         }
+
         .app-shell-header .brand-tagline {
             display: none;
         }
+
         .app-shell-header .app-header-right {
             gap: 10px;
         }
+
         .app-shell-header .app-user-profile-badge {
             height: 44px !important;
             padding: 4px 12px 4px 4px !important;
         }
+
         .app-shell-header .user-avatar-circle {
             width: 36px !important;
             height: 36px !important;
         }
+
         .app-shell-header .btn-app-logout {
             height: 42px !important;
             padding: 0 14px !important;
             font-size: 13px !important;
         }
     }
+
     @media (max-width: 640px) {
         :root {
             --app-header-h: 70px;
         }
+
         .app-shell-header {
             height: 70px !important;
             min-height: 70px !important;
             padding: 0 14px !important;
         }
+
         .app-shell-header .brand-badge-icon {
             width: 40px !important;
             height: 40px !important;
         }
+
         .app-shell-header .brand-text-group h1 {
             font-size: 16px !important;
         }
+
         .app-shell-header .user-info-text-col {
             display: none !important;
         }
+
         .app-shell-header .app-user-profile-badge {
             height: 40px !important;
             padding: 3px !important;
         }
+
         .app-shell-header .user-avatar-circle {
             width: 32px !important;
             height: 32px !important;
         }
+
         .app-shell-header .btn-app-logout {
             height: 40px !important;
             padding: 0 10px !important;
             font-size: 12px !important;
         }
+
         .app-shell-header .mobile-menu-toggle {
             height: 40px;
             width: 40px;
         }
     }
+
     @media print {
         body {
             padding-top: 0 !important;
             padding-bottom: 0 !important;
         }
+
         .app-shell-header,
         .mobile-nav-drawer {
             display: none !important;
@@ -433,117 +1368,96 @@
     }
 </style>
 
-<header class="app-shell-header">
+<header class="app-shell-header" data-portal="distributor">
     <!-- ZONE 1: BRAND & LOGO -->
-    <a
-        href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
-        class="app-brand-logo"
-    >
+    <a href="{% url 'distributor_dashboard' %}" class="app-brand-logo">
         <div class="brand-badge-icon">
             {% include 'includes/logo_svg.html' with uid='hdr' %}
         </div>
         <div class="brand-text-group">
             <h1>Advance Billing</h1>
-            <span class="brand-tagline">
-                {% if request.user.is_staff %}
-                Admin Portal
-                {% else %}
-                Cloud Billing ERP
-                {% endif %}
-            </span>
+            <span class="brand-tagline">Cloud Billing ERP</span>
         </div>
     </a>
 
-    <!-- ZONE 2: STREAMLINED CENTER NAVIGATION DOCK -->
+    <!-- ZONE 2: DISTRIBUTOR CENTER NAVIGATION DOCK -->
     <nav class="app-nav-pills" aria-label="Main Navigation">
-        <a
-            href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
-            class="app-nav-link {% if active_page == 'dashboard' %}active{% endif %}"
-        >
-            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3" y="3" width="7" height="9" rx="1"/>
-                <rect x="14" y="3" width="7" height="5" rx="1"/>
-                <rect x="14" y="12" width="7" height="9" rx="1"/>
-                <rect x="3" y="16" width="7" height="5" rx="1"/>
+        <a href="{% url 'distributor_dashboard' %}"
+            class="app-nav-link {% if active_page == 'dashboard' %}active{% endif %}">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="9" rx="1" />
+                <rect x="14" y="3" width="7" height="5" rx="1" />
+                <rect x="14" y="12" width="7" height="9" rx="1" />
+                <rect x="3" y="16" width="7" height="5" rx="1" />
             </svg>
             Dashboard
         </a>
-        <a
-            href="{% url 'customer_list' %}"
-            class="app-nav-link {% if active_page == 'customers' %}active{% endif %}"
-        >
-            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        <a href="{% url 'customer_list' %}" class="app-nav-link {% if active_page == 'customers' %}active{% endif %}">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
             Customers
         </a>
-        <a
-            href="{% url 'product_list' %}"
-            class="app-nav-link {% if active_page == 'products' %}active{% endif %}"
-        >
-            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-                <path d="m3.3 7 8.7 5 8.7-5"/>
-                <path d="M12 22V12"/>
+        <a href="{% url 'product_list' %}" class="app-nav-link {% if active_page == 'products' %}active{% endif %}">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path
+                    d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                <path d="m3.3 7 8.7 5 8.7-5" />
+                <path d="M12 22V12" />
             </svg>
             Products
         </a>
-        <a
-            href="{% url 'invoice_list' %}"
-            class="app-nav-link {% if active_page == 'invoices' %}active{% endif %}"
-        >
-            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/>
-                <path d="M8 7h8"/>
-                <path d="M8 11h8"/>
-                <path d="M8 15h5"/>
+        <a href="{% url 'invoice_list' %}" class="app-nav-link {% if active_page == 'invoices' %}active{% endif %}">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+                <path d="M8 7h8" />
+                <path d="M8 11h8" />
+                <path d="M8 15h5" />
             </svg>
             Invoices
         </a>
-        <a
-            href="{% url 'quotation_list' %}"
-            class="app-nav-link {% if active_page == 'quotations' %}active{% endif %}"
-        >
-            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
+        <a href="{% url 'quotation_list' %}" class="app-nav-link {% if active_page == 'quotations' %}active{% endif %}">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
             </svg>
             Quotes
         </a>
-        <a
-            href="{% url 'invoice_report' %}"
-            class="app-nav-link {% if active_page == 'reports' %}active{% endif %}"
-        >
-            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 3v18h18"/>
-                <path d="M18 17V9"/>
-                <path d="M13 17V5"/>
-                <path d="M8 17v-3"/>
+        <a href="{% url 'invoice_report' %}" class="app-nav-link {% if active_page == 'reports' %}active{% endif %}">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 3v18h18" />
+                <path d="M18 17V9" />
+                <path d="M13 17V5" />
+                <path d="M8 17v-3" />
             </svg>
             Reports
         </a>
-        <a
-            href="{% url 'qr_decoder' %}"
-            class="app-nav-link {% if active_page == 'qr' %}active{% endif %}"
-        >
-            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect width="5" height="5" x="3" y="3" rx="1"/>
-                <rect width="5" height="5" x="16" y="3" rx="1"/>
-                <rect width="5" height="5" x="3" y="16" rx="1"/>
-                <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
-                <path d="M21 21v.01"/>
-                <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
-                <path d="M3 12h.01"/>
-                <path d="M12 3h.01"/>
-                <path d="M12 16v.01"/>
-                <path d="M16 12h1"/>
-                <path d="M21 12v.01"/>
-                <path d="M12 21v-1"/>
+        <a href="{% url 'qr_decoder' %}" class="app-nav-link {% if active_page == 'qr' %}active{% endif %}">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="5" height="5" x="3" y="3" rx="1" />
+                <rect width="5" height="5" x="16" y="3" rx="1" />
+                <rect width="5" height="5" x="3" y="16" rx="1" />
+                <path d="M21 16h-3a2 2 0 0 0-2 2v3" />
+                <path d="M21 21v.01" />
+                <path d="M12 7v3a2 2 0 0 1-2 2H7" />
+                <path d="M3 12h.01" />
+                <path d="M12 3h.01" />
+                <path d="M12 16v.01" />
+                <path d="M16 12h1" />
+                <path d="M21 12v.01" />
+                <path d="M12 21v-1" />
             </svg>
             QR Scan
         </a>
@@ -551,12 +1465,9 @@
 
     <!-- ZONE 3: PROFILE & LOGOUT -->
     <div class="app-header-right">
-        <a
-            href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_profile' %}{% endif %}"
-            class="app-user-profile-badge {% if active_page == 'profile' %}active{% endif %}"
-            title="{% if request.user.is_staff %}Admin Overview{% else %}My Profile{% endif %}"
-        >
-            <div class="user-avatar-circle {% if request.user.is_staff %}is-admin{% endif %}">
+        <a href="{% url 'distributor_profile' %}"
+            class="app-user-profile-badge {% if active_page == 'profile' %}active{% endif %}" title="My Profile">
+            <div class="user-avatar-circle">
                 {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
                 <span class="avatar-online-dot"></span>
             </div>
@@ -564,30 +1475,20 @@
                 <span class="user-name-label">
                     {{ request.user.first_name|default:request.user.username }}
                 </span>
-                <span class="user-role-subtag">
-                    {% if request.user.is_staff %}
-                    Admin
-                    {% else %}
-                    Distributor
-                    {% endif %}
-                </span>
+                <span class="user-role-subtag">Distributor</span>
             </div>
         </a>
         <a href="{% url 'logout' %}" class="btn-app-logout" title="Sign Out">
-            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                <polyline points="16 17 21 12 16 7"/>
-                <line x1="21" y1="12" x2="9" y2="12"/>
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
             Logout
         </a>
-        <button
-            type="button"
-            class="mobile-menu-toggle"
-            onclick="toggleMobileNav()"
-            title="Toggle Navigation"
-            aria-label="Toggle Navigation"
-        >
+        <button type="button" class="mobile-menu-toggle" onclick="toggleMobileNav()" title="Toggle Navigation"
+            aria-label="Toggle Navigation">
             ☰
         </button>
     </div>
@@ -595,66 +1496,22 @@
 
 <!-- MOBILE NAV DRAWER -->
 <nav class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
-    <a
-        href="{% if request.user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
-        class="app-nav-link {% if active_page == 'dashboard' %}active{% endif %}"
-    >
-        📊 Dashboard
-    </a>
-    <a
-        href="{% url 'customer_list' %}"
-        class="app-nav-link {% if active_page == 'customers' %}active{% endif %}"
-    >
-        👥 Customers
-    </a>
-    <a
-        href="{% url 'product_list' %}"
-        class="app-nav-link {% if active_page == 'products' %}active{% endif %}"
-    >
-        📦 Products
-    </a>
-    <a
-        href="{% url 'invoice_list' %}"
-        class="app-nav-link {% if active_page == 'invoices' %}active{% endif %}"
-    >
-        🧾 Invoices
-    </a>
-    <a
-        href="{% url 'quotation_list' %}"
-        class="app-nav-link {% if active_page == 'quotations' %}active{% endif %}"
-    >
-        📝 Quotes
-    </a>
-    <a
-        href="{% url 'stock_ledger' %}"
-        class="app-nav-link"
-    >
-        📋 Stock Ledger
-    </a>
-    <a
-        href="{% url 'invoice_report' %}"
-        class="app-nav-link {% if active_page == 'reports' %}active{% endif %}"
-    >
-        📅 Reports
-    </a>
-    <a
-        href="{% url 'qr_decoder' %}"
-        class="app-nav-link {% if active_page == 'qr' %}active{% endif %}"
-    >
-        📷 QR Scan
-    </a>
-    {% if not request.user.is_staff %}
-    <a
-        href="{% url 'distributor_profile' %}"
-        class="app-nav-link {% if active_page == 'profile' %}active{% endif %}"
-    >
-        👤 My Profile
-    </a>
-    {% else %}
-    <a href="/admin/" target="_blank" class="app-nav-link">
-        ⚙️ Django Admin ↗
-    </a>
-    {% endif %}
+    <a href="{% url 'distributor_dashboard' %}"
+        class="app-nav-link {% if active_page == 'dashboard' %}active{% endif %}">📊 Dashboard</a>
+    <a href="{% url 'customer_list' %}" class="app-nav-link {% if active_page == 'customers' %}active{% endif %}">👥
+        Customers</a>
+    <a href="{% url 'product_list' %}" class="app-nav-link {% if active_page == 'products' %}active{% endif %}">📦
+        Products</a>
+    <a href="{% url 'invoice_list' %}" class="app-nav-link {% if active_page == 'invoices' %}active{% endif %}">🧾
+        Invoices</a>
+    <a href="{% url 'quotation_list' %}" class="app-nav-link {% if active_page == 'quotations' %}active{% endif %}">📝
+        Quotes</a>
+    <a href="{% url 'stock_ledger' %}" class="app-nav-link">📋 Stock Ledger</a>
+    <a href="{% url 'invoice_report' %}" class="app-nav-link {% if active_page == 'reports' %}active{% endif %}">📅
+        Reports</a>
+    <a href="{% url 'qr_decoder' %}" class="app-nav-link {% if active_page == 'qr' %}active{% endif %}">📷 QR Scan</a>
+    <a href="{% url 'distributor_profile' %}" class="app-nav-link {% if active_page == 'profile' %}active{% endif %}">👤
+        My Profile</a>
 </nav>
 
 <script>
@@ -667,3 +1524,4 @@
         };
     }
 </script>
+{% endif %}
