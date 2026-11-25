@@ -1,18 +1,17 @@
+# Advance Billing System With QR
 
-# 🧾 Advance Billing System With QR
+## Introduction
 
-## Project Description
-
-**Advance Billing System** is a modern, multi-tenant Indian GST billing, inventory, and distribution ERP web application built with **Python and Django**. It provides an end-to-end digital billing platform that enables businesses and distributors to manage customers, track product stock with audit logs, create multi-item GST tax invoices (CGST/SGST & IGST), record partial payments in a Customer Khata ledger, convert quotations to tax invoices in one click, generate branded A4 PDF invoices with UPI & verification QR codes, and export CA-ready GSTR-1 reports.
+**Advance Billing System** is a modern, multi-tenant Indian GST billing, inventory, and distribution ERP web application built with **Python and Django**. It provides a complete digital billing platform enabling businesses and distributors to manage customers, track product inventory with stock-in audit logs, create multi-item GST tax invoices (CGST/SGST & IGST), record partial payments in a Customer Khata ledger, convert quotations to tax invoices in one click, generate branded A4 PDF invoices with UPI & verification QR codes, and export CA-ready GSTR-1 reports.
 
 The platform implements **Role-Based Access Control (RBAC)** with strict multi-tenant data isolation across two dedicated portals:
 
-- **Distributor Portal**: Manage own customers & Khata (Udhar) ledger, product inventory & stock-in audit trail, fast POS tax invoicing, quotations/estimates, partial payments, QR code invoice verification, date-range & GSTR-1 CSV/PDF reports, profile management, and interactive 6-month Sales & GST analytics.
+- **Distributor Portal**: Manage customers & Khata (Udhar) ledger, product inventory & stock-in audit trail, fast POS tax invoicing, quotations/estimates, partial payments, QR invoice verification, date-range & GSTR-1 CSV/PDF reports, profile management, and interactive 6-month Sales & GST analytics.
 - **Admin Portal**: Centralized control center with a fixed dark-navy left sidebar providing platform-wide KPIs, revenue & GST trend charts, distributor rankings & audit drill-down views, live broadcast announcements to all distributors, settlement & stock health analytics, system-wide low-stock watchlist, distributor activate/deactivate controls, CSV exports, and one-click database backups.
 
 ---
 
-## Features
+## Key Features
 
 - **User Registration, Roles & Email OTP**: Separate Admin and Distributor login portals, 2-step distributor registration with Gmail SMTP OTP verification, session-based authentication, and 3-step OTP password recovery with rate limiting.
 - **Customer Management & Khata Ledger**: Full customer CRUD with search, pagination, GSTIN validation, running Debit/Credit balance, overdue alerts, quick payment recording, WhatsApp due reminders, and CSV statement export.
@@ -22,113 +21,117 @@ The platform implements **Role-Based Access Control (RBAC)** with strict multi-t
 - **Branded PDF Invoices & Dual QR Codes**: Instant A4 PDF generation (`xhtml2pdf`) with HSN-wise tax breakup, Indian Amount in Words, pre-filled UPI Scan & Pay QR code, Invoice Verification QR code, and direct email/WhatsApp sharing.
 - **QR Code Scanner & Decoder**: Upload invoice/QR images to decode and verify authentic invoices directly against the database (`pyzbar` + Pillow).
 - **Analytics Dashboards & GSTR-1 Reports**: Interactive Bar/Area monthly sales charts, date-range revenue & collection reports, PDF report export, and CA-ready GSTR-1 B2B / B2C / HSN CSV exports.
+- **Admin Oversight & Live Broadcasts**: Fixed dark-navy Admin sidebar, per-distributor audit drill-down views, live system-wide announcements pushed to all Distributor dashboards, and 1-click JSON/SQLite database backups.
 
 ---
 
-## Installation & Setup
+## Setup & Installation
 
-### Windows (PowerShell / Command Prompt)
+### Prerequisites
+
+> **Note:** Make sure **Python 3.10+**, **pip**, and **Git** are installed on your machine before running the setup commands. For `pyzbar` QR decoding on Ubuntu/Debian run `sudo apt-get install libzbar0`, and on macOS run `brew install zbar` (Windows includes it automatically).
+
+### Installation on Windows
 
 ```powershell
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/sneh125/advance-billing-system.git
-cd advance-billing-system
+cd advance-billing-system/Advance-Billing-System
 
-# 2. Create and activate a virtual environment
+# Create and activate virtual environment
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-# For standard Command Prompt: venv\Scripts\activate.bat
 
-# 3. Install required dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 4. Set up environment variables (add Gmail SMTP credentials in .env for real email OTP)
+# Configure environment variables (add Gmail SMTP credentials in .env for real email OTP)
 copy .env.example .env
 
-# 5. Apply database migrations
+# Run database migrations
 python manage.py makemigrations
 python manage.py migrate
 
-# 6. (Optional) Seed sample distributor, customers, products, and invoices
+# Seed sample distributor, customers, products, and invoices (Optional)
 python seed_data.py
 
-# 7. Create a superuser (admin account)
+# Create an admin superuser
 python manage.py createsuperuser
 
-# 8. Start the development server
+# Start the development server
 python manage.py runserver
 ```
 
-### macOS / Linux (Terminal)
+### Installation on macOS / Linux
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/sneh125/advance-billing-system.git
-cd advance-billing-system
+cd advance-billing-system/Advance-Billing-System
 
-# 2. Create and activate a virtual environment
+# Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# 3. Install required dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 4. Set up environment variables (add Gmail SMTP credentials in .env for real email OTP)
+# Configure environment variables (add Gmail SMTP credentials in .env for real email OTP)
 cp .env.example .env
 
-# 5. Apply database migrations
+# Run database migrations
 python3 manage.py makemigrations
 python3 manage.py migrate
 
-# 6. (Optional) Seed sample distributor, customers, products, and invoices
+# Seed sample distributor, customers, products, and invoices (Optional)
 python3 seed_data.py
 
-# 7. Create a superuser (admin account)
+# Create an admin superuser
 python3 manage.py createsuperuser
 
-# 8. Start the development server
+# Start the development server
 python3 manage.py runserver
 ```
-
-*(Note: For `pyzbar` QR decoding on Ubuntu/Debian run `sudo apt-get install libzbar0`; on macOS run `brew install zbar`. Windows includes it automatically.)*
-
----
-
-## Demo & Admin Credentials
-
-### Distributor Demo Account *(created by `seed_data.py`)*
-- **Username**: `distributor`
-- **Email**: `distributor@gmail.com`
-- **Password**: `Dist@123`
-
-### Admin / Superuser Account
-- Create your own admin account using `python manage.py createsuperuser` or register via `/admin-register/`.
-
----
-
-## Local Server Links
-
-Once the development server is running, access the local application:
-
-- 🔗 **Unified Login**: http://127.0.0.1:8000/login/
-- 🔗 **Admin Login**: http://127.0.0.1:8000/admin-login/
-- 🔗 **Distributor Login**: http://127.0.0.1:8000/distributor-login/
 
 ---
 
 ## Live Demo
 
-*(See [DEPLOYMENT.md](DEPLOYMENT.md) for PythonAnywhere / Render / PostgreSQL deployment steps — add your live URL here once deployed.)*
+- **Unified Login**: http://127.0.0.1:8000/login/
+- **Admin Login**: http://127.0.0.1:8000/admin-login/
+- **Distributor Login**: http://127.0.0.1:8000/distributor-login/
+
+> See [DEPLOYMENT.md](Advance-Billing-System/DEPLOYMENT.md) for PythonAnywhere / Render / PostgreSQL production deployment instructions.
+
+---
+
+## Credentials
+
+### Admin
+
+- **Role:** System Administrator
+- **Setup:** Create via `python manage.py createsuperuser` or register at `/admin-register/`
+- **Portal URL:** `/admin-login/`
+
+### Test User Credentials
+
+| Role | Username | Email | Password |
+| :--- | :--- | :--- | :--- |
+| **Distributor (Seeded)** | `distributor` | `distributor@gmail.com` | `Dist@123` |
+| **Admin (Superuser)** | `admin` | *Created via `createsuperuser`* | *Your chosen password* |
 
 ---
 
 ## Screenshots
 
 ### 1. Login Page
-![Login Page](docs/images/login.png)
+
+![Login Page](Advance-Billing-System/docs/images/login.png)
 
 ### 2. Distributor Dashboard & Monthly Sales Chart
-![Distributor Dashboard & Monthly Sales Chart](docs/images/distributor_dashboard.png)
+
+![Distributor Dashboard & Monthly Sales Chart](Advance-Billing-System/docs/images/distributor_dashboard.png)
 
 ### 3. Admin Dashboard
-![Admin Dashboard](docs/images/admin_dashboard.png)
+
+![Admin Dashboard](Advance-Billing-System/docs/images/admin_dashboard.png)
